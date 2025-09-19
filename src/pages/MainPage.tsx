@@ -10,6 +10,7 @@ import { Globe } from "@gravity-ui/icons";
 import Logo from "../assets/Logo.svg";
 import { LANGUAGES, VIDEO_TYPES } from "../components/hard-data";
 import { useNavigate } from "react-router-dom";
+import useStore from "../components/state/store";
 
 export default function MainPage() {
   const divider = 4;
@@ -18,6 +19,7 @@ export default function MainPage() {
   const [time, setTime] = useState(initTime);
   const [percentage, setPercentage] = useState(0);
   const { t, i18n } = useTranslation();
+  const {setOrder} = useStore.getState();
 
   const navigate = useNavigate();
   const [attachemntUrl] = useState<{
@@ -28,6 +30,9 @@ export default function MainPage() {
     programUrl: ``,
   });
 
+  useEffect(() => {
+    setOrder({});
+  }, [])
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-200">

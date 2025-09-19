@@ -8,12 +8,13 @@ import { ArrowLeft, Globe, CreditCard } from "@gravity-ui/icons";
 import Logo from "../assets/Logo.svg";
 import { LANGUAGES, VIDEO_TYPES } from "../components/hard-data";
 import useStore from "../components/state/store";
+import { EOrderStatus } from "../components/state/order/orderSlice";
 
 export default function AppCardPayPage() {
   const { state } = useLocation();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const {order} = useStore.getState();
+  const {order, setOrderStatus} = useStore.getState();
 
   const [attachemntUrl] = useState<{
     baseUrl: string;
@@ -27,6 +28,7 @@ export default function AppCardPayPage() {
     if (!state || (state && (!state.programName || !state.price))) {
       navigate("/");
     }
+    setOrderStatus(EOrderStatus.PROCESSING_PAYMENT)
     console.log(state);
     console.log(order);
   }, [state, navigate]);

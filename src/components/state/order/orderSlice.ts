@@ -1,59 +1,56 @@
 import { StoreSlice } from "../types";
 
+export enum EPaymentMethod {
+  CASH = 'cash',
+  CARD = 'card',
+  LOYALTY = 'loyalty',
+  MOBILE_PAYMENT = 'mobile_payment',
+}
+
 export enum EOrderStatus {
-  PENDING = 'pending',
-  PROCESSING = 'processing',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
-  FAILED = 'failed',
+  SELECTING_PROGRAM = 'selecting_program',
+  SELECTING_PAYMENT = 'selecting_payment', 
+  PROCESSING_PAYMENT = 'processing_payment',
+  SUCCESS = 'success',
+  ERROR_PAYMENT = 'error_payment',
+  ERROR_ROBOT = 'error_robot',
+  ERROR_INSUFFICIENT_POINTS = 'error_insufficient_points',
 }
 
 export interface Order {
   id: string;
-  programId: string;
+  programId?: string;
   status: EOrderStatus;
-  paymentMethod?: 'bankCard' | 'cash' | 'app';
+  paymentMethod?: EPaymentMethod;
   createdAt: string;
 }
 
 export interface OrderSlice {
   order: Order | null;
   isOrderLoading: boolean;
-  createOrder: (program: {
-    programId: string;
-  }, paymentMethod?: Order['paymentMethod']) => void;
-
+  setOrder: (orderData?: Partial<Order>) => void;
+  setOrderStatus: (status: EOrderStatus) => void;
+  setOrderPaymentMethod: (method: EPaymentMethod) => void;
+  setOrderProgramId: (programId: string) => void;
   clearOrder: () => void;
-  updateOrderStatus: (status: EOrderStatus) => void;
-  setPaymentMethod: (method: Order['paymentMethod']) => void;
-  completeOrder: () => void;
-  cancelOrder: () => void;
 }
 
 export const createOrderSlice: StoreSlice<OrderSlice> = (set, get) => ({
   order: null,
   isOrderLoading: false,
 
-  createOrder: (program, paymentMethod) => {
-    const newOrder: Order = {
-      id: `order_${Date.now()}`,
-      programId: program.programId,
-      status: EOrderStatus.PENDING,
-      paymentMethod,
-      createdAt: new Date().toISOString(),
+  setOrder: (orderData = {}) => {
+    const order: Order = {
+      id: orderData.id || `order_${Date.now()}`,
+      status: orderData. status || EOrderStatus.SELECTING_PROGRAM,
+      createdAt: orderData.createdAt || new Date().toISOString(),
+      ...orderData, 
     };
 
-    set({ order: newOrder });
+    set({ order });
   },
 
-  clearOrder: () => {
-    set({ 
-      order: null,
-      isOrderLoading: false,
-    });
-  },
-
-  updateOrderStatus: (status) => {
+  setOrderStatus: (status) => {
     const { order } = get();
     if (!order) return;
 
@@ -65,7 +62,7 @@ export const createOrderSlice: StoreSlice<OrderSlice> = (set, get) => ({
     });
   },
 
-  setPaymentMethod: (method) => {
+  setOrderPaymentMethod: (method) => {
     const { order } = get();
     if (!order) return;
 
@@ -77,28 +74,21 @@ export const createOrderSlice: StoreSlice<OrderSlice> = (set, get) => ({
     });
   },
 
-  completeOrder: () => {
+  setOrderProgramId: (programId) => {
     const { order } = get();
     if (!order) return;
 
     set({
       order: {
         ...order,
-        status: EOrderStatus.COMPLETED,
-      },
-      isOrderLoading: false,
+        programId,
+      }
     });
   },
 
-  cancelOrder: () => {
-    const { order } = get();
-    if (!order) return;
-
-    set({
-      order: {
-        ...order,
-        status: EOrderStatus.CANCELLED,
-      },
+  clearOrder: () => {
+    set({ 
+      order: null,
       isOrderLoading: false,
     });
   },

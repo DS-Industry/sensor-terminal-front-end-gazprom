@@ -11,12 +11,13 @@ import { ArrowLeft, Globe, CreditCard } from "@gravity-ui/icons";
 import Logo from "../assets/Logo.svg";
 import { LANGUAGES, VIDEO_TYPES } from "../components/hard-data";
 import useStore from "../components/state/store";
+import { EOrderStatus } from "../components/state/order/orderSlice";
 
 export default function CardPayPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const {order} = useStore.getState();
+  const {order, setOrderStatus} = useStore.getState();
 
   const [attachemntUrl] = useState<{
     baseUrl: string;
@@ -30,7 +31,7 @@ export default function CardPayPage() {
     if (!state || (state && (!state.programName || !state.price))) {
       navigate("/");
     }
-
+    setOrderStatus(EOrderStatus.PROCESSING_PAYMENT);
     console.log(state);
     console.log(order);
   }, [state, navigate]);

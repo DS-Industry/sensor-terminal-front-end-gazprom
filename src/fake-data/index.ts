@@ -2,6 +2,7 @@ import BankCard from "./../assets/card.svg";
 import Cash from "./../assets/cash.svg";
 import App from "./../assets/app.svg";
 import Card from "./../assets/app-card.svg";
+import { EPaymentMethod } from "../components/state/order/orderSlice";
 
 type Program = {
   [value: string]: {
@@ -17,7 +18,7 @@ type Program = {
 type Pay = {
   label: string;
   imgUrl: string;
-  type: "bankCard" | "cash" | "app";
+  type: EPaymentMethod;
   endPoint: string;
 };
 
@@ -81,24 +82,24 @@ export const PAYS: Pay[] = [
   {
     label: "Банковская карта",
     imgUrl: BankCard,
-    type: "bankCard",
+    type: EPaymentMethod.CARD,
     endPoint: "bankCard",
   },
   {
     label: "Наличный расчет",
-    type: "cash",
+    type: EPaymentMethod.CASH,
     imgUrl: Cash,
     endPoint: "cash",
   },
   {
     label: "Мобильное приложение",
-    type: "app",
+    type: EPaymentMethod.MOBILE_PAYMENT,
     imgUrl: App,
     endPoint: "app",
   },
   {
     label: "Карта лояльности",
-    type: "app",
+    type: EPaymentMethod.LOYALTY,
     imgUrl: Card,
     endPoint: "appCard",
   },
