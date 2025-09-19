@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Sally from "../assets/Saly-24.svg";
 import GooglePlay from "../assets/Frame.svg";
 import AppStore from "../assets/Frame_apple.svg";
@@ -9,14 +9,17 @@ import { useTranslation } from "react-i18next";
 import { Button, Card as UICard, Icon, DropdownMenu } from '@gravity-ui/uikit';
 import { ArrowLeft, Globe, Smartphone, QrCode } from "@gravity-ui/icons";
 import Logo from "../assets/Logo.svg";
-import { LANGUAGES, VIDEO_TYPES } from "../components/hard-data";
+import { LANGUAGES } from "../components/hard-data";
 import MediaCampaign from "../components/mediaCampaign/mediaCampaign";
 import { useMediaCampaign } from "../hooks/useMediaCampaign";
+import useStore from "../components/state/store";
+import { EOrderStatus } from "../components/state/order/orderSlice";
 
 export default function AppPayPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const {order, setOrderStatus} = useStore.getState();
 
   const { attachemntUrl } = useMediaCampaign();
 
@@ -24,8 +27,9 @@ export default function AppPayPage() {
     if (!state || (state && (!state.programName || !state.price))) {
       navigate("/");
     }
-
+    setOrderStatus(EOrderStatus.PROCESSING_PAYMENT);
     console.log(state);
+    console.log(order);
   }, [state, navigate]);
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-100">

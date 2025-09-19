@@ -3,20 +3,23 @@ import Card from "./../assets/card-big.svg";
 import Mir from "./../assets/mir-logo 1.svg";
 import { FaApplePay, FaGooglePay } from "react-icons/fa6";
 import { RiMastercardLine, RiVisaLine } from "react-icons/ri";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button, Card as UICard, Icon, DropdownMenu } from '@gravity-ui/uikit';
 import { ArrowLeft, Globe, CreditCard } from "@gravity-ui/icons";
 import Logo from "../assets/Logo.svg";
-import { LANGUAGES, VIDEO_TYPES } from "../components/hard-data";
+import { LANGUAGES } from "../components/hard-data";
 import MediaCampaign from "../components/mediaCampaign/mediaCampaign";
 import { useMediaCampaign } from "../hooks/useMediaCampaign";
+import useStore from "../components/state/store";
+import { EOrderStatus } from "../components/state/order/orderSlice";
 
 export default function CardPayPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const {order, setOrderStatus} = useStore.getState();
 
   const { attachemntUrl } = useMediaCampaign();
 
@@ -24,8 +27,9 @@ export default function CardPayPage() {
     if (!state || (state && (!state.programName || !state.price))) {
       navigate("/");
     }
-
+    setOrderStatus(EOrderStatus.PROCESSING_PAYMENT);
     console.log(state);
+    console.log(order);
   }, [state, navigate]);
 
   return (

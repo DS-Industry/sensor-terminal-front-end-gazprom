@@ -1,19 +1,22 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import WifiBlue from "../assets/blue_wifi.svg";
 import PromoCard from "../assets/promo_card.svg";
 import { useTranslation } from "react-i18next";
 import { Button, Card as UICard, Icon, DropdownMenu } from '@gravity-ui/uikit';
 import { ArrowLeft, Globe, CreditCard } from "@gravity-ui/icons";
 import Logo from "../assets/Logo.svg";
-import { LANGUAGES, VIDEO_TYPES } from "../components/hard-data";
+import { LANGUAGES } from "../components/hard-data";
 import MediaCampaign from "../components/mediaCampaign/mediaCampaign";
 import { useMediaCampaign } from "../hooks/useMediaCampaign";
+import useStore from "../components/state/store";
+import { EOrderStatus } from "../components/state/order/orderSlice";
 
 export default function AppCardPayPage() {
   const { state } = useLocation();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const {order, setOrderStatus} = useStore.getState();
 
   const { attachemntUrl } = useMediaCampaign();
 
@@ -21,7 +24,9 @@ export default function AppCardPayPage() {
     if (!state || (state && (!state.programName || !state.price))) {
       navigate("/");
     }
+    setOrderStatus(EOrderStatus.PROCESSING_PAYMENT)
     console.log(state);
+    console.log(order);
   }, [state, navigate]);
 
   return (
