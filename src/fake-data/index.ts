@@ -4,6 +4,7 @@ import App from "./../assets/app.svg";
 import Card from "./../assets/app-card.svg";
 import { IProgram } from "../api/types/program";
 import { IPaymentMethod } from "../api/types/payment";
+import { EPaymentMethod } from "../components/state/order/orderSlice";
 
 export const PROGRAMS: IProgram = {
   express: {
