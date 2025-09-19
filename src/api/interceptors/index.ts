@@ -1,14 +1,8 @@
 import { AxiosError, AxiosInstance, AxiosResponse } from "axios";
-import { getAuthToken, removeAuthToken } from "../axiosConfig";
 
-export function setupAuthInterceptors(axiosInstance: AxiosInstance) {
+export function setupInterceptors(axiosInstance: AxiosInstance) {
   axiosInstance.interceptors.request.use(
     (config) => {
-      const token = getAuthToken(); 
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-
       console.log(`Request: ${config.method?.toUpperCase()} ${config.url}`);
 
       return config;
@@ -35,11 +29,6 @@ export function setupAuthInterceptors(axiosInstance: AxiosInstance) {
         status,
         message: error.message,
       });
-
-      if (error.response?.status === 401) {
-        removeAuthToken(); 
-        window.dispatchEvent(new Event('unauthorized'));
-      }
 
       return Promise.reject(error);
     }
