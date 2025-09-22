@@ -16,6 +16,7 @@ import { IProgram } from "../api/types/program";
 import { getPrograms } from "../api/services/program";
 import MediaCampaign from "../components/mediaCampaign/mediaCampaign";
 import { useMediaCampaign } from "../hooks/useMediaCampaign";
+import ClientLogo from "../components/logo/Logo";
 
 export default function MainPage() {
   const divider = 4;
@@ -60,7 +61,7 @@ export default function MainPage() {
         {/* Header with Logo and Controls */}
         <Card className="mx-7 my-5 p-4 shadow-lg border-0">
           <div className="flex justify-between items-center">
-            <img src={Logo} alt="Logo" className="h-12" />
+            <ClientLogo />
             <div className="flex items-center gap-4">
               {/* Language Dropdown */}
              
