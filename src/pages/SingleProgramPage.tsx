@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Text, Button, Card, Icon, DropdownMenu } from '@gravity-ui/uikit';
 import { ArrowLeft, Clock, Globe } from "@gravity-ui/icons";
 import Logo from "../assets/Logo.svg";
+import ClientLogo from "../components/logo/Logo";
 
 export default function SingleProgramPage() {
   const { program } = useParams();
@@ -87,7 +88,7 @@ export default function SingleProgramPage() {
         {/* Header with Logo and Controls */}
         <Card className="mx-7 my-5 p-4 shadow-lg border-0">
           <div className="flex justify-between items-center">
-            <img src={Logo} alt="Logo" className="h-12" />
+            <ClientLogo />
             <div className="flex items-center gap-4">
               {/* Language Dropdown */}
               <DropdownMenu
