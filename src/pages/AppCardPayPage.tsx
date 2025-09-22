@@ -9,6 +9,7 @@ import Logo from "../assets/Logo.svg";
 import { LANGUAGES, VIDEO_TYPES } from "../components/hard-data";
 import useStore from "../components/state/store";
 import { EOrderStatus } from "../components/state/order/orderSlice";
+import ClientLogo from "../components/logo/Logo";
 
 export default function AppCardPayPage() {
   const { state } = useLocation();
@@ -77,7 +78,7 @@ export default function AppCardPayPage() {
         {/* Header with Logo and Controls */}
         <UICard className="mx-7 my-5 p-4 shadow-lg border-0">
           <div className="flex justify-between items-center">
-            <img src={Logo} alt="Logo" className="h-12" />
+            <ClientLogo />
             <div className="flex items-center gap-4">
               {/* Language Dropdown */}
               <DropdownMenu
