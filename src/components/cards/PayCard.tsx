@@ -53,8 +53,8 @@ export default function PayCard({
           <Text className="text-white font-bold text-2xl">
             {t(`${label}`)}
           </Text>
-          {payType === EPaymentMethod.MOBILE_PAYMENT && (
-            <div className="bg-yellow-400 p-2 rounded-full">
+          {(payType === EPaymentMethod.LOYALTY || payType === EPaymentMethod.MOBILE_PAYMENT) && (
+            <div className="absolute top-0 right-0 bg-yellow-400 p-2 rounded-full">
               <Icon data={SealPercent} size={20} className="text-yellow-800" />
             </div>
           )}
