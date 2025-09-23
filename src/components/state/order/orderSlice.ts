@@ -2,9 +2,9 @@ import { StoreSlice } from "../types";
 
 export enum EPaymentMethod {
   CASH = 'cash',
-  CARD = 'card',
-  LOYALTY = 'loyalty',
-  MOBILE_PAYMENT = 'mobile_payment',
+  CARD = 'bank_card',
+  LOYALTY = 'loyalty_card',
+  MOBILE_PAYMENT = 'mobile_app',
 }
 
 export enum EOrderStatus {
