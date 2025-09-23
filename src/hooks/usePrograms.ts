@@ -7,7 +7,7 @@ import { IProgram } from '../api/types/program';
 const REFRESH_INTERVAL = 3600000;
 
 export function usePrograms() {
-  const { programs, setPrograms } = useStore.getState();
+  const { programs, setPrograms } = useStore();
   
   const swrResult = useSWR<IProgram[]>(
     'programs',

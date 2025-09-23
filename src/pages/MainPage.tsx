@@ -1,24 +1,15 @@
 import "./../App.css";
-import { useEffect, useState } from "react";
 import ProgramCard from "../components/cards/ProgramCard";
 import { useTranslation } from "react-i18next";
 import MediaCampaign from "../components/mediaCampaign/mediaCampaign";
 import { useMediaCampaign } from "../hooks/useMediaCampaign";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
-import { IProgram } from "../api/types/program";
 import { usePrograms } from "../hooks/usePrograms";
 
 export default function MainPage() {
   const { t } = useTranslation();
   const { programs } = usePrograms();
   const { attachemntUrl } = useMediaCampaign();
-  const [displayPrograms, setDisplayPrograms] = useState<IProgram[]>([]);
-
-  useEffect(() => {
-    if (programs) {
-      setDisplayPrograms(programs);
-    }
-  }, [programs]);
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-200">
@@ -42,19 +33,19 @@ export default function MainPage() {
             </div>
 
             {/* Program Cards Section */}
-            {displayPrograms && (
+            {programs && (
               <div className="flex-1 flex flex-col justify-center">
                 <div
                   className={`w-full ${
-                    displayPrograms.length > 4 && "snap-x overflow-x-scroll scroll-p-40"
+                    programs.length > 4 && "snap-x overflow-x-scroll scroll-p-40"
                   }`}
                 >
                   <div
                     className={`flex flex-row justify-center gap-6 ${
-                      displayPrograms.length > 4 ? "min-w-fit" : "w-full"
+                      programs.length > 4 ? "min-w-fit" : "w-full"
                     }`}
                   >
-                    {displayPrograms.map((item) => (
+                    {programs.map((item) => (
                       <ProgramCard
                         id={item.id}
                         name={item.name}
