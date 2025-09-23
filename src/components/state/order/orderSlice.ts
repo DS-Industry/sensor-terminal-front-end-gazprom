@@ -19,7 +19,7 @@ export enum EOrderStatus {
 
 export interface Order {
   id: string;
-  programId?: string;
+  programId?: number;
   status: EOrderStatus;
   paymentMethod?: EPaymentMethod;
   createdAt: string;
@@ -31,7 +31,7 @@ export interface OrderSlice {
   setOrder: (orderData?: Partial<Order>) => void;
   setOrderStatus: (status: EOrderStatus) => void;
   setOrderPaymentMethod: (method: EPaymentMethod) => void;
-  setOrderProgramId: (programId: string) => void;
+  setOrderProgramId: (programId: number) => void;
   clearOrder: () => void;
 }
 
