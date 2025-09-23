@@ -6,3 +6,9 @@ export interface IPaymentMethod  {
   type: EPaymentMethod;
   endPoint: string;
 };
+
+export interface ICreateOrderRequest {
+  program_id: number,
+  payment_type: EPaymentMethod,
+  ucn?: string,
+}

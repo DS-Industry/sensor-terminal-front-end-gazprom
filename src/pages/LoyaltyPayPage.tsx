@@ -1,5 +1,4 @@
-import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import WifiBlue from "../assets/blue_wifi.svg";
 import PromoCard from "../assets/promo_card.svg";
 import { useTranslation } from "react-i18next";
@@ -7,27 +6,29 @@ import { CreditCard } from "@gravity-ui/icons";
 import MediaCampaign from "../components/mediaCampaign/mediaCampaign";
 import { useMediaCampaign } from "../hooks/useMediaCampaign";
 import useStore from "../components/state/store";
-import { EOrderStatus } from "../components/state/order/orderSlice";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 import PaymentTitleSection from "../components/paymentTitleSection/PaymentTitleSection";
 import { Icon } from "@gravity-ui/uikit";
+import { createOrder } from "../api/services/payment";
+import { EPaymentMethod } from "../components/state/order/orderSlice";
 
-export default function AppCardPayPage() {
-  const { state } = useLocation();
+export default function LoyaltyPayPage() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { order, setOrderStatus } = useStore.getState();
-
   const { attachemntUrl } = useMediaCampaign();
+  const {selectedProgram} = useStore();
 
-  useEffect(() => {
-    if (!state || (state && (!state.programName || !state.price))) {
-      navigate("/");
+  const orderCreatedRef = useRef(false);
+  
+  useEffect(() => {    
+    if (selectedProgram && !orderCreatedRef.current) {
+      orderCreatedRef.current = true;
+      
+      createOrder({
+        program_id: selectedProgram.id,
+        payment_type: EPaymentMethod.LOYALTY, 
+      });
     }
-    setOrderStatus(EOrderStatus.PROCESSING_PAYMENT)
-    console.log(state);
-    console.log(order);
-  }, [state, navigate]);
+  }, [selectedProgram]);
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-100">
@@ -89,7 +90,7 @@ export default function AppCardPayPage() {
                 {/* Program Info */}
                 <div className="bg-white/10 p-4 rounded-2xl mb-6">
                   <div className="text-white/80 text-sm mb-2">{t("Программа")}</div>
-                  <div className="text-white font-semibold text-lg">{t(`${state?.programName}`)}</div>
+                  <div className="text-white font-semibold text-lg">{t(`${selectedProgram?.name}`)}</div>
                 </div>
 
                 {/* Payment Details */}
@@ -97,7 +98,7 @@ export default function AppCardPayPage() {
                   <div className="bg-white/10 p-6 rounded-2xl">
                     <div className="text-white/80 text-sm mb-3">{t("К оплате")}</div>
                     <div className="text-white font-bold text-5xl">
-                      {state?.price} {t("р.")}
+                      {selectedProgram?.price} {t("р.")}
                     </div>
                   </div>
 
@@ -111,7 +112,7 @@ export default function AppCardPayPage() {
                   <div className="bg-white/20 p-4 rounded-2xl">
                     <div className="text-white/80 text-sm mb-2">{t("Спишется баллов")}</div>
                     <div className="text-white font-bold text-3xl">
-                      {state?.price} {t("баллов")}
+                      {selectedProgram?.price} {t("баллов")}
                     </div>
                   </div>
                 </div>

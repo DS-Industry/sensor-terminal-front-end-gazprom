@@ -1,33 +1,34 @@
 import Cash from "./../assets/cash.svg";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AttentionTag from "../components/tags/AttentionTag";
 import { useTranslation } from "react-i18next";
 import { CreditCard } from "@gravity-ui/icons";
 import MediaCampaign from "../components/mediaCampaign/mediaCampaign";
 import { useMediaCampaign } from "../hooks/useMediaCampaign";
-import useStore from "../components/state/store";
-import { EOrderStatus } from "../components/state/order/orderSlice";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 import PaymentTitleSection from "../components/paymentTitleSection/PaymentTitleSection";
+import useStore from "../components/state/store";
+import { createOrder } from "../api/services/payment";
+import { EPaymentMethod } from "../components/state/order/orderSlice";
 
 export default function CashPayPage() {
-  const { state } = useLocation();
-  const navigate = useNavigate();
   const { t } = useTranslation();
-  const {order, setOrderStatus} = useStore.getState();
-
   const { attachemntUrl } = useMediaCampaign();
   const [insertedAmount] = useState(110); // Mock inserted amount
+  const {selectedProgram} = useStore();
 
-  useEffect(() => {
-    if (!state || (state && (!state.programName || !state.price))) {
-      navigate("/");
+  const orderCreatedRef = useRef(false);
+  
+  useEffect(() => {    
+    if (selectedProgram && !orderCreatedRef.current) {
+      orderCreatedRef.current = true;
+      
+      createOrder({
+        program_id: selectedProgram.id,
+        payment_type: EPaymentMethod.CASH, 
+      });
     }
-    setOrderStatus(EOrderStatus.PROCESSING_PAYMENT);
-    console.log(state);
-    console.log(order);
-  }, [state, navigate]);
+  }, [selectedProgram]);
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-100">
@@ -89,7 +90,7 @@ export default function CashPayPage() {
                 {/* Program Info */}
                 <div className="bg-white/10 p-4 rounded-2xl mb-6">
                   <div className="text-white/80 text-sm mb-2">{t("Программа")}</div>
-                  <div className="text-white font-semibold text-lg">{t(`${state?.programName}`)}</div>
+                  <div className="text-white font-semibold text-lg">{t(`${selectedProgram?.name}`)}</div>
                 </div>
 
                 {/* Payment Details */}
@@ -97,7 +98,7 @@ export default function CashPayPage() {
                   <div className="bg-white/10 p-6 rounded-2xl">
                     <div className="text-white/80 text-sm mb-3">{t("К оплате")}</div>
                     <div className="text-white font-bold text-5xl">
-                      {state?.price} {t("р.")}
+                      {selectedProgram?.price} {t("р.")}
                     </div>
                   </div>
                   
@@ -112,7 +113,7 @@ export default function CashPayPage() {
                   <div className="bg-white/20 p-4 rounded-2xl">
                     <div className="text-white/80 text-sm mb-2">{t("Осталось внести")}</div>
                     <div className="text-white font-bold text-3xl">
-                      {Math.max(0, (state?.price || 0) - insertedAmount)} {t("р.")}
+                      {Math.max(0, (Number(selectedProgram?.price) || 0) - insertedAmount)} {t("р.")}
                     </div>
                   </div>
                 </div>
@@ -121,9 +122,9 @@ export default function CashPayPage() {
                 <div className="mt-8">
                   <button 
                     className="w-full bg-white text-green-600 font-bold text-xl py-4 px-6 rounded-2xl shadow-lg hover:bg-gray-100 transition-all duration-300"
-                    disabled={insertedAmount < (state?.price || 0)}
+                    disabled={insertedAmount < (Number(selectedProgram?.price) || 0)}
                   >
-                    {insertedAmount >= (state?.price || 0) ? t("Оплатить") : t("Внесите больше средств")}
+                    {insertedAmount >= (Number(selectedProgram?.price) || 0) ? t("Оплатить") : t("Внесите больше средств")}
                   </button>
                 </div>
 

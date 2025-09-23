@@ -11,8 +11,8 @@ import InstructionPage from "./pages/InstructionPage.tsx";
 import CardPayPage from "./pages/CardPayPage.tsx";
 import CashPayPage from "./pages/CashPayPage.tsx";
 import SuccessPaymentPage from "./pages/SuccessPaymentPage.tsx";
-import AppPayPage from "./pages/AppPayPage.tsx";
-import AppCardPayPage from "./pages/AppCardPayPage.tsx";
+import MobilePayPage from "./pages/MobilePayPage.tsx";
+import LoyaltyPayPage from "./pages/LoyaltyPayPage.tsx";
 import ErrorPaymentPage from "./pages/ErrorPaymentPage.tsx";
 
 const router = createBrowserRouter([
@@ -34,11 +34,11 @@ const router = createBrowserRouter([
   },
   {
     path: "/programs/:program/app",
-    element: <AppPayPage />,
+    element: <MobilePayPage />,
   },
   {
     path: "/programs/:program/appCard",
-    element: <AppCardPayPage />,
+    element: <LoyaltyPayPage />,
   },
   {
     path: "/instruction",
