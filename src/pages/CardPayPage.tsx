@@ -11,33 +11,152 @@ import { useMediaCampaign } from "../hooks/useMediaCampaign";
 import useStore from "../components/state/store";
 import PaymentTitleSection from "../components/paymentTitleSection/PaymentTitleSection";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
-import { createOrder } from "../api/services/payment";
-import { EPaymentMethod } from "../components/state/order/orderSlice";
+import { cancelOrder, createOrder, getOrderById, openLoyaltyCardReader, ucnCheck } from "../api/services/payment";
+import { EOrderStatus, EPaymentMethod } from "../components/state/order/orderSlice";
+import { useNavigate } from "react-router-dom";
+
+const DEPOSIT_TIME = 30000;
+const PAYMENT_INTERVAL = 1000;
+const LOYALTY_INTERVAL = 1000;
 
 export default function CardPayPage() {
   const { t } = useTranslation();
   const { attachemntUrl } = useMediaCampaign();
-
-  const {selectedProgram} = useStore();
-
+  const navigate = useNavigate();
   const orderCreatedRef = useRef(false);
-  
-  useEffect(() => {    
-    if (selectedProgram && !orderCreatedRef.current) {
-      orderCreatedRef.current = true;
-      
-      createOrder({
-        program_id: selectedProgram.id,
-        payment_type: EPaymentMethod.CARD, 
-      });
+  const { order, selectedProgram, isLoyalty, openLoyaltyCardModal, closeLoyaltyCardModal, setIsLoading } = useStore();
+
+  let depositTimeout: any = null;
+  let loyalityEmptyTimeout: any = null;
+
+  let checkOrderAmountSumInterval: any = null;
+  let checkLoyaltyInterval: any = null;
+
+  const createOrderAsync = async (ucn?: string) => {
+    if (!selectedProgram || orderCreatedRef.current) {
+      console.log("[CardPayPage] !selectedProgram || orderCreatedRef.current. Ошибка создания заказа");
+      return;
     }
-  }, [selectedProgram]);
+
+    orderCreatedRef.current = true;
+
+    try {
+      setIsLoading(true);
+
+      await createOrder({
+        program_id: selectedProgram.id,
+        payment_type: EPaymentMethod.CASH,
+        ucn: ucn,
+      });
+
+      if (ucn) {
+        console.log("[CardPayPage] Создали заказ с UCN: ", ucn);
+      } else {
+        console.log("[CardPayPage] Создали заказ БЕЗ UCN");
+      }
+
+    } catch (err) {
+      console.error('[CardPayPage] Ошибка создания заказа', err);
+    }
+  };
+
+  const checkLoyaltyAsync = async () => {
+    try {
+      const ucnResponse = await ucnCheck();
+      console.log('[CardPayPage] ucnCheck: ', ucnResponse);
+
+      const ucnCode = ucnResponse.ucn;
+
+      if (ucnCode) {
+        console.log('[CardPayPage] Получили ucn код: ', ucnCode);
+        clearInterval(checkLoyaltyInterval);
+        clearTimeout(loyalityEmptyTimeout);
+        closeLoyaltyCardModal();
+
+        if (Number(ucnCode) !== -1) {
+          createOrderAsync(ucnCode);
+         //будет обработка ошибки карты лояльности 
+        }
+      }
+    } catch (e) {
+      console.log("[CardPayPage] Ошибка : ucnCheck", e);
+    }
+  };
+
+  const checkPaymentAsync = async () => {
+    try {
+      if (order?.id) {
+        const orderDetails = await getOrderById(order.id);
+
+        if (orderDetails.amount_sum) {
+          //для налички отобразить в state внесено:  orderDetails.amount_sum
+          console.log("[CardPayPage] Внесено amount_sum: ", orderDetails.amount_sum);
+
+          if (Number(orderDetails.amount_sum) >= Number(selectedProgram?.price)) {
+            clearInterval(checkOrderAmountSumInterval);
+            clearTimeout(depositTimeout);
+            navigate("/success");
+          }
+        }
+      }
+    } catch (e) {
+      console.log("[CardPayPage] Ошибка : getOrderById", e);
+    }
+  };
+
+  useEffect(() => {
+    //если есть лояльность то показываем модалку и пингуем, ожидая ucn карточки лояльности
+    if (isLoyalty) {
+      console.log("[CardPayPage] Сценарий с лояльностью");
+      //открыли модалку Поднесите карту лояльности
+      openLoyaltyCardModal();
+      //устанавливаем интервал на проверку была ли отсканирована карта лояльности
+      //добавить открытие считывателя
+      openLoyaltyCardReader();
+      checkLoyaltyInterval = setInterval(checkLoyaltyAsync, LOYALTY_INTERVAL);
+      loyalityEmptyTimeout = setTimeout(() => {
+        clearInterval(checkLoyaltyInterval);
+        closeLoyaltyCardModal();
+        createOrderAsync();
+      }, DEPOSIT_TIME);
+    } else {
+      //если без лояльности то просто создаем заказ
+      createOrderAsync();
+    }
+  }, []);
+
+  useEffect(() => {
+    console.log("[CardPayPage] Статус заказа: ", order?.status);
+
+    if (order?.status === EOrderStatus.WAITING_PAYMENT) {
+      setIsLoading(false);
+
+      //устанавливаем таймер на бездействие пользователя
+      depositTimeout = setTimeout(() => {
+        //отменить заказ вернуться на главную 
+        try {
+          if (order.id) {
+            console.log("[CardPayPage] отменяем заказ");
+
+            cancelOrder(order.id);
+            navigate("/");
+          }
+        } catch (e) {
+          console.log("[CardPayPage] Ошибка отмены заказа: ", e);
+        }
+      }, DEPOSIT_TIME);
+
+      //устанавливаем интервал на проверку внесенных средств
+      checkOrderAmountSumInterval = setInterval(checkPaymentAsync, PAYMENT_INTERVAL);
+    }
+
+  }, [order]);
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-100">
       {/* Video Section - 40% of screen height */}
-      <MediaCampaign attachemntUrl={attachemntUrl}/>
-      
+      <MediaCampaign attachemntUrl={attachemntUrl} />
+
       {/* Content Section - 60% of screen height */}
       <div className="flex-1 flex flex-col">
         {/* Header with Logo and Controls */}
@@ -95,7 +214,7 @@ export default function CardPayPage() {
                     <div className="text-white/80 text-sm mb-2">{t("Программа")}</div>
                     <div className="text-white font-semibold text-lg">{t(`${selectedProgram?.name}`)}</div>
                   </div>
-                  
+
                   <div className="bg-white/10 p-6 rounded-2xl">
                     <div className="text-white/80 text-sm mb-3">{t("К оплате")}</div>
                     <div className="text-white font-bold text-5xl">

@@ -15,20 +15,34 @@ export default function CashPayPage() {
   const { t } = useTranslation();
   const { attachemntUrl } = useMediaCampaign();
   const [insertedAmount] = useState(110); // Mock inserted amount
-  const {selectedProgram} = useStore();
+  const {order, selectedProgram, isLoyalty, openLoyaltyCardModal} = useStore();
 
   const orderCreatedRef = useRef(false);
   
   useEffect(() => {    
-    if (selectedProgram && !orderCreatedRef.current) {
+    const createOrderAsync = async () => {
+      if (!selectedProgram || orderCreatedRef.current) {
+        return;
+      }
       orderCreatedRef.current = true;
-      
-      createOrder({
-        program_id: selectedProgram.id,
-        payment_type: EPaymentMethod.CASH, 
-      });
+
+      try {
+        await createOrder({
+          program_id: selectedProgram.id,
+          payment_type: EPaymentMethod.CASH, 
+        });
+
+      } catch (err) {
+        console.error('Failed to create order:', err);
+      } 
+    };
+
+    if (isLoyalty) {
+      openLoyaltyCardModal();
     }
-  }, [selectedProgram]);
+
+    createOrderAsync();
+  }, [selectedProgram, order]);
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-100">

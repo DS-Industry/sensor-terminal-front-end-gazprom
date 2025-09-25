@@ -42,7 +42,7 @@ export default function MainPage() {
                 >
                   <div
                     className={`flex flex-row justify-center gap-6 ${
-                      programs.length > 4 ? "min-w-fit" : "w-full"
+                      programs.length > 5 ? "min-w-fit" : "w-full"
                     }`}
                   >
                     {programs.map((item) => (
@@ -52,6 +52,7 @@ export default function MainPage() {
                         price={item.price}
                         description={item.description}
                         duration={item.duration}
+                        functions={item.functions}
                       />
                     ))}
                   </div>

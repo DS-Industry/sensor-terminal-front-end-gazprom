@@ -34,7 +34,7 @@ export default function ProgramCard(program: IProgram) {
         {/* Service List - No scroll needed with bigger header */}
         <div className="flex-1">
           <ul className="space-y-3">
-            {program.description.split(", ").map((service, index) => (
+            {program.functions && program.functions.split(", ").map((service, index) => (
               <li key={index} className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full flex-shrink-0 bg-white" />
                 <span className="text-sm font-medium text-white">{t(`${service}`)}</span>

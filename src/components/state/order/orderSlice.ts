@@ -18,11 +18,12 @@ export enum EOrderStatus {
 }
 
 export interface Order {
-  id: string;
+  id?: string;
   programId?: number;
   status: EOrderStatus;
   paymentMethod?: EPaymentMethod;
   createdAt: string;
+  transactionId?: string;
 }
 
 export interface OrderSlice {
@@ -41,7 +42,6 @@ export const createOrderSlice: StoreSlice<OrderSlice> = (set, get) => ({
 
   setOrder: (orderData = {}) => {
     const order: Order = {
-      id: orderData.id || `order_${Date.now()}`,
       status: orderData. status || EOrderStatus.CREATED,
       createdAt: orderData.createdAt || new Date().toISOString(),
       ...orderData, 

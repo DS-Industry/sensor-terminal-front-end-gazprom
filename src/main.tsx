@@ -14,6 +14,8 @@ import SuccessPaymentPage from "./pages/SuccessPaymentPage.tsx";
 import MobilePayPage from "./pages/MobilePayPage.tsx";
 import LoyaltyPayPage from "./pages/LoyaltyPayPage.tsx";
 import ErrorPaymentPage from "./pages/ErrorPaymentPage.tsx";
+import { GlobalWebSocketManager } from "./components/globalWebSocketManager/GlobalWebSocketManager.tsx";
+import { ModalProvider } from "./components/modalProvider/ModalProvider.tsx";
 
 const router = createBrowserRouter([
   {
@@ -55,11 +57,11 @@ const router = createBrowserRouter([
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
     <ThemeProvider theme="light">
+      <ModalProvider /> 
+      <GlobalWebSocketManager />
       <Suspense fallback="...is loading">
         <RouterProvider router={router} />
       </Suspense>
     </ThemeProvider>
-  </React.StrictMode>
 );

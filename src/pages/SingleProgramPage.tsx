@@ -7,21 +7,34 @@ import { useMediaCampaign } from "../hooks/useMediaCampaign";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 import { Icon, Text } from "@gravity-ui/uikit";
 import useStore from "../components/state/store";
+import { useEffect, useState } from "react";
+import { loyaltyCheck } from "../api/services/payment";
+import { EPaymentMethod } from "../components/state/order/orderSlice";
 
 export default function SingleProgramPage() {
   const { t } = useTranslation();
-
-  // const { data: paymentMethods, error: paymentMethodsError, isLoading: paymentMethodsLoading } = useSWR<IPaymentMethod[]>(
-  //   '/payment-methods',
-  //   getPaymentMethods,
-  //   {
-  //     revalidateOnFocus: false,
-  //     errorRetryCount: 2,
-  //   }
-  // );
-
-  const { selectedProgram } = useStore();
+  const { selectedProgram, setIsLoyalty, isLoyalty } = useStore();
   const { attachemntUrl } = useMediaCampaign();
+  const [loyaltyLoading, setLoyaltyLoading] = useState(true);
+
+  const checkLoyalty = async() => {
+    const isLoyalty = await loyaltyCheck();
+    const loyaltyStatus = isLoyalty.loyalty_status;    
+    setIsLoyalty(loyaltyStatus);
+    setLoyaltyLoading(false);
+  }
+
+  useEffect(() => {
+    checkLoyalty();
+  }, []);
+
+  const filteredPays = PAYS.filter(pay => {
+    if (!isLoyalty) {
+      return pay.type !== EPaymentMethod.MOBILE_PAYMENT && 
+             pay.type !== EPaymentMethod.LOYALTY;
+    }
+    return true;
+  });
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-100">
@@ -63,7 +76,7 @@ export default function SingleProgramPage() {
 
                 {/* Payment Cards */}
                 <div className="grid grid-cols-2 gap-6 justify-items-center max-w-2xl mx-auto">
-                  {PAYS.map((pay, index) => (
+                  {!loyaltyLoading && filteredPays.map((pay, index) => (
                     <PayCard
                       key={index}
                       payType={pay.type}
