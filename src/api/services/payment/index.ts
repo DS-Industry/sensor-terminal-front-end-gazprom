@@ -30,6 +30,8 @@ export async function cancelOrder(
 ): Promise<void> {  
   
   await axiosInstance.post(PAYMENT.CANCELLATION + `/${order_id}/`);
+  console.log("отменили заказ",  order_id);
+  
 }
 
 export async function loyaltyCheck(): Promise<ILoyaltyCheckResponse> {

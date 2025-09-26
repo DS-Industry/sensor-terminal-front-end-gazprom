@@ -5,11 +5,19 @@ import MediaCampaign from "../components/mediaCampaign/mediaCampaign";
 import { useMediaCampaign } from "../hooks/useMediaCampaign";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 import { usePrograms } from "../hooks/usePrograms";
+import { useEffect } from "react";
+import useStore from "../components/state/store";
 
 export default function MainPage() {
   const { t } = useTranslation();
   const { programs } = usePrograms();
   const { attachemntUrl } = useMediaCampaign();
+  const { clearOrder } = useStore();
+
+  useEffect(() => {
+    console.log("перешли на main");
+    clearOrder();
+  }, [])
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-200">

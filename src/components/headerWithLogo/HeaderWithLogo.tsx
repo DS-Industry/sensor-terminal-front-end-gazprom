@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface IHeaderWithLogoProps {
   isMainPage?: boolean;
+  backButtonClick?: () => void;
 }
 
 export default function HeaderWithLogo(props: IHeaderWithLogoProps) {
@@ -44,7 +45,13 @@ export default function HeaderWithLogo(props: IHeaderWithLogoProps) {
               </DropdownMenu>
               <button
                 className="px-8 py-4 rounded-3xl text-white font-semibold text-medium transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg"
-                onClick={() => navigate("/")}
+                onClick={() => {
+                  if (props.backButtonClick) {
+                    props.backButtonClick();
+                  } else {
+                    navigate('/');
+                  }
+                }}
                 style={{ backgroundColor: "#0B68E1" }}
               >
                 <div className="flex items-center gap-2">

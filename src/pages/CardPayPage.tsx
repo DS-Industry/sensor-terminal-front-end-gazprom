@@ -26,11 +26,10 @@ export default function CardPayPage() {
   const orderCreatedRef = useRef(false);
   const { order, selectedProgram, isLoyalty, openLoyaltyCardModal, closeLoyaltyCardModal, setIsLoading } = useStore();
 
-  let depositTimeout: any = null;
-  let loyalityEmptyTimeout: any = null;
-
-  let checkOrderAmountSumInterval: any = null;
-  let checkLoyaltyInterval: any = null;
+  const depositTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loyalityEmptyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const checkOrderAmountSumIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const checkLoyaltyIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const createOrderAsync = async (ucn?: string) => {
     if (!selectedProgram || orderCreatedRef.current) {
@@ -69,13 +68,17 @@ export default function CardPayPage() {
 
       if (ucnCode) {
         console.log('[CardPayPage] Получили ucn код: ', ucnCode);
-        clearInterval(checkLoyaltyInterval);
-        clearTimeout(loyalityEmptyTimeout);
+        if (checkLoyaltyIntervalRef.current) {
+          clearInterval(checkLoyaltyIntervalRef.current);
+        }
+        if (loyalityEmptyTimeoutRef.current) {
+          clearTimeout(loyalityEmptyTimeoutRef.current);
+        }
         closeLoyaltyCardModal();
 
         if (Number(ucnCode) !== -1) {
           createOrderAsync(ucnCode);
-         //будет обработка ошибки карты лояльности 
+          //будет обработка ошибки карты лояльности 
         }
       }
     } catch (e) {
@@ -93,8 +96,13 @@ export default function CardPayPage() {
           console.log("[CardPayPage] Внесено amount_sum: ", orderDetails.amount_sum);
 
           if (Number(orderDetails.amount_sum) >= Number(selectedProgram?.price)) {
-            clearInterval(checkOrderAmountSumInterval);
-            clearTimeout(depositTimeout);
+            console.log("[CardPayPage] Получена вся сумма: ", orderDetails.amount_sum);
+            if (checkOrderAmountSumIntervalRef.current) {
+              clearInterval(checkOrderAmountSumIntervalRef.current);
+            }
+            if (depositTimeoutRef.current) {
+              clearTimeout(depositTimeoutRef.current);
+            }
             navigate("/success");
           }
         }
@@ -113,9 +121,11 @@ export default function CardPayPage() {
       //устанавливаем интервал на проверку была ли отсканирована карта лояльности
       //добавить открытие считывателя
       openLoyaltyCardReader();
-      checkLoyaltyInterval = setInterval(checkLoyaltyAsync, LOYALTY_INTERVAL);
-      loyalityEmptyTimeout = setTimeout(() => {
-        clearInterval(checkLoyaltyInterval);
+      checkLoyaltyIntervalRef.current = setInterval(checkLoyaltyAsync, LOYALTY_INTERVAL);
+      loyalityEmptyTimeoutRef.current = setTimeout(() => {
+        if (checkLoyaltyIntervalRef.current) {
+          clearInterval(checkLoyaltyIntervalRef.current);
+        }
         closeLoyaltyCardModal();
         createOrderAsync();
       }, DEPOSIT_TIME);
@@ -126,13 +136,15 @@ export default function CardPayPage() {
   }, []);
 
   useEffect(() => {
+    console.log("useEffectuseEffectuseEffectuseEffectuseEffectuseEffect");
+
     console.log("[CardPayPage] Статус заказа: ", order?.status);
 
     if (order?.status === EOrderStatus.WAITING_PAYMENT) {
       setIsLoading(false);
 
       //устанавливаем таймер на бездействие пользователя
-      depositTimeout = setTimeout(() => {
+      depositTimeoutRef.current = setTimeout(() => {
         //отменить заказ вернуться на главную 
         try {
           if (order.id) {
@@ -147,10 +159,38 @@ export default function CardPayPage() {
       }, DEPOSIT_TIME);
 
       //устанавливаем интервал на проверку внесенных средств
-      checkOrderAmountSumInterval = setInterval(checkPaymentAsync, PAYMENT_INTERVAL);
+      checkOrderAmountSumIntervalRef.current = setInterval(checkPaymentAsync, PAYMENT_INTERVAL);
     }
 
+    return () => {
+      if (depositTimeoutRef.current) clearTimeout(depositTimeoutRef.current);
+      if (checkOrderAmountSumIntervalRef.current) clearInterval(checkOrderAmountSumIntervalRef.current);
+    };
   }, [order]);
+
+  const backButtonOnClick = () => {
+    if (depositTimeoutRef.current) {
+      clearTimeout(depositTimeoutRef.current);
+    }
+    if (loyalityEmptyTimeoutRef.current) {
+      clearTimeout(loyalityEmptyTimeoutRef.current);
+    }
+    if (checkOrderAmountSumIntervalRef.current) {
+      clearInterval(checkOrderAmountSumIntervalRef.current);
+    }
+    if (checkLoyaltyIntervalRef.current) {
+      clearInterval(checkLoyaltyIntervalRef.current);
+    }
+
+    closeLoyaltyCardModal();
+    setIsLoading(false);
+
+    if (order?.id) {
+      cancelOrder(order.id);
+    }
+
+    navigate('/');
+  }
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-100">
@@ -160,7 +200,7 @@ export default function CardPayPage() {
       {/* Content Section - 60% of screen height */}
       <div className="flex-1 flex flex-col">
         {/* Header with Logo and Controls */}
-        <HeaderWithLogo />
+        <HeaderWithLogo backButtonClick={backButtonOnClick} />
 
         {/* Main Content Area - Full Screen */}
         <div className="flex-1 flex flex-col">
