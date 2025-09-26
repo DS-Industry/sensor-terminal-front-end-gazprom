@@ -14,7 +14,7 @@ import { EPaymentMethod } from "../components/state/order/orderSlice";
 export default function CashPayPage() {
   const { t } = useTranslation();
   const { attachemntUrl } = useMediaCampaign();
-  const [insertedAmount] = useState(110); // Mock inserted amount
+  const [insertedAmount, setInsertedAmount] = useState(0); // Mock inserted amount
   const {order, selectedProgram, isLoyalty, openLoyaltyCardModal} = useStore();
 
   const orderCreatedRef = useRef(false);

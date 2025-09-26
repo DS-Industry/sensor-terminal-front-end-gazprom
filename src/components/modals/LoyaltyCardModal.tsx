@@ -6,8 +6,14 @@ import Loyalty from '../../assets/loyalty.png';
 import LoyaltyCard from '../../assets/loyalty-card.png';
 import { useTranslation } from 'react-i18next';
 
-export function LoyaltyCardModal() {
-  const { isLoyaltyCardModalOpen, closeLoyaltyCardModal } = useStore();
+interface LoyaltyCardModalProps {
+  onSkipLoyalty: () => void;
+}
+
+export function LoyaltyCardModal({ onSkipLoyalty }: LoyaltyCardModalProps) {
+  const { 
+    isLoyaltyCardModalOpen, 
+  } = useStore();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -21,6 +27,11 @@ export function LoyaltyCardModal() {
       document.body.style.overflow = 'unset';
     };
   }, [isLoyaltyCardModalOpen]);
+
+  const handleSkipLoyalty = () => {
+    console.log("[LoyaltyCardModal] Пользователь нажал 'Продолжить без карты'");
+    onSkipLoyalty();
+  };
 
   if (typeof document === 'undefined') return null;
 
@@ -55,7 +66,7 @@ export function LoyaltyCardModal() {
         <div className="text-center">
           <button
             className="px-8 py-4 rounded-3xl text-white font-semibold text-medium transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg" 
-            onClick={closeLoyaltyCardModal}
+            onClick={handleSkipLoyalty}
             style={{ backgroundColor: "#0B68E1" }}
           >
             Продолжить без карты
