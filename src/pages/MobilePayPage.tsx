@@ -1,5 +1,4 @@
-import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import GooglePlay from "../assets/Frame.svg";
 import AppStore from "../assets/Frame_apple.svg";
 import Bell from "../assets/Bell_perspective_matte.svg";
@@ -10,26 +9,35 @@ import { useMediaCampaign } from "../hooks/useMediaCampaign";
 import useStore from "../components/state/store";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 import PaymentTitleSection from "../components/paymentTitleSection/PaymentTitleSection";
-import { Icon } from "@gravity-ui/uikit";
-import { createOrder } from "../api/services/payment";
-import { EPaymentMethod } from "../components/state/order/orderSlice";
+import { createOrder, getMobileQr } from "../api/services/payment";
+import QRCode from "react-qr-code";
 
 export default function MobilePayPage() {
   const { t } = useTranslation();
   const { attachemntUrl } = useMediaCampaign();
-  const {selectedProgram} = useStore();
+  const { selectedProgram } = useStore();
+
+  const [qrCode, setQrCode] = useState("");
 
   const orderCreatedRef = useRef(false);
-  
-  useEffect(() => {    
+
+  const getQrCodeAsync = async () => {
     if (selectedProgram && !orderCreatedRef.current) {
       orderCreatedRef.current = true;
-      
-      createOrder({
-        program_id: selectedProgram.id,
-        payment_type: EPaymentMethod.MOBILE_PAYMENT, 
-      });
+
+      const response = await getMobileQr();
+
+      if (response.qr_code) {
+        console.log("Response qr", response);
+        
+        setQrCode(response.qr_code);
+      }
+      //await qr code
     }
+  }
+
+  useEffect(() => {
+    getQrCodeAsync();
   }, [selectedProgram]);
 
   return (
@@ -108,13 +116,21 @@ export default function MobilePayPage() {
                       className="w-32 h-12 object-contain bg-white/10 rounded-lg p-2"
                     />
                   </div>
-                  
+
                   {/* QR Code Placeholder */}
-                  <div className="w-48 h-48 bg-white/20 rounded-2xl flex items-center justify-center mb-6">
-                    <div className="text-center">
-                      <Icon data={QrCode} size={64} className="text-white/60 mb-2" />
-                      <div className="text-white/80 text-sm">QR-код</div>
-                    </div>
+                  <div className="w-48 h-48 bg-white rounded-2xl flex items-center justify-center mb-6 p-4">
+                    {qrCode ? (
+                      <QRCode
+                        size={256}
+                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                        value={qrCode}
+                        viewBox={`0 0 256 256`}
+                      />
+                    ) : (
+                      <div className="text-center">
+                        <div className="text-white/80 text-sm">QR-код</div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -132,7 +148,7 @@ export default function MobilePayPage() {
                       {Number(selectedProgram?.price)} {t("р.")}
                     </div>
                   </div>
-                  
+
                   <div className="bg-white/20 p-4 rounded-2xl">
                     <div className="text-white/80 text-sm mb-2">{t("Ваш CashBack")}</div>
                     <div className="text-white font-bold text-2xl">+10%</div>

@@ -107,7 +107,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   const checkPaymentAsync = async () => {
     try {
       if (order?.id) {
-        const orderDetails = await getOrderById(order.id);
+        const orderDetails = await getOrderById(order.id); // нужно будет получить чек, когда статус payed  
 
         if (orderDetails.amount_sum) {
           const amountSum = Number(orderDetails.amount_sum);

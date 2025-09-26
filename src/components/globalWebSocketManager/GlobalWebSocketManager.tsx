@@ -1,9 +1,23 @@
 import { useEffect } from 'react';
 import useStore from '../state/store';
 import { globalWebSocketManager } from '../../util/websocketManager';
+import { EOrderStatus } from '../state/order/orderSlice';
+import { getOrderById } from '../../api/services/payment';
 
 export function GlobalWebSocketManager() {
-  const { setOrder, order } = useStore();
+  const { setOrder, order, setBankCheck } = useStore();
+
+  const setCheck = async(id: string) => {    
+    const response = await getOrderById(id);
+
+    console.log("запрос заказа", id, response);
+    
+    if (response.qr_code) {
+      console.log("получили qr: ", response.qr_code);
+
+      setBankCheck(response.qr_code);
+    }
+  } 
 
   useEffect(() => {
     console.log('Initializing global WebSocket manager...');
@@ -19,6 +33,10 @@ export function GlobalWebSocketManager() {
           transactionId: data.transaction_id,
         });
 
+      }
+
+      if (data.status === EOrderStatus.PAYED) {
+        setCheck(data.order_id)
       }
     };
 

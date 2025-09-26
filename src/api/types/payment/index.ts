@@ -28,7 +28,7 @@ export interface IGetOrderByIdResponse {
   queue_position?: number;
   queue_number?: number;
   status: EOrderStatus;
-  qr_code?: string;
+  qr_code?: string; //чек для оплаты
 }
 
 export interface IUcnCheckResponse {
@@ -36,4 +36,8 @@ export interface IUcnCheckResponse {
   discount?: string,
   cashback?: string,
   balance?: string,
+}
+
+export interface IGetMobileQr {
+  qr_code: string;
 }

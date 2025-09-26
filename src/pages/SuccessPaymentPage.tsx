@@ -6,11 +6,15 @@ import Sally from "../assets/Saly-22.svg";
 import { useEffect, useState } from "react";
 import { secondsToTime } from "../util";
 import { useTranslation } from "react-i18next";
+import QRCode from "react-qr-code";
+import useStore from "../components/state/store";
 
 export default function SuccessPaymentPage() {
   const [isBusy, setIsBusy] = useState<number>(10);
   const [wasBusy, setWasBusy] = useState<boolean>(false);
   const { t } = useTranslation();
+
+  const { bankCheck } = useStore();
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -69,12 +73,20 @@ export default function SuccessPaymentPage() {
 
         {isBusy >= 0 && (
           <div>
-            <img
-              src="http://qrcoder.ru/code/?test+check+success&4&0"
-              title="QR код"
-              alt="QR code"
-              className=" object-contain rounded-3xl min-w-[200px] min-h-[200px] max-w-[200px] max-h-[200px] mt-14"
-            />
+            <div className="w-48 h-48 bg-white rounded-2xl flex items-center justify-center mb-6 p-4">
+              {bankCheck ? (
+                <QRCode
+                  size={256}
+                  style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                  value={bankCheck}
+                  viewBox={`0 0 256 256`}
+                />
+              ) : (
+                <div className="text-center">
+                  <div className="text-white/80 text-sm">QR-код</div>
+                </div>
+              )}
+            </div>
             <p className=" font-montserrat-regular text-[1.5rem] text-white-500 mt-14">
               {t("Ваш чек")}
             </p>

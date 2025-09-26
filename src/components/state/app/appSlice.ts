@@ -8,11 +8,13 @@ export interface AppSlice {
   isLoyalty: boolean;
   isLoading: boolean;
   insertedAmount: number;
+  bankCheck: string;
   setIsLoyalty: (loyalty: boolean) => void;
   setPrograms: (programs: IProgram[]) => void;
   setSelectedProgram: (program: IProgram | null) => void;
   setIsLoading: (isLoading: boolean) => void;
   setInsertedAmount: (inserted: number) => void;
+  setBankCheck: (bankCheck: string) => void;
 }
 
 export const createAppSlice: StoreSlice<AppSlice> = (set) => ({
@@ -22,6 +24,7 @@ export const createAppSlice: StoreSlice<AppSlice> = (set) => ({
   isLoyalty: false,
   isLoading: false,
   insertedAmount: 0,
+  bankCheck: "",
 
   setPrograms: (programs) => {
     set(state => ({...state, programs}));
@@ -41,5 +44,9 @@ export const createAppSlice: StoreSlice<AppSlice> = (set) => ({
 
   setInsertedAmount: (inserted) => {
     set(state => ({...state, insertedAmount: inserted}));
+  },
+
+  setBankCheck: (bankCheck) => {
+    set(state => ({...state, bankCheck}));
   },
 });
