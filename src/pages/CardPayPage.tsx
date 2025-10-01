@@ -27,7 +27,7 @@ export default function CardPayPage() {
     paymentSuccess, 
     startRobot,
     timeUntilRobotStart 
-  } = usePaymentProcessing(EPaymentMethod.CASH);
+  } = usePaymentProcessing(EPaymentMethod.CARD);
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-100">

@@ -69,7 +69,7 @@ export default function LoyaltyPayPage() {
       setIsLoading(true);
       await createOrder({
         program_id: selectedProgram.id,
-        payment_type: EPaymentMethod.CASH,
+        payment_type: EPaymentMethod.LOYALTY,
         ucn: ucn,
       });
       console.log(`[LoyaltyPayPage] Создали заказ ${ucn ? 'с UCN' : 'БЕЗ UCN'}`);

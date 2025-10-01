@@ -133,6 +133,11 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
           const amountSum = Number(orderDetails.amount_sum);
           console.log(`[${paymentMethod}Page] Внесено:`, amountSum);
 
+          if (depositTimeoutRef.current) {
+            clearTimeout(depositTimeoutRef.current);
+            depositTimeoutRef.current = null;
+          }
+
           // Для наличных обновляем сумму в UI
           if (paymentMethod === EPaymentMethod.CASH) {
             setInsertedAmount(amountSum);

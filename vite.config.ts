@@ -1,9 +1,8 @@
-import path from "path";
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import path from 'path';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -12,11 +11,8 @@ export default defineConfig({
     },
   },
   server: {
-    host: true, // Разрешает доступ с внешних устройств
-    allowedHosts: [
-      "uniformly-different-cony.cloudpub.ru", // Разрешаем доступ с CloudPub
-      "localhost", // Разрешаем локальный доступ
-      "127.0.0.1", // Разрешаем доступ по IP
-    ],
+    host: true, // Разрешает доступ с внешних устройств (не только localhost)
+    port: 5173, // Порт, на котором работает Vite
+    strictPort: true, // Гарантирует, что сервер не запустится на другом порту, если 5173 занят
   },
 });
