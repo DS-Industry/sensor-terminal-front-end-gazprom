@@ -7,18 +7,31 @@ import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 import { usePrograms } from "../hooks/usePrograms";
 import { useEffect } from "react";
 import useStore from "../components/state/store";
+import { EOrderStatus } from "../components/state/order/orderSlice";
+import { startRobot } from "../api/services/payment";
+import { useNavigate } from "react-router-dom";
 
 export default function MainPage() {
   const { t } = useTranslation();
   const { programs } = usePrograms();
   const { attachemntUrl } = useMediaCampaign();
-  const { clearOrder, setInsertedAmount, setIsLoading } = useStore();
+  const { order, clearOrder, setInsertedAmount, setIsLoading } = useStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     clearOrder();
     setInsertedAmount(0);
     setIsLoading(false);
   }, [])
+
+  useEffect(() => {
+    if (order?.status === EOrderStatus.PAYED) {
+      if (order.id) {
+        startRobot(order.id);
+        navigate('success');
+      }
+    }
+  }, [order])
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-200">

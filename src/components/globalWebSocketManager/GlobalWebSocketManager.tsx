@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import useStore from '../state/store';
 import { globalWebSocketManager } from '../../util/websocketManager';
 import { EOrderStatus } from '../state/order/orderSlice';
-import { getOrderById, startRobot } from '../../api/services/payment';
+import { getOrderById } from '../../api/services/payment';
 
 export function GlobalWebSocketManager() {
   const { setOrder, order, setBankCheck, setIsLoading } = useStore();
@@ -37,11 +37,7 @@ export function GlobalWebSocketManager() {
       }
 
       if (data.status === EOrderStatus.PAYED) {
-        if (window.location.pathname === '/') {
-          startRobot(data.order_id);
-        } else {
-          setCheck(data.order_id);
-        }
+        setCheck(data.order_id);
       }
     };
 
