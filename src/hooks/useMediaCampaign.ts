@@ -6,7 +6,7 @@ export const useMediaCampaign = (programUrl?: string) => {
     programUrl: string;
   }>({
     baseUrl: `${import.meta.env.VITE_ATTACHMENT_BASE_URL}`,
-    programUrl: programUrl || '',
+    programUrl: programUrl ? `${import.meta.env.VITE_S3_URL}/${programUrl}` : "",
   });
 
   return { attachemntUrl };

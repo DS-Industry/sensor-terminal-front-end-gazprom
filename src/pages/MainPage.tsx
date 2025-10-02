@@ -28,7 +28,7 @@ export default function MainPage() {
       {/* Content Section - 60% of screen height */}
       <div className="flex-1 flex flex-col">
         {/* Header with Logo and Controls */}
-        <HeaderWithLogo isMainPage={true}/>
+        <HeaderWithLogo isMainPage={true}/> 
 
         {/* Main Content Area */}
         <div className="flex-1 px-7 pb-7">

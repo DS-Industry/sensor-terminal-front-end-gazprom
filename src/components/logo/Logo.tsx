@@ -2,19 +2,19 @@ import { useState } from 'react';
 import { getS3LogoUrl } from '../../util/s3Utils';
 
 interface ClientLogoProps {
-  client?: string;
+  logo?: string;
   alt?: string;
   className?: string;
 }
 
 export default function ClientLogo({ 
-  client, 
+  logo, 
   alt, 
   className = '', 
 }: ClientLogoProps) {
   const [hasError, setHasError] = useState(false);
   
-  const logoUrl = client ? getS3LogoUrl(client.toLowerCase()) : "";
+  const logoUrl = logo ? getS3LogoUrl(logo) : "";
   
   const handleError = () => {
     setHasError(true);
