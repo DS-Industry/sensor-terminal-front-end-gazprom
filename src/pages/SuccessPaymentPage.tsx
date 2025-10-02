@@ -2,7 +2,7 @@ import NavigationButton from "../components/buttons/NavigationButton";
 import Logo from "../assets/Logo-white.svg";
 import WhiteBack from "../assets/exit_to_app_white.svg";
 import CheckMark from "../assets/Success_perspective_matte 1.svg";
-import Sally from "../assets/Saly-22.svg";
+import Sally from "../assets/Saly-22.webp";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";

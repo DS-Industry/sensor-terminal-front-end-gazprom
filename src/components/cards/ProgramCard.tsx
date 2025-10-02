@@ -21,7 +21,7 @@ export default function ProgramCard(program: IProgram) {
         navigate(`/programs/${program.id}`)
       }}
     >
-      <div className="flex-shrink-0 h-96 p-6 relative flex flex-col bg-gradient-to-br from-blue-500 to-blue-600">
+      <div className="flex-shrink-0 h-96 p-4 relative flex flex-col bg-gradient-to-br from-blue-500 to-blue-600">
         {/* Duration Badge */}
         <div className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 self-start bg-white/20 backdrop-blur-sm border border-white/10">
           <Clock className="w-4 h-4 text-white" />
@@ -29,11 +29,11 @@ export default function ProgramCard(program: IProgram) {
         </div>
 
         {/* Title */}
-        <h2 className="text-3xl font-bold mb-6 text-balance leading-tight text-white">{t(`${program.name}`)}</h2>
+        <h2 className="text-3xl font-bold mb-5 text-balance leading-tight text-white whitespace-nowrap">{t(`${program.name}`)}</h2>
 
         {/* Service List - No scroll needed with bigger header */}
         <div className="flex-1">
-          <ul className="space-y-3">
+          <ul className="space-y-2">
             {program.functions && program.functions.split(", ").map((service, index) => (
               <li key={index} className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full flex-shrink-0 bg-white" />

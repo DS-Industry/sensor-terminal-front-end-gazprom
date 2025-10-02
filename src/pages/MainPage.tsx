@@ -45,14 +45,10 @@ export default function MainPage() {
             {programs && (
               <div className="flex-1 flex flex-col justify-center">
                 <div
-                  className={`w-full ${
-                    programs.length > 4 && "snap-x overflow-x-scroll scroll-p-40"
-                  }`}
+                  className={`w-full snap-x`}
                 >
                   <div
-                    className={`flex flex-row justify-center gap-6 ${
-                      programs.length > 5 ? "min-w-fit" : "w-full"
-                    }`}
+                    className={`flex flex-row justify-center gap-6 w-full`}
                   >
                     {programs.map((item) => (
                       <ProgramCard

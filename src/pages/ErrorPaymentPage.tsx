@@ -2,7 +2,7 @@ import NavigationButton from "../components/buttons/NavigationButton";
 import Logo from "../assets/Logo-white.svg";
 import WhiteBack from "../assets/exit_to_app_white.svg";
 import Emoji from "../assets/emoji-sad.svg";
-import Sally from "../assets/Saly-2.svg";
+import Sally from "../assets/Saly-2.webp";
 import { useTranslation } from "react-i18next";
 
 export default function ErrorPaymentPage() {

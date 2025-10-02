@@ -176,7 +176,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       cancelOrder(order.id);
     }
 
-    navigate('/');
+    navigate(-1);
   };
 
   const startRobot = () => {
