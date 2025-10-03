@@ -1,6 +1,6 @@
 const WS_BASE_URL = import.meta.env.VITE_API_BASE_WS_URL || "";
 
-type WebSocketEvent = 'status_update' | 'mobile_payment' | 'device_status';
+type WebSocketEvent = 'status_update' | 'mobile_payment' | 'device_status' | 'error';
 
 interface WebSocketMessage {
   type: WebSocketEvent;
@@ -15,11 +15,11 @@ type EventListener = (data: WebSocketMessage) => void;
 class WebSocketManager {
   private ws: WebSocket | null = null;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 2;
-  private reconnectInterval = 3000;
+  private maxReconnectAttempts = 5;
+  private reconnectInterval = 5000;
   private listeners: Map<WebSocketEvent, EventListener[]> = new Map();
   public isConnected = false;
-  private connectionTimeout: NodeJS.Timeout | null = null;
+  private connectionTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.initializeConnection();
@@ -31,7 +31,7 @@ class WebSocketManager {
     }, 1000);
   }
 
-  connect() {
+  connect() { 
     if (this.ws?.readyState === WebSocket.OPEN) return;
 
     try {

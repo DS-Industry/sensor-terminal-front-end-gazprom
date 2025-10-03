@@ -11,6 +11,8 @@ import { EOrderStatus } from "../components/state/order/orderSlice";
 import { startRobot } from "../api/services/payment";
 import { useNavigate } from "react-router-dom";
 
+const MAIN_PAGE_URL = "Main"
+
 export default function MainPage() {
   const { t } = useTranslation();
   const { programs } = usePrograms();
@@ -26,9 +28,11 @@ export default function MainPage() {
 
   useEffect(() => {
     if (order?.status === EOrderStatus.PAYED) {
+      console.log("Оплата мобильным приложением", order);
+
       if (order.id) {
         startRobot(order.id);
-        navigate('success');
+        navigate('/success');
       }
     }
   }, [order])

@@ -1,11 +1,9 @@
-import NavigationButton from "../components/buttons/NavigationButton";
-import Logo from "../assets/Logo-white.svg";
-import WhiteBack from "../assets/exit_to_app_white.svg";
 import CheckMark from "../assets/Success_perspective_matte 1.svg";
 import Sally from "../assets/Saly-22.webp";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import useStore from "../components/state/store";
 
 const IDLE_TIMEOUT = 30000;
 
@@ -13,6 +11,8 @@ export default function SuccessPaymentPage() {
   const { t } = useTranslation();
 
   const navigate = useNavigate();
+
+  const { setIsLoading } = useStore();
 
   const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -28,6 +28,8 @@ export default function SuccessPaymentPage() {
   }
 
   useEffect(() => {
+    setIsLoading(false);
+
     if (!idleTimeoutRef.current) {
       idleTimeoutRef.current = setTimeout(handleFinish, IDLE_TIMEOUT);
     }
@@ -39,22 +41,6 @@ export default function SuccessPaymentPage() {
 
   return (
     <section className="bg-primary h-screen w-screen bg-[#0045FF] flex flex-col justify-center">
-      {/* <div className="w-full flex justify-between py-8 px-8">
-        <img
-          src={Logo}
-          alt="Logo"
-          className="min-w-[173px] min-h-[71px] max-w-[173px] max-h-[71px]"
-        />
-        <NavigationButton
-          label={
-            <img
-              src={WhiteBack}
-              alt="Back"
-              className="min-w-[69px] min-h-[68px] max-w-[69px] max-h-[68px]"
-            />
-          }
-        />
-      </div> */}
       <div className="flex flex-col items-center">
         <img
           src={CheckMark}

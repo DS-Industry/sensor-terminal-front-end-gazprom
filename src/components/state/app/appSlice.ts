@@ -9,12 +9,17 @@ export interface AppSlice {
   isLoading: boolean;
   insertedAmount: number;
   bankCheck: string;
+  navigationTarget: string | null;
+  errorText: string;
   setIsLoyalty: (loyalty: boolean) => void;
   setPrograms: (programs: IProgram[]) => void;
   setSelectedProgram: (program: IProgram | null) => void;
   setIsLoading: (isLoading: boolean) => void;
   setInsertedAmount: (inserted: number) => void;
   setBankCheck: (bankCheck: string) => void;
+  setNavigationTarget: (target: string | null) => void;
+  clearNavigation: () => void;
+  setErrorText: (error: string) => void;
 }
 
 export const createAppSlice: StoreSlice<AppSlice> = (set) => ({
@@ -25,6 +30,8 @@ export const createAppSlice: StoreSlice<AppSlice> = (set) => ({
   isLoading: false,
   insertedAmount: 0,
   bankCheck: "",
+  navigationTarget: null,
+  errorText: "",
 
   setPrograms: (programs) => {
     set(state => ({...state, programs}));
@@ -49,4 +56,16 @@ export const createAppSlice: StoreSlice<AppSlice> = (set) => ({
   setBankCheck: (bankCheck) => {
     set(state => ({...state, bankCheck}));
   },
+
+  setNavigationTarget: (target) => {
+    set(state => ({...state, navigationTarget: target }));
+  },
+
+  clearNavigation: () => {
+    set(state => ({...state, navigationTarget: null }));
+  },
+
+  setErrorText: (error) => {
+    set(state => ({...state, errorText: error}));
+  }
 });

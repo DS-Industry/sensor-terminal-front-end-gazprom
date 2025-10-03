@@ -4,7 +4,7 @@ import useStore from '../components/state/store';
 import { cancelOrder, createOrder, getOrderById, openLoyaltyCardReader, startRobot, ucnCheck } from '../api/services/payment';
 import { EOrderStatus, EPaymentMethod } from '../components/state/order/orderSlice';
 
-const DEPOSIT_TIME = 30000;
+const DEPOSIT_TIME = 60000;
 const PAYMENT_INTERVAL = 1000;
 const LOYALTY_INTERVAL = 1000;
 const START_ROBOT_INTERVAL = 35000;

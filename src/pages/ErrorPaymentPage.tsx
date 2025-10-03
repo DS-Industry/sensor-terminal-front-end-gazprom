@@ -4,50 +4,69 @@ import WhiteBack from "../assets/exit_to_app_white.svg";
 import Emoji from "../assets/emoji-sad.svg";
 import Sally from "../assets/Saly-2.webp";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import useStore from "../components/state/store";
+import { useEffect, useRef } from "react";
+
+const IDLE_TIMEOUT = 30000;
+
 
 export default function ErrorPaymentPage() {
   const { t } = useTranslation();
-  return (
-    <section className=" bg-primary h-screen w-screen">
-      <div className=" w-full flex justify-between py-8 px-8">
-        <img
-          src={Logo}
-          alt="Logo"
-          className={`min-w-[173px] min-h-[71px] max-w-[173px] max-h-[71px]`}
-        />
+  const navigate = useNavigate();
+  const { errorText, setIsLoading } = useStore();
+  const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-        <NavigationButton
-          label={
-            <img
-              src={WhiteBack}
-              alt="Back"
-              className={`min-w-[69px] min-h-[68px] max-w-[69px] max-h-[68px]`}
-            />
-          }
-        />
-      </div>
-      <div className={` flex flex-col items-center`}>
+  const handleFinish = () => {
+    navigate("/");
+  }
+
+  const clearIdleTimeout = () => {
+    if (idleTimeoutRef.current) {
+      clearTimeout(idleTimeoutRef.current);
+      idleTimeoutRef.current = null;
+    }
+  }
+
+  useEffect(() => {
+      setIsLoading(false);
+
+      if (!idleTimeoutRef.current) {
+        idleTimeoutRef.current = setTimeout(handleFinish, IDLE_TIMEOUT);
+      }
+  
+      return () => {
+        clearIdleTimeout();
+      };
+    }, []);
+
+  return (
+    <section className="flex flex-col justify-center bg-primary h-screen w-screen bg-[#0045FF]">
+      <div className="flex flex-col items-center">
         <img src={Emoji} className=" mt-10" />
-        <p className=" font-inter-bold text-white-500 text-[6rem] px-[7rem] mt-20">
-          {t("Недостаточно")}
+
+        <p className="text-white text-[104px] font-semibold mb-12">
+          {errorText ? t(errorText) : t("Ошибка запуска робота")}
         </p>
-        <p className=" font-inter-bold text-white-500 text-[6rem] px-[7rem]">
-          {t("баллов")}
-        </p>
-        <p className=" font-inter-bold text-white-500 text-[6rem] px-[7rem]">
-          {t("для оплаты")}
-        </p>
+
         <img
           src={Sally}
           alt="sally"
           className=" min-w-[50rem] min-h-[50rem] max-w-[10rem] max-h-[5rem] object-cover mt-5"
         />
       </div>
-      <div>
-        <button className=" font-inter-medium text-[1.5rem] px-10 py-2 bg-gradient-to-t from-blue-100 to-white-500 rounded-3xl shadow-[0px_10px_20px_0px_rgba(0,0,0,0.3)]">
-          {t("Понятно")}
-        </button>
-      </div>
+
+      <button
+        className="fixed right-8 bottom-8 px-8 py-4 rounded-3xl text-[#0B68E1] bg-white font-semibold text-medium transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg z-50"
+        onClick={() => {
+          handleFinish();
+        }}
+        style={{ backgroundColor: "" }}
+      >
+        <div className="flex items-center justify-center gap-2">
+          {t("Завершить")}
+        </div>
+      </button>
     </section>
   );
 }
