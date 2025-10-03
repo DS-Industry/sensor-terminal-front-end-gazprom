@@ -14,11 +14,13 @@ import QRCode from "react-qr-code";
 import { EOrderStatus } from "../components/state/order/orderSlice";
 import { useNavigate } from "react-router-dom";
 
+const MOBILE_PAGE_URL = "MobilePage.webp";
+
 const IDLE_TIME = 30000;
 
 export default function MobilePayPage() {
   const { t } = useTranslation();
-  const { attachemntUrl } = useMediaCampaign();
+  const { attachemntUrl } = useMediaCampaign(MOBILE_PAGE_URL);
   const { order, selectedProgram } = useStore();
   const navigate = useNavigate();
 

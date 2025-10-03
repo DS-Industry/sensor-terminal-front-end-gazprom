@@ -11,10 +11,12 @@ import { useEffect, useState } from "react";
 import { loyaltyCheck } from "../api/services/payment";
 import { EPaymentMethod } from "../components/state/order/orderSlice";
 
+const SINGLE_PAGE_URL = "SinglePage.webp";
+
 export default function SingleProgramPage() {
   const { t } = useTranslation();
   const { selectedProgram, setIsLoyalty, isLoyalty } = useStore();
-  const { attachemntUrl } = useMediaCampaign();
+  const { attachemntUrl } = useMediaCampaign(SINGLE_PAGE_URL);
   const [loyaltyLoading, setLoyaltyLoading] = useState(true);
 
   const checkLoyalty = async() => {

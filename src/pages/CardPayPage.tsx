@@ -15,9 +15,11 @@ import { LoyaltyCardModal } from "../components/modals/LoyaltyCardModal";
 import { usePaymentProcessing } from "../hooks/usePaymentProcessing";
 import SuccessPayment from "../components/successPayment/SuccessPayment";
 
+const CARD_PAGE_URL = "CardPage.webp";
+
 export default function CardPayPage() {
   const { t } = useTranslation();
-  const { attachemntUrl } = useMediaCampaign();
+  const { attachemntUrl } = useMediaCampaign(CARD_PAGE_URL);
   const { isLoyaltyCardModalOpen } = useStore();
 
   const { 

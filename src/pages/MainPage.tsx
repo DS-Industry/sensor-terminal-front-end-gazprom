@@ -11,12 +11,12 @@ import { EOrderStatus } from "../components/state/order/orderSlice";
 import { startRobot } from "../api/services/payment";
 import { useNavigate } from "react-router-dom";
 
-const MAIN_PAGE_URL = "Main"
+const MAIN_PAGE_URL = "MainPage.webp";
 
 export default function MainPage() {
   const { t } = useTranslation();
   const { programs } = usePrograms();
-  const { attachemntUrl } = useMediaCampaign();
+  const { attachemntUrl } = useMediaCampaign(MAIN_PAGE_URL);
   const { order, clearOrder, setInsertedAmount, setIsLoading } = useStore();
   const navigate = useNavigate();
 

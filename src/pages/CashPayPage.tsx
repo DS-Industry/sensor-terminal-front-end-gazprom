@@ -12,9 +12,11 @@ import { usePaymentProcessing } from "../hooks/usePaymentProcessing";
 import { LoyaltyCardModal } from "../components/modals/LoyaltyCardModal";
 import SuccessPayment from "../components/successPayment/SuccessPayment";
 
+const CASH_PAGE_URL = "CashPage.webp";
+
 export default function CashPayPage() {
   const { t } = useTranslation();
-  const { attachemntUrl } = useMediaCampaign();
+  const { attachemntUrl } = useMediaCampaign(CASH_PAGE_URL);
   const { isLoyaltyCardModalOpen, insertedAmount } = useStore();
 
   const { selectedProgram, handleBack, handleSkipLoyalty, paymentSuccess, handleStartRobot, timeUntilRobotStart } = usePaymentProcessing(EPaymentMethod.CASH);

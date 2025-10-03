@@ -15,13 +15,15 @@ import { useNavigate } from "react-router-dom";
 import { IUcnCheckResponse } from "../api/types/payment";
 import SuccessPayment from "../components/successPayment/SuccessPayment";
 
+const LOYALTY_PAGE_URL = "LoyaltyPage.webp";
+
 const LOYALTY_INTERVAL = 1000;
 const DEPOSIT_TIME = 30000;
 const START_ROBOT_INTERVAL = 35000;
 
 export default function LoyaltyPayPage() {
   const { t } = useTranslation();
-  const { attachemntUrl } = useMediaCampaign();
+  const { attachemntUrl } = useMediaCampaign(LOYALTY_PAGE_URL);
   const { selectedProgram } = useStore();
   const navigate = useNavigate();
 
