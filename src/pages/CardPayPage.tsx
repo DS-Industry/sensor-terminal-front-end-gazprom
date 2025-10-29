@@ -35,11 +35,11 @@ export default function CardPayPage() {
     <div className="flex flex-col min-h-screen w-screen bg-gray-100">
       {/* Video Section - 40% of screen height */}
       <MediaCampaign attachemntUrl={attachemntUrl} mediaStatus={mediaStatus}/>
-
+      
       {/* Content Section - 60% of screen height */}
       <div className="flex-1 flex flex-col">
         {/* Header with Logo and Controls */}
-        <HeaderWithLogo backButtonClick={handleBack} />
+        <HeaderWithLogo disableBackConfirmation={true} backButtonClick={handleBack} />
 
         {/* Main Content Area - Full Screen */}
         <div className="flex-1 flex flex-col">
@@ -139,7 +139,7 @@ export default function CardPayPage() {
           </div>
         </div>
       </div>
-
+      
       {isLoyaltyCardModalOpen && (
         <LoyaltyCardModal onSkipLoyalty={handleSkipLoyalty} />
       )}

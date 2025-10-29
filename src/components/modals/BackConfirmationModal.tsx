@@ -8,6 +8,7 @@ export function BackConfirmationModal() {
   const { 
     isBackConfirmationModalOpen, 
     closeBackConfirmationModal,
+    backConfirmationCallback,
   } = useStore();
 
   useEffect(() => {
@@ -23,6 +24,9 @@ export function BackConfirmationModal() {
   }, [isBackConfirmationModalOpen]);
 
   const handleConfirm = () => {
+    if (backConfirmationCallback) {
+      backConfirmationCallback();
+    }
     closeBackConfirmationModal();
   };
 

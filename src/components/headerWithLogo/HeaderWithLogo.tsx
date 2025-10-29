@@ -8,6 +8,7 @@ import useStore from '../state/store';
 interface IHeaderWithLogoProps {
   isMainPage?: boolean;
   backButtonClick?: () => void;
+  disableBackConfirmation?: boolean; 
 }
 
 export default function HeaderWithLogo(props: IHeaderWithLogoProps) {
@@ -23,14 +24,21 @@ export default function HeaderWithLogo(props: IHeaderWithLogoProps) {
     
     if (props.backButtonClick) {
       console.log("[HeaderWithLogo] Есть пропс backButtonClick");
-
-      openBackConfirmationModal();
-
-      setBackConfirmationCallback(() => {
-        if (props.backButtonClick) {
-          props.backButtonClick();
-        }
-      });
+      
+      // Если подтверждение отключено, сразу вызываем колбэк
+      if (props.disableBackConfirmation) {
+        console.log("[HeaderWithLogo] Подтверждение отключено, сразу вызываем backButtonClick");
+        props.backButtonClick();
+      } else {
+        // Иначе показываем модальное окно подтверждения
+        openBackConfirmationModal();
+        
+        setBackConfirmationCallback(() => {
+          if (props.backButtonClick) {
+            props.backButtonClick();
+          }
+        });
+      }
     } else {
       navigate(-1);
     }
