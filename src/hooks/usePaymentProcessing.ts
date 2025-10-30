@@ -32,6 +32,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   const checkLoyaltyIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const idleTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownStartedRef = useRef(false); 
 
   // Очистка таймеров лояльности
   const clearLoyaltyTimers = () => {
@@ -66,6 +67,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
 
   // Очистка отсчета
   const clearCountdown = () => {
+    countdownStartedRef.current = false; // Сбрасываем флаг
     if (idleTimeout.current) {
       clearTimeout(idleTimeout.current);
       idleTimeout.current = null;
@@ -199,16 +201,28 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
 
   // Запуск отсчета до автоматического старта робота
   const startCountdown = () => {
+    if (countdownStartedRef.current) {
+      console.log(`[${paymentMethod}Page] Отсчет уже запущен, пропускаем`);
+      return;
+    }
+
+    console.log(`[${paymentMethod}Page] Запускаем отсчет автоматического старта`);
+    countdownStartedRef.current = true;
+    
     const initialTime = START_ROBOT_INTERVAL / 1000;
     setTimeUntilRobotStart(initialTime);
 
     // Запускаем таймер для автоматического старта
-    idleTimeout.current = setTimeout(handleStartRobot, START_ROBOT_INTERVAL);
+    idleTimeout.current = setTimeout(() => {
+      console.log(`[${paymentMethod}Page] Автоматический запуск робота по таймеру`);
+      handleStartRobot();
+    }, START_ROBOT_INTERVAL);
 
     // Запускаем интервал для обновления отсчета каждую секунду
     countdownInterval.current = setInterval(() => {
       setTimeUntilRobotStart(prev => {
         if (prev <= 1) {
+          console.log(`[${paymentMethod}Page] Отсчет завершен`);
           if (countdownInterval.current) {
             clearInterval(countdownInterval.current);
             countdownInterval.current = null;
@@ -265,23 +279,32 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       checkOrderAmountSumIntervalRef.current = setInterval(checkPaymentAsync, PAYMENT_INTERVAL);
     }
 
-    if (order?.status === EOrderStatus.PAYED) {
-      setPaymentSuccess(true);
-    }
-
     return () => {
       clearPaymentTimers();
     };
   }, [order]);
 
+  // Отдельный эффект для обработки успешного статуса PAYED
   useEffect(() => {
-    if (paymentSuccess) {
+    if (order?.status === EOrderStatus.PAYED && !paymentSuccess) {
+      console.log(`[${paymentMethod}Page] Статус заказа изменился на PAYED`);
+      clearAllTimers();
+      setPaymentSuccess(true);
+    }
+  }, [order?.status]);
+
+  // Эффект для запуска отсчета при успешной оплате
+  useEffect(() => {
+    console.log(`[${paymentMethod}Page] paymentSuccess: ${paymentSuccess}, countdownStarted: ${countdownStartedRef.current}`);
+    
+    if (paymentSuccess && !countdownStartedRef.current) {
+      console.log(`[${paymentMethod}Page] Успешная оплата, запускаем отсчет`);
       startCountdown();
     }
 
     return () => {
-      clearCountdown();
-    }
+      // Не очищаем отсчет здесь, чтобы он не прерывался при перерисовках
+    };
   }, [paymentSuccess]);
 
   return {
