@@ -179,7 +179,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     closeLoyaltyCardModal();
     setIsLoading(false);
     setPaymentSuccess(false);
-
+    clearCountdown();
     console.log("[usePaymentProcessing] Делам отмену заказа c id: ", order?.id);
     
     if (order?.id) {

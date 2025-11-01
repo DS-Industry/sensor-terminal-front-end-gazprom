@@ -4,20 +4,42 @@ import { globalWebSocketManager } from '../../util/websocketManager';
 import { EOrderStatus } from '../state/order/orderSlice';
 import { getOrderById } from '../../api/services/payment';
 
+const MAX_ATTEMPS = 10;
+const INTERVAL = 1000;
+
 export function GlobalWebSocketManager() {
   const { order, setOrder, setBankCheck, setNavigationTarget, setErrorCode } = useStore();
 
-  const setCheck = async (id: string) => {
-    const response = await getOrderById(id);
+  const setCheck = (id: string) => {
+    let attempts = 0;
 
-    console.log("Запрос заказа", id, response);
+    const checkLoop = async () => {
+      if (attempts >= MAX_ATTEMPS) {
+        console.log("Достигнуто максимальное количество попыток запроса чека");
+        return;
+      }
 
-    if (response.qr_code) {
-      console.log("получили qr: ", response.qr_code);
+      attempts++;
+      const response = await getOrderById(id);
 
-      setBankCheck(response.qr_code);
-    }
-  }
+      console.log(`Запрос заказа ${id}, попытка ${attempts}`, response);
+
+      if (response.qr_code) {
+        console.log("Получили qr:", response.qr_code);
+
+        setBankCheck(response.qr_code);
+        return; 
+      }
+
+      if (attempts < MAX_ATTEMPS) {
+        setTimeout(checkLoop, INTERVAL);
+      } else {
+        console.log("QR код не получен после всех попыток");
+      }
+    };
+
+    checkLoop();
+  };
 
   useEffect(() => {
     console.log('Initializing global WebSocket manager...');
@@ -32,7 +54,7 @@ export function GlobalWebSocketManager() {
           status: data.status,
           transactionId: data.transaction_id,
         });
-        
+
       }
 
       if (data.status === EOrderStatus.PAYED) {
