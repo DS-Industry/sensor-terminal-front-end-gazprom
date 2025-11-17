@@ -1,0 +1,78 @@
+import { IProgram } from "../../../api/types/program";
+import { StoreSlice } from "../types";
+
+export interface AppSlice {
+  programs: IProgram[];
+  selectedProgram: IProgram | null;
+  isProgramsLoading: boolean;
+  isLoyalty: boolean;
+  isLoading: boolean;
+  insertedAmount: number;
+  bankCheck: string;
+  navigationTarget: string | null;
+  errorCode: number | null;
+  backConfirmationCallback: (() => void) | null;
+  setIsLoyalty: (loyalty: boolean) => void;
+  setPrograms: (programs: IProgram[]) => void;
+  setSelectedProgram: (program: IProgram | null) => void;
+  setIsLoading: (isLoading: boolean) => void;
+  setInsertedAmount: (inserted: number) => void;
+  setBankCheck: (bankCheck: string) => void;
+  setNavigationTarget: (target: string | null) => void;
+  clearNavigation: () => void;
+  setErrorCode: (code: number | null) => void;
+  setBackConfirmationCallback: (callback: (() => void) | null) => void;
+}
+
+export const createAppSlice: StoreSlice<AppSlice> = (set) => ({
+  programs: [],
+  isProgramsLoading: false,
+  selectedProgram: null,
+  isLoyalty: false,
+  isLoading: false,
+  insertedAmount: 0,
+  bankCheck: "",
+  navigationTarget: null,
+  errorCode: null,
+  backConfirmationCallback: null,
+
+  setPrograms: (programs) => {
+    set(state => ({...state, programs}));
+  },
+
+  setSelectedProgram: (selectedProgram) => {
+    set(state => ({...state, selectedProgram}));
+  },
+
+  setIsLoyalty: (loyalty) => {
+    set(state => ({...state, isLoyalty: loyalty}));
+  },
+
+  setIsLoading: (isLoading) => {
+    set(state => ({...state, isLoading}));
+  },
+
+  setInsertedAmount: (inserted) => {
+    set(state => ({...state, insertedAmount: inserted}));
+  },
+
+  setBankCheck: (bankCheck) => {
+    set(state => ({...state, bankCheck}));
+  },
+
+  setNavigationTarget: (target) => {
+    set(state => ({...state, navigationTarget: target }));
+  },
+
+  clearNavigation: () => {
+    set(state => ({...state, navigationTarget: null }));
+  },
+
+  setErrorCode: (code) => {
+    set(state => ({...state, errorCode: code}));
+  },
+
+  setBackConfirmationCallback: (callback) => {
+    set(state => ({...state, backConfirmationCallback: callback}));
+  }
+});

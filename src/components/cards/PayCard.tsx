@@ -1,17 +1,20 @@
 import { RiMastercardLine, RiVisaLine } from "react-icons/ri";
 import { FaApplePay, FaGooglePay } from "react-icons/fa6";
-import Lightning from "./../../assets/lightning.svg";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Card, Text, Icon } from "@gravity-ui/uikit";
+import { SealPercent } from '@gravity-ui/icons';
+import useStore from "../state/store";
+import { EPaymentMethod } from "../state/order/orderSlice";
+
 
 interface IPayCard {
-  payType: "bankCard" | "cash" | "app";
+  payType: EPaymentMethod;
   label: string;
   imgUrl: string;
   endPoint: string;
   programName: string;
-  price: number;
-  programUrl: string;
+  price: string;
 }
 
 export default function PayCard({
@@ -21,57 +24,78 @@ export default function PayCard({
   endPoint,
   programName,
   price,
-  programUrl,
 }: IPayCard) {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
   return (
-    <div
-      onClick={() =>
+    <Card
+      type="action"
+      className="w-80 h-64 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer hover:scale-105 border-0 overflow-hidden"
+      onClick={() => {
+
         navigate(`./${endPoint}`, {
           state: {
             programName: programName,
             price: price,
-            promoUrl: programUrl,
           },
-        })
-      }
-      className=" flex flex-col items-start justify-between bg-primary p-5 rounded-3xl text-white-500 min-w-[200px] max-w-[200px] min-h-[230px] shadow-[0px_20px_60px_35px_rgba(0,0,0,0.3)]"
+        });
+      }}
     >
-      <img
-        src={imgUrl}
-        alt="logo pay way"
-        className=" h-[70px] w-fit object-cover"
-      />
-      <p className=" font-inter-semibold text-xl text-left pl-2">
-        {t(`${label}`)}
-      </p>
-      {payType === "bankCard" && (
-        <div className=" flex flex-row justify-evenly w-full">
-          <RiMastercardLine className=" fill-white-500 text-3xl" />
-          <RiVisaLine className=" text-3xl" />
-          <FaApplePay className=" text-3xl" />
-          <FaGooglePay className=" text-3xl" />
+      <div className="p-6 h-full flex flex-col">
+        {/* Header with Title and Icon */}
+        <div className="flex justify-between items-start mb-4 relative">
+          <Text className="text-white font-bold text-2xl">
+            {t(`${label}`)}
+          </Text>
+          {(payType === EPaymentMethod.LOYALTY || payType === EPaymentMethod.MOBILE_PAYMENT) && (
+            <div className="absolute top-0 right-0 bg-yellow-400 p-2 rounded-full">
+              <Icon data={SealPercent} size={20} className="text-yellow-800" />
+            </div>
+          )}
         </div>
-      )}
-      {payType === "cash" && (
-        <div>
-          <p className=" font-inter-light text-xs text-left">{t("Купюры")}</p>
-          <p className=" font-inter-semibold">50, 100, 200</p>
+
+        {/* Centered Image */}
+        <div className="flex-1 flex items-center justify-center">
+          <img
+            src={imgUrl}
+            alt="logo pay way"
+            className="h-24 w-auto object-contain"
+          />
         </div>
-      )}
-      {payType === "app" && (
-        <div className=" flex justify-between w-full">
-          <div>
-            <p className=" font-inter-light text-xs text-left">
-              {t("Ваш СashBack")}
-            </p>
-            <p className=" font-inter-semibold text-left">+10%</p>
-          </div>
-          <img src={Lightning} alt="lightning" className=" size-[40px]" />
+
+        {/* Bottom Content - Fixed Height */}
+        <div className="mt-4 h-20 flex items-center">
+          {/* Payment Type Specific Content */}
+          {payType === EPaymentMethod.CARD && (
+            <div className="bg-white/20 p-2 rounded-2xl text-center w-full h-full flex flex-col justify-center">
+              <div className="text-white/80 text-sm mb-1">{t("Банковские карты")}</div>
+              <div className="flex flex-row justify-center gap-3 items-center h-6">
+                <RiMastercardLine className="text-white text-xl" />
+                <RiVisaLine className="text-white text-xl" />
+                <FaApplePay className="text-white text-xl" />
+                <FaGooglePay className="text-white text-xl" />
+              </div>
+            </div>
+          )}
+
+          {payType === EPaymentMethod.CASH && (
+            <div className="bg-white/20 p-2 rounded-2xl text-center w-full h-full flex flex-col justify-center">
+              <div className="text-white/80 text-sm mb-1">{t("Купюры")}</div>
+              <div className="text-white font-semibold text-base h-6 flex items-center justify-center">50, 100, 200</div>
+            </div>
+          )}
+
+          {(payType === EPaymentMethod.LOYALTY || payType === EPaymentMethod.MOBILE_PAYMENT) && (
+            <div className="bg-white/20 p-2 rounded-2xl text-center w-full h-full flex flex-col justify-center">
+              <div className="text-white/80 text-sm mb-1">
+                {t("Ваш CashBack")}
+              </div>
+              <div className="text-white font-bold text-base h-6 flex items-center justify-center">+10%</div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </div>
+    </Card>
   );
 }
