@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # These will be read from environment variables or .env file
+        # You can either:
+        # 1. Create a .env file with these variables
+        # 2. Export them in your shell before running docker-compose
+        # 3. Uncomment and set them directly here
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        VITE_API_BASE_WS_URL: ${VITE_API_BASE_WS_URL:-}
+        VITE_S3_URL: ${VITE_S3_URL:-}
+        VITE_ATTACHMENT_BASE_URL: ${VITE_ATTACHMENT_BASE_URL:-}
+        VITE_REFRESH_INTERVAL: ${VITE_REFRESH_INTERVAL:-3600000}
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    container_name: sensor-terminal-frontend
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
