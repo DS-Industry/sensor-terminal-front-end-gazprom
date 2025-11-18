@@ -55,10 +55,15 @@ export default function SingleProgramPage() {
   }, []);
 
   const filteredPays = PAYS.filter(pay => {
-    if (!isLoyalty) {
-      return  pay.type !== EPaymentMethod.LOYALTY
-        // && pay.type !== EPaymentMethod.MOBILE_PAYMENT 
+    // Всегда исключаем MOBILE_PAYMENT
+    if (pay.type === EPaymentMethod.MOBILE_PAYMENT) {
+      return false;
     }
+    // Если isLoyalty равно false, исключаем LOYALTY
+    if (!isLoyalty && pay.type === EPaymentMethod.LOYALTY) {
+      return false;
+    }
+    // В остальных случаях показываем карточку
     return true;
   });
 

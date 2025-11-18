@@ -109,55 +109,10 @@ export default function LoyaltyPayPage() {
           break;
         case CardReaderStatus.READING_COMPLETE:
           console.log("Чтение карты завершено");
-          // При завершении чтения получаем данные карты
-          handleCardReadComplete();
+          // Не вызываем openLoyaltyCardReader повторно - ждем ответ от изначального вызова
+          setIsLoading(false);
           break;
       }
-    }
-  };
-
-  // Обработка завершения чтения карты
-  const handleCardReadComplete = async () => {
-    try {
-      // Получаем данные карты из ответа openLoyaltyCardReader
-      const cardData = await openLoyaltyCardReader();
-      console.log("[LoyaltyPayPage] Данные карты:", cardData);
-
-      if (cardData && cardData.ucn) {
-        // Проверяем случай, когда карта не найдена (ucn = -1)
-        if (Number(cardData.ucn) === -1) {
-          console.log("[LoyaltyPayPage] Карта лояльности не найдена");
-          setCardNotFound(true);
-          setIsLoading(false);
-          return;
-        }
-
-        // Если карта найдена и есть баланс
-        if (cardData.balance !== undefined) {
-          setLoyaltyCard(cardData);
-          setIsLoading(false);
-
-          // Проверяем достаточно ли баллов
-          const programPrice = Number(selectedProgram?.price) || 0;
-          const cardBalance = Number(cardData.balance) || 0;
-          
-          if (cardBalance < programPrice) {
-            console.log(`[LoyaltyPayPage] Недостаточно баллов: ${cardBalance} < ${programPrice}`);
-            setInsufficientBalance(true);
-            return;
-          }
-
-          // Очищаем общий таймаут и запускаем таймаут ожидания оплаты
-          clearLoyaltyTimers();
-          loyalityEmptyTimeoutRef.current = setTimeout(() => {
-            console.log(`[LoyaltyPayPage] Ожидание нажатия кнопки Оплатить истекло`);
-            navigate("/");
-          }, DEPOSIT_TIME);
-        }
-      }
-    } catch (error) {
-      console.error("[LoyaltyPayPage] Ошибка при получении данных карты:", error);
-      setIsLoading(false);
     }
   };
 
@@ -210,12 +165,48 @@ export default function LoyaltyPayPage() {
   useEffect(() => {
     console.log("[LoyaltyPayPage] Инициализация страницы оплаты лояльности");
 
-    // Запускаем считыватель карт
-    openLoyaltyCardReader().then(() => {
-      console.log("[LoyaltyPayPage] Кард-ридер запущен");
-    }).catch(error => {
-      console.error("[LoyaltyPayPage] Ошибка при запуске кард-ридера:", error);
-    });
+    // ОДИН раз вызываем openLoyaltyCardReader и ждем ответ
+    openLoyaltyCardReader()
+      .then(cardData => {
+        console.log("[LoyaltyPayPage] Получили данные карты:", cardData);
+
+        if (cardData && cardData.ucn) {
+          // Проверяем случай, когда карта не найдена (ucn = -1)
+          if (Number(cardData.ucn) === -1) {
+            console.log("[LoyaltyPayPage] Карта лояльности не найдена");
+            setCardNotFound(true);
+            setIsLoading(false);
+            return;
+          }
+
+          // Если карта найдена и есть баланс
+          if (cardData.balance !== undefined) {
+            setLoyaltyCard(cardData);
+            setIsLoading(false);
+
+            // Проверяем достаточно ли баллов
+            const programPrice = Number(selectedProgram?.price) || 0;
+            const cardBalance = Number(cardData.balance) || 0;
+            
+            if (cardBalance < programPrice) {
+              console.log(`[LoyaltyPayPage] Недостаточно баллов: ${cardBalance} < ${programPrice}`);
+              setInsufficientBalance(true);
+              return;
+            }
+
+            // Очищаем общий таймаут и запускаем таймаут ожидания оплаты
+            clearLoyaltyTimers();
+            loyalityEmptyTimeoutRef.current = setTimeout(() => {
+              console.log(`[LoyaltyPayPage] Ожидание нажатия кнопки Оплатить истекло`);
+              navigate("/");
+            }, DEPOSIT_TIME);
+          }
+        }
+      })
+      .catch(error => {
+        console.error("[LoyaltyPayPage] Ошибка при получении данных карты:", error);
+        setIsLoading(false);
+      });
 
     // Таймаут ожидания карты (30 секунд)
     loyalityEmptyTimeoutRef.current = setTimeout(() => {
@@ -225,7 +216,7 @@ export default function LoyaltyPayPage() {
       }
     }, DEPOSIT_TIME);
 
-    // Подписываемся на события веб-сокета
+    // Подписываемся на события веб-сокета только для отображения статусов
     const removeCardReaderListener = globalWebSocketManager.addListener('card_reader', handleCardReaderEvent);
 
     return () => {
