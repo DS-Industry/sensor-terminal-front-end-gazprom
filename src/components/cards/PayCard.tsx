@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Card, Text, Icon } from "@gravity-ui/uikit";
 import { SealPercent } from '@gravity-ui/icons';
-import useStore from "../state/store";
 import { EPaymentMethod } from "../state/order/orderSlice";
 
 

@@ -3,7 +3,7 @@ import GooglePlay from "../assets/Frame.svg";
 import AppStore from "../assets/Frame_apple.svg";
 import Bell from "../assets/Bell_perspective_matte.svg";
 import { useTranslation } from "react-i18next";
-import { Smartphone, QrCode } from "@gravity-ui/icons";
+import { Smartphone } from "@gravity-ui/icons";
 import MediaCampaign from "../components/mediaCampaign/mediaCampaign";
 import { useMediaCampaign } from "../hooks/useMediaCampaign";
 import useStore from "../components/state/store";

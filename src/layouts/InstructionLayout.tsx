@@ -6,16 +6,6 @@ import Car from "./../assets/car-instruction.svg";
 import WhiteBack from "./../assets/exit_to_app_white.svg";
 import Logo from "./../assets/Logo-white.svg";
 import { useTranslation } from "react-i18next";
-import {
-  Menubar,
-  MenubarMenu,
-  MenubarTrigger,
-  MenubarContent,
-  MenubarItem,
-} from "@radix-ui/react-menubar";
-import { IoLanguageSharp } from "react-icons/io5";
-import { LANGUAGES } from "../components/hard-data";
-import i18n from "../i18n";
 
 export default function InstructionLayout({
   children,

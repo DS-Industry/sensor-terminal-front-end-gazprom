@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import { Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import MainPage from "./pages/MainPage.tsx";
 import "./index.css";

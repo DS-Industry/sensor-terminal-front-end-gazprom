@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Card, Button, Icon, Text } from "@gravity-ui/uikit";
+import { Card, Icon, Text } from "@gravity-ui/uikit";
 import { ArrowRight } from "@gravity-ui/icons";
 import { Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
