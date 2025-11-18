@@ -56,8 +56,8 @@ export default function SingleProgramPage() {
 
   const filteredPays = PAYS.filter(pay => {
     if (!isLoyalty) {
-      return pay.type !== EPaymentMethod.MOBILE_PAYMENT && 
-             pay.type !== EPaymentMethod.LOYALTY;
+      return  pay.type !== EPaymentMethod.LOYALTY
+        // && pay.type !== EPaymentMethod.MOBILE_PAYMENT 
     }
     return true;
   });

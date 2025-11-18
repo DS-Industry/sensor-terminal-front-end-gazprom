@@ -100,31 +100,30 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       console.error(`[${paymentMethod}Page] Ошибка создания заказа`, err);
     }
   };
-
-  // Проверка лояльности
-  const checkLoyaltyAsync = async () => {
-    try {
-      const ucnResponse = await ucnCheck();
-      const ucnCode = ucnResponse.ucn;
-
-      if (ucnCode) {
-        console.log(`[${paymentMethod}Page] Получили ucn код:`, ucnCode);
-        clearLoyaltyTimers();
-        closeLoyaltyCardModal();
-
-        if (Number(ucnCode) !== -1) {
-          console.log("создание заказа из Number(ucnCode) !== -1");
-          await createOrderAsync(ucnCode);
-        } else {
-          console.log("создание заказа из } else {");
-          await createOrderAsync();
-        }
-      }
-    } catch (e) {
-      console.log(`[${paymentMethod}Page] Ошибка ucnCheck`, e);
-    }
-  };
-
+  
+  // ЗАКОММЕНТИРОВАНА ЛОГИКА ЛОЯЛЬНОСТИ
+  // // Проверка лояльности
+  // const checkLoyaltyAsync = async () => {
+  //   try {
+  //     const ucnResponse = await ucnCheck();
+  //     const ucnCode = ucnResponse.ucn;
+  //     if (ucnCode) {
+  //       console.log(`[${paymentMethod}Page] Получили ucn код:`, ucnCode);
+  //       clearLoyaltyTimers();
+  //       closeLoyaltyCardModal();
+  //       if (Number(ucnCode) !== -1) {
+  //         console.log("создание заказа из Number(ucnCode) !== -1");
+  //         await createOrderAsync(ucnCode);
+  //       } else {
+  //         console.log("создание заказа из } else {");
+  //         await createOrderAsync();
+  //       }
+  //     }
+  //   } catch (e) {
+  //     console.log(`[${paymentMethod}Page] Ошибка ucnCheck`, e);
+  //   }
+  // };
+  
   // Проверка платежа
   const checkPaymentAsync = async () => {
     try {
@@ -163,16 +162,17 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       console.log(`[${paymentMethod}Page] Ошибка getOrderById`, e);
     }
   };
-
-  // Обработка отказа от лояльности
-  const handleSkipLoyalty = async () => {
-    console.log(`[${paymentMethod}Page] Отказ от карты лояльности`);
-    clearLoyaltyTimers();
-    closeLoyaltyCardModal();
-    console.log("создание заказа из handleSkipLoyalty");
-    await createOrderAsync();
-  };
-
+  
+  // ЗАКОММЕНТИРОВАНА ЛОГИКА ОТКАЗА ОТ ЛОЯЛЬНОСТИ
+  // // Обработка отказа от лояльности
+  // const handleSkipLoyalty = async () => {
+  //   console.log(`[${paymentMethod}Page] Отказ от карты лояльности`);
+  //   clearLoyaltyTimers();
+  //   closeLoyaltyCardModal();
+  //   console.log("создание заказа из handleSkipLoyalty");
+  //   await createOrderAsync();
+  // };
+  
   // Обработка кнопки назад
   const handleBack = () => {
     clearAllTimers();
@@ -233,32 +233,36 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       });
     }, 1000);
   };
-
-  // Эффект для лояльности
+  
+  // Эффект для лояльности - ЗАКОММЕНТИРОВАН
   useEffect(() => {
-    if (isLoyalty) {
-      console.log(`[${paymentMethod}Page] Сценарий с лояльностью`);
-      openLoyaltyCardModal();
-      openLoyaltyCardReader();
-
-      checkLoyaltyIntervalRef.current = setInterval(checkLoyaltyAsync, LOYALTY_INTERVAL);
-      loyalityEmptyTimeoutRef.current = setTimeout(() => {
-        console.log(`[${paymentMethod}Page] Таймаут лояльности истек`);
-        clearLoyaltyTimers();
-        closeLoyaltyCardModal();
-        console.log("создание заказа из isLoyalty");
-        createOrderAsync();
-      }, DEPOSIT_TIME);
-    } else {
-      console.log("создание заказа из else isLoyalty");
-      createOrderAsync();
-    }
-
+    // ЗАКОММЕНТИРОВАНА ВСЯ ЛОГИКА ЛОЯЛЬНОСТИ
+    // if (isLoyalty) {
+    //   console.log(`[${paymentMethod}Page] Сценарий с лояльностью`);
+    //   openLoyaltyCardModal();
+    //   openLoyaltyCardReader();
+    //   checkLoyaltyIntervalRef.current = setInterval(checkLoyaltyAsync, LOYALTY_INTERVAL);
+    //   loyalityEmptyTimeoutRef.current = setTimeout(() => {
+    //     console.log(`[${paymentMethod}Page] Таймаут лояльности истек`);
+    //     clearLoyaltyTimers();
+    //     closeLoyaltyCardModal();
+    //     console.log("создание заказа из isLoyalty");
+    //     createOrderAsync();
+    //   }, DEPOSIT_TIME);
+    // } else {
+    //   console.log("создание заказа из else isLoyalty");
+    //   createOrderAsync();
+    // }
+    
+    // ТЕПЕРЬ ВСЕГДА СОЗДАЕМ ЗАКАЗ СРАЗУ
+    console.log("создание заказа - лояльность отключена");
+    createOrderAsync();
+    
     return () => {
       clearAllTimers();
     };
-  }, [isLoyalty]);
-
+  }, [isLoyalty]); // Оставляем зависимость, но логика внутри упрощена
+  
   // Эффект для отслеживания статуса заказа
   useEffect(() => {
     if (order?.status === EOrderStatus.WAITING_PAYMENT) {
@@ -308,7 +312,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   }, [paymentSuccess]);
 
   return {
-    handleSkipLoyalty,
+    // handleSkipLoyalty, // Убрано из возвращаемых значений
     handleBack,
     isLoyaltyCardModalOpen,
     selectedProgram,

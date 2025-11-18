@@ -51,9 +51,10 @@ export async function ucnCheck(): Promise<IUcnCheckResponse> {
   return response.data;
 }
 
-export async function openLoyaltyCardReader(): Promise<void> {  
+export async function openLoyaltyCardReader(): Promise<any> {  
   
-  await axiosInstance.post(PAYMENT.OPEN_READER);
+  const response = await axiosInstance.post(PAYMENT.OPEN_READER);
+  return response.data;
 }
 
 export async function getMobileQr(): Promise<IGetMobileQr> {
