@@ -52,7 +52,7 @@ export async function ucnCheck(): Promise<IUcnCheckResponse> {
 }
 
 export async function openLoyaltyCardReader(signal?: AbortSignal): Promise<any> {  
-  const response = await axiosInstance.post(PAYMENT.OPEN_READER, {
+  const response = await axiosInstance.post(PAYMENT.OPEN_READER, {}, { 
     signal 
   });
   return response.data;
