@@ -17,7 +17,7 @@ import SuccessPayment from "../components/successPayment/SuccessPayment";
 import { globalWebSocketManager } from "../util/websocketManager";
 
 const LOYALTY_PAGE_URL = "LoyaltyPage.webp";
-const DEPOSIT_TIME = 300000;
+const DEPOSIT_TIME = 30000;
 
 // Типы статусов кард-ридера
 enum CardReaderStatus {
@@ -29,17 +29,15 @@ enum CardReaderStatus {
 export default function LoyaltyPayPage() {
   const { t } = useTranslation();
   const { attachemntUrl, mediaStatus } = useMediaCampaign(LOYALTY_PAGE_URL);
-  const { selectedProgram, setIsLoading } = useStore();
+  const { selectedProgram, setIsLoading, order } = useStore();
   const navigate = useNavigate();
-
-  const [loyaltyCard, setLoyaltyCard] = useState<IUcnCheckResponse | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const [loyaltyCard, setLoyaltyCard] = useState<IUcnCheckResponse | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [insufficientBalance, setInsufficientBalance] = useState(false);
-  const [cardNotFound, setCardNotFound] = useState(false); 
+  const [cardNotFound, setCardNotFound] = useState(false);
   const [cardReaderStatus, setCardReaderStatus] = useState<CardReaderStatus>(CardReaderStatus.WAITING_CARD);
-
-  const { order } = useStore();
-
+  const [isCardDataReceived, setIsCardDataReceived] = useState(false); // Флаг для отслеживания получения данных с карты
   const orderCreatedRef = useRef(false);
   const loyalityEmptyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -60,6 +58,15 @@ export default function LoyaltyPayPage() {
     if (loyalityEmptyTimeoutRef.current) {
       clearTimeout(loyalityEmptyTimeoutRef.current);
       loyalityEmptyTimeoutRef.current = null;
+    }
+    setIsLoading(false);
+  };
+
+  const cancelLoyaltyRequest = () => {
+    if (abortControllerRef.current) {
+      console.log("[LoyaltyPayPage] Отменяем запрос кард-ридера");
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
   };
 
@@ -109,19 +116,20 @@ export default function LoyaltyPayPage() {
           break;
       }
     }
-  }; 
+  };
 
   // Обработка кнопки назад
   const handleBack = () => {
     console.log("[LoyaltyPayPage] Нажата кнопка назад");
     clearLoyaltyTimers();
     setIsLoading(false);
-    
-    // НЕ отменяем заказ, так как он еще не создан (создается только при нажатии Оплатить)
+    cancelLoyaltyRequest();
     navigate(-1);
   };
 
   useEffect(() => {
+    // Создаем AbortController для отмены запроса
+    abortControllerRef.current = new AbortController();
     loyalityEmptyTimeoutRef.current = setTimeout(() => {
       if (!loyaltyCard && !cardNotFound && !insufficientBalance) {
         console.log(`[LoyaltyPayPage] Таймаут ожидания карты истек`);
@@ -133,13 +141,14 @@ export default function LoyaltyPayPage() {
     const removeCardReaderListener = globalWebSocketManager.addListener('card_reader', handleCardReaderEvent);
 
     console.log("[LoyaltyPayPage] Запрос openLoyaltyCardReader, ждем данные карты");
-
-    // ОДИН раз вызываем openLoyaltyCardReader и ждем ответ
-    openLoyaltyCardReader()
+    // Передаем openLoyaltyCardReader и ждем ответ
+    openLoyaltyCardReader(abortControllerRef.current.signal)
       .then(cardData => {
         console.log("[LoyaltyPayPage] Получили данные карты:", cardData);
 
         if (cardData && cardData.ucn) {
+          setIsCardDataReceived(true); // Устанавливаем флаг, что данные получены
+
           // Проверяем случай, когда карта не найдена (ucn = -1)
           if (Number(cardData.ucn) === -1) {
             console.log("[LoyaltyPayPage] Карта лояльности не найдена");
@@ -176,12 +185,16 @@ export default function LoyaltyPayPage() {
       .catch(error => {
         console.error("[LoyaltyPayPage] Ошибка при получении данных карты:", error);
         setIsLoading(false);
-      });    
+      });
 
     return () => {
       console.log("[LoyaltyPayPage] Очистка таймеров и подписок");
       clearLoyaltyTimers();
       removeCardReaderListener();
+      // Отменяем запрос только если данные ещё не получены
+      if (!isCardDataReceived) {
+        cancelLoyaltyRequest();
+      }
     };
   }, []);
 
@@ -242,7 +255,7 @@ export default function LoyaltyPayPage() {
               {t("На вашей карте недостаточно баллов для оплаты выбранной программы")}
             </div>
           </div>
-          
+
           <div className="bg-white/20 p-6 rounded-2xl w-full">
             <div className="text-white/80 text-sm mb-2">{t("Ваш баланс")}</div>
             <div className="text-white font-bold text-3xl">
@@ -269,8 +282,7 @@ export default function LoyaltyPayPage() {
         </div>
       );
     }
-
-    // Если карта есть и баланс достаточен - показываем кнопку Оплатить
+    // Если карта есть и баланс достаточен — показываем кнопку Оплатить
     if (loyaltyCard && loyaltyCard.balance !== undefined) {
       return (
         <>
@@ -307,7 +319,7 @@ export default function LoyaltyPayPage() {
         <div className="inline-flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
           <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
           <div className="text-white/90 text-sm font-medium">
-            {cardReaderStatus === CardReaderStatus.SEARCHING_DATA 
+            {cardReaderStatus === CardReaderStatus.SEARCHING_DATA
               ? t("Поиск данных по карте...")
               : t("Ожидание карты лояльности...")
             }
@@ -353,23 +365,23 @@ export default function LoyaltyPayPage() {
                 </div>
                 <div className="text-center max-w-md">
                   <div className="text-gray-800 text-2xl font-semibold mb-4">
-                    {cardNotFound 
+                    {cardNotFound
                       ? t("Карта не найдена")
-                      : insufficientBalance 
-                      ? t("Недостаточно баллов") 
-                      : cardReaderStatus === CardReaderStatus.SEARCHING_DATA
-                      ? t("Поиск данных по карте...")
-                      : t("Поднесите карту лояльности к терминалу")
+                      : insufficientBalance
+                        ? t("Недостаточно баллов")
+                        : cardReaderStatus === CardReaderStatus.SEARCHING_DATA
+                          ? t("Поиск данных по карте...")
+                          : t("Поднесите карту лояльности к терминалу")
                     }
                   </div>
                   <div className="text-gray-600 text-lg">
                     {cardNotFound
                       ? t("Проверьте карту и попробуйте снова")
                       : insufficientBalance
-                      ? t("Пополните карту лояльности и попробуйте снова")
-                      : cardReaderStatus === CardReaderStatus.SEARCHING_DATA
-                      ? t("Ищем данные по вашей карте...")
-                      : t("Дождитесь подтверждения оплаты")
+                        ? t("Пополните карту лояльности и попробуйте снова")
+                        : cardReaderStatus === CardReaderStatus.SEARCHING_DATA
+                          ? t("Ищем данные по вашей карте...")
+                          : t("Дождитесь подтверждения оплаты")
                     }
                   </div>
                 </div>

@@ -47,7 +47,7 @@ export default function PayCard({
           <Text className="text-white font-bold text-2xl">
             {t(`${label}`)}
           </Text>
-          {(payType === EPaymentMethod.LOYALTY || payType === EPaymentMethod.MOBILE_PAYMENT) && (
+          {(payType === EPaymentMethod.MOBILE_PAYMENT) && (
             <div className="absolute top-0 right-0 bg-yellow-400 p-2 rounded-full">
               <Icon data={SealPercent} size={20} className="text-yellow-800" />
             </div>
@@ -85,7 +85,16 @@ export default function PayCard({
             </div>
           )}
 
-          {(payType === EPaymentMethod.LOYALTY || payType === EPaymentMethod.MOBILE_PAYMENT) && (
+          {(payType === EPaymentMethod.LOYALTY) && (
+            <div className="bg-white/20 p-2 rounded-2xl text-center w-full h-full flex flex-col justify-center">
+              <div className="text-white/80 text-sm mb-1">
+                {t("Карта лояльности")}
+              </div>
+              <div className="text-white font-bold text-base h-6 flex items-center justify-center">МОЙ-КА! DS</div>
+            </div>
+          )}
+
+          {(payType === EPaymentMethod.MOBILE_PAYMENT) && (
             <div className="bg-white/20 p-2 rounded-2xl text-center w-full h-full flex flex-col justify-center">
               <div className="text-white/80 text-sm mb-1">
                 {t("Ваш CashBack")}
