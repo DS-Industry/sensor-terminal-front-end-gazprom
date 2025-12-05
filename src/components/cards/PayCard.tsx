@@ -27,12 +27,54 @@ export default function PayCard({
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  if (payType === EPaymentMethod.QR_CODE) {
+    return (
+      <div
+        className="w-80 h-64 bg-gray-200 rounded-3xl relative cursor-pointer hover:scale-105 transition-all duration-300 overflow-hidden  bg-gradient-to-br from-blue-500 to-blue-600"
+        onClick={() => {
+          navigate(`./${endPoint}`, {
+            state: {
+              programName: programName,
+              price: price,
+            },
+          });
+        }}
+      >
+        <div className="absolute top-4 left-4 z-0">
+          <Text className="text-gray-400 font-bold text-2xl">
+            ОПТИ-24
+          </Text>
+        </div>
+
+        <Card
+          type="action"
+          className="absolute inset-4 bg-white rounded-3xl shadow-xl border-0 flex flex-col"
+        >
+          <div className="p-6 h-full flex flex-col">
+            <div className="flex-1 flex items-center justify-center">
+              <img
+                src={imgUrl}
+                alt="QR Code"
+                className="w-40 h-40 object-contain"
+              />
+            </div>
+
+            <div className="bg-blue-300 rounded-xl p-3 mt-auto">
+              <div className="text-white text-xs text-center leading-relaxed">
+                {t("Оплата с помощью QR-кода для юридических лиц")}
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <Card
       type="action"
       className="w-80 h-64 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer hover:scale-105 border-0 overflow-hidden"
       onClick={() => {
-
         navigate(`./${endPoint}`, {
           state: {
             programName: programName,
@@ -42,7 +84,6 @@ export default function PayCard({
       }}
     >
       <div className="p-6 h-full flex flex-col">
-        {/* Header with Title and Icon */}
         <div className="flex justify-between items-start mb-4 relative">
           <Text className="text-white font-bold text-2xl">
             {t(`${label}`)}
@@ -54,7 +95,6 @@ export default function PayCard({
           )}
         </div>
 
-        {/* Centered Image */}
         <div className="flex-1 flex items-center justify-center">
           <img
             src={imgUrl}
@@ -63,9 +103,7 @@ export default function PayCard({
           />
         </div>
 
-        {/* Bottom Content - Fixed Height */}
         <div className="mt-4 h-20 flex items-center">
-          {/* Payment Type Specific Content */}
           {payType === EPaymentMethod.CARD && (
             <div className="bg-white/20 p-2 rounded-2xl text-center w-full h-full flex flex-col justify-center">
               <div className="text-white/80 text-sm mb-1">{t("Банковские карты")}</div>

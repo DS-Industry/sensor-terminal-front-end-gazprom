@@ -2,33 +2,36 @@ import { PAYS } from "../pays-data";
 import PayCard from "../components/cards/PayCard";
 import { useTranslation } from "react-i18next";
 import { Clock } from "@gravity-ui/icons";
-import MediaCampaign from "../components/mediaCampaign/mediaCampaign";
-import { useMediaCampaign } from "../hooks/useMediaCampaign";
+import { Check } from "lucide-react";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
-import { Icon, Text } from "@gravity-ui/uikit";
+import { Icon, Text, Card } from "@gravity-ui/uikit";
 import useStore from "../components/state/store";
 import { useEffect, useRef, useState } from "react";
 import { loyaltyCheck } from "../api/services/payment";
 import { EPaymentMethod } from "../components/state/order/orderSlice";
 import { useNavigate } from "react-router-dom";
+import gazpromHeader from "../assets/gazprom-step-2-header.png";
 
 const IDLE_TIMEOUT = 30000;
-
-const SINGLE_PAGE_URL = "SinglePage.webp";
 
 export default function SingleProgramPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { selectedProgram, setIsLoyalty, isLoyalty } = useStore();
-  const { attachemntUrl, mediaStatus } = useMediaCampaign(SINGLE_PAGE_URL);
   const [loyaltyLoading, setLoyaltyLoading] = useState(true);
   const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const checkLoyalty = async() => {
-    const isLoyalty = await loyaltyCheck();
-    const loyaltyStatus = isLoyalty.loyalty_status;    
-    setIsLoyalty(loyaltyStatus);
-    setLoyaltyLoading(false);
+    try {
+      const isLoyalty = await loyaltyCheck();
+      const loyaltyStatus = isLoyalty.loyalty_status;    
+      setIsLoyalty(loyaltyStatus);
+      setLoyaltyLoading(false);
+    } catch (error) {
+      console.error("Ошибка при проверке лояльности", error);
+    } finally {
+      setLoyaltyLoading(false);
+    }
   }
 
   const handleFinish = () => {
@@ -67,57 +70,106 @@ export default function SingleProgramPage() {
     return true;
   });
 
-  return (
-    <div className="flex flex-col min-h-screen w-screen bg-gray-100">
-      {/* Video Section - 40% of screen height */}
-      <MediaCampaign attachemntUrl={attachemntUrl} mediaStatus={mediaStatus}/>
+  console.log("filteredPays", filteredPays);
 
-      {/* Content Section - 60% of screen height */}
-      <div className="flex-1 flex flex-col">
+
+  return (
+    <div className="flex flex-col min-h-screen w-screen bg-gray-200">
+      {/* Header Image Section - 30% of screen */}
+      <div className="w-full flex-shrink-0" style={{ height: '30vh', minHeight: '300px' }}>
+        <img 
+          src={gazpromHeader} 
+          alt="Header" 
+          className="w-full h-full object-cover"
+        />
+      </div>
+
+      {/* Content Section - 70% of screen */}
+      <div className="flex-1 flex flex-col bg-gray-200 overflow-hidden">
         {/* Header with Logo and Controls */}
         <HeaderWithLogo />
 
         {/* Main Content Area */}
-        <div className="flex-1 px-7">
+        <div className="flex-1 px-7 pb-7 overflow-y-auto">
           {selectedProgram && (
             <div className="flex flex-col h-full">
-              {/* Program Title */}
-              <div className="text-center mb-8 flex-col items-center">
-                {/* Large Program Title */}
-                <div className="text-gray-900 font-bold text-3xl mb-6">
-                  {t(`${selectedProgram.name}`)}
-                </div>
-                
-                {/* Duration Badge */}
-                <div className="inline-flex items-center gap-3 bg-blue-100 px-6 py-2 rounded-full mb-4">
-                  <Icon data={Clock} size={24} className="text-blue-600" />
-                  <Text className="text-blue-800 font-semibold text-xl">
-                    {selectedProgram.duration} {t("мин.")}
-                  </Text>
-                </div>
-                
-                {/* Description */}
-                <div className="text-gray-600 text-sm">
-                  {t(`${selectedProgram.description}`)}
+              {/* Page Title */}
+              <div className="mb-8 mt-2">
+                <div className="text-gray-900 font-bold text-4xl text-center">
+                  {t("Выберите способ оплаты")}
                 </div>
               </div>
 
-              {/* Payment Selection */}
-              <div className=" mt-3.5 flex flex-col justify-center">
+              {/* Main Content Grid - Flex layout for proper alignment */}
+              <div className="flex flex-row gap-6 justify-center items-start">
+                {/* Left Column - Selected Program Card */}
+                <div className="w-80 flex-shrink-0">
+                  <Card className="bg-white rounded-3xl shadow-xl overflow-hidden border-0 h-full">
+                    {/* Gradient Header Section */}
+                    <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 p-6 pb-8 relative min-h-[280px]">
+                      {/* Selected Badge - Green with checkmark */}
+                      {/* <div className="absolute top-4 right-4 bg-green-500 rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-md">
+                        <Check size={14} className="text-white stroke-[3]" />
+                        <Text className="text-white font-semibold text-xs whitespace-nowrap">
+                          {t("Выбранная программа")}
+                        </Text>
+                      </div> */}
 
-                {/* Payment Cards */}
-                <div className="grid grid-cols-2 gap-6 justify-items-center max-w-2xl mx-auto">
-                  {!loyaltyLoading && filteredPays.map((pay, index) => (
-                    <PayCard
-                      key={index}
-                      payType={pay.type}
-                      label={pay.label}
-                      imgUrl={pay.imgUrl}
-                      endPoint={pay.endPoint}
-                      programName={selectedProgram.name}
-                      price={selectedProgram.price}
-                    />
-                  ))}
+                      {/* Duration Badge - Blue pill */}
+                      <div className="inline-flex items-center gap-2 bg-blue-400 rounded-full px-3 py-1.5 mb-5 shadow-sm">
+                        <Icon data={Clock} size={18} className="text-white" />
+                        <Text className="text-white font-semibold text-sm">
+                          {selectedProgram.duration} {t("мин.")}
+                        </Text>
+                      </div>
+
+                      {/* Program Title */}
+                      <h2 className="text-3xl font-bold mb-5 text-white leading-tight">
+                        {t(`${selectedProgram.name}`)}
+                      </h2>
+
+                      {/* Services List */}
+                      <div className="space-y-2.5 mt-4">
+                        {selectedProgram.functions && selectedProgram.functions.split(", ").map((service, index) => (
+                          <div key={index} className="flex items-center gap-2.5">
+                            <Check size={18} className="text-green-400 flex-shrink-0 stroke-[3]" />
+                            <Text className="text-white font-medium text-sm leading-relaxed">
+                              {t(`${service}`)}
+                            </Text>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Price Section */}
+                    <div className="p-6 bg-white text-center">
+                      <div>
+                        <span className="text-6xl font-bold text-gray-900 tracking-tight">
+                          {Number(selectedProgram.price)}
+                        </span>
+                        <span className="text-2xl text-gray-500 ml-1 font-semibold">
+                          {t("р.")}
+                        </span>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Right Column - Payment Cards Grid */}
+                <div className="flex-1 max-w-4xl">
+                  <div className="grid grid-cols-2 gap-6 auto-rows-fr">
+                    {!loyaltyLoading && filteredPays.map((pay, index) => (
+                      <PayCard
+                        key={index}
+                        payType={pay.type}
+                        label={pay.label}
+                        imgUrl={pay.imgUrl}
+                        endPoint={pay.endPoint}
+                        programName={selectedProgram.name}
+                        price={selectedProgram.price}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,8 +1,6 @@
 import "./../App.css";
 import ProgramCard from "../components/cards/ProgramCard";
 import { useTranslation } from "react-i18next";
-import MediaCampaign from "../components/mediaCampaign/mediaCampaign";
-import { useMediaCampaign } from "../hooks/useMediaCampaign";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 import { usePrograms } from "../hooks/usePrograms";
 import { useEffect } from "react";
@@ -11,12 +9,11 @@ import { EOrderStatus } from "../components/state/order/orderSlice";
 import { startRobot } from "../api/services/payment";
 import { useNavigate } from "react-router-dom";
 
-const MAIN_PAGE_URL = "MainPage.webp";
+import gazpromHeader from "../assets/gazprom-step-2-header.png"
 
 export default function MainPage() {
   const { t } = useTranslation();
   const { programs } = usePrograms();
-  const { attachemntUrl, mediaStatus } = useMediaCampaign(MAIN_PAGE_URL);
   const { order, clearOrder, setInsertedAmount, setIsLoading } = useStore();
   const navigate = useNavigate();
 
@@ -40,7 +37,13 @@ export default function MainPage() {
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-200">
       {/* Video Section - 40% of screen height */}
-      <MediaCampaign attachemntUrl={attachemntUrl} mediaStatus={mediaStatus}/>
+      <div className="w-full flex-shrink-0" style={{ height: '30vh', minHeight: '300px' }}>
+        <img 
+          src={gazpromHeader} 
+          alt="Header" 
+          className="w-full h-full object-cover"
+        />
+      </div>
       
       {/* Content Section - 60% of screen height */}
       <div className="flex-1 flex flex-col">

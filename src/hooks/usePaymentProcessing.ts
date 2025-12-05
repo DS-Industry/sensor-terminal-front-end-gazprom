@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useStore from '../components/state/store';
 import { cancelOrder, createOrder, getOrderById, startRobot } from '../api/services/payment';
 import { EOrderStatus, EPaymentMethod } from '../components/state/order/orderSlice';
+import { AxiosError } from 'axios';
 
 const DEPOSIT_TIME = 60000;
 const PAYMENT_INTERVAL = 1000;
@@ -17,11 +18,20 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     closeLoyaltyCardModal,
     setIsLoading,
     isLoyaltyCardModalOpen,
-    setInsertedAmount
+    setInsertedAmount,
+    clearOrder,
+    setOrder,
+    setQueuePosition: setGlobalQueuePosition,
+    setQueueNumber: setGlobalQueueNumber
   } = useStore();
 
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [timeUntilRobotStart, setTimeUntilRobotStart] = useState(0);
+  const [queuePosition, setQueuePosition] = useState<number | null>(null);
+  const [queueNumber, setQueueNumber] = useState<number | null>(null);
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [queueFull, setQueueFull] = useState(false);
 
   const orderCreatedRef = useRef(false);
   const depositTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -84,18 +94,58 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       return;
     }
 
+    // Check if queue is full (only 1 car allowed in queue)
+    // queuePosition >= 2 means there's already 1 car in queue, so queue is full
+    if (queuePosition !== null && queuePosition >= 2) {
+      console.log(`[${paymentMethod}Page] Очередь заполнена, queuePosition: ${queuePosition}`);
+      setQueueFull(true);
+      setPaymentError('Очередь заполнена. Пожалуйста, подождите.');
+      setIsLoading(false);
+      return;
+    }
+
     orderCreatedRef.current = true;
+    setPaymentError(null); // Clear any previous errors
+    setQueueFull(false); // Reset queue full flag
 
     try {
       setIsLoading(true);
-      await createOrder({
+      const response = await createOrder({
         program_id: selectedProgram.id,
         payment_type: paymentMethod,
         ucn: ucn,
       });
       console.log(`[${paymentMethod}Page] Создали заказ ${ucn ? 'с UCN' : 'БЕЗ UCN'}`);
+      
+      // Check queue position from order response if available
+      // Note: queue_position might not be in createOrder response, will be checked in checkPaymentAsync
+      
+      if (response.qr_code) {
+        console.log(`[${paymentMethod}Page] Получили QR-код из ответа createOrder`);
+        setQrCode(response.qr_code);
+      }
     } catch (err) {
       console.error(`[${paymentMethod}Page] Ошибка создания заказа`, err);
+      setIsLoading(false);
+      
+      // Extract error message from API response
+      let errorMessage = 'Произошла ошибка при создании заказа';
+      
+      if (err instanceof AxiosError) {
+        const errorData = err.response?.data;
+        if (errorData?.error) {
+          errorMessage = errorData.error;
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
+      setPaymentError(errorMessage);
+      orderCreatedRef.current = false; // Allow retry
     }
   };
   
@@ -132,6 +182,47 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
 
         console.log(`[${paymentMethod}Page] Получили ответ getOrderById`);
 
+        // Обновляем информацию об очереди
+        if (orderDetails.queue_position !== undefined) {
+          const newQueuePosition = orderDetails.queue_position;
+          const previousQueuePosition = queuePosition;
+          setQueuePosition(newQueuePosition);
+          setGlobalQueuePosition(newQueuePosition); // Store in global state for SuccessPaymentPage
+          
+          // Check if queue is full (only 1 car allowed in queue)
+          // queuePosition >= 2 means there are 2+ cars in queue (queue is full)
+          // Only 1 car allowed: queuePosition === 1 is OK, queuePosition >= 2 is full
+          if (newQueuePosition >= 2) {
+            console.log(`[${paymentMethod}Page] Очередь заполнена! queuePosition: ${newQueuePosition}`);
+            setQueueFull(true);
+            setPaymentError('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.');
+            // Cancel this order since queue is full (only if not already paid)
+            if (order?.id && order?.status !== EOrderStatus.PAYED) {
+              try {
+                await cancelOrder(order.id);
+                console.log(`[${paymentMethod}Page] Отменили заказ из-за заполненной очереди`);
+                orderCreatedRef.current = false; // Allow retry after queue clears
+              } catch (cancelErr) {
+                console.error(`[${paymentMethod}Page] Ошибка отмены заказа`, cancelErr);
+              }
+            }
+          } else {
+            setQueueFull(false);
+            
+            // If queue position changed from >= 1 to 0/null, washing is done
+            // Transition to "Проезжайте в бокс" screen
+            if (previousQueuePosition !== null && previousQueuePosition >= 1 && (newQueuePosition === 0 || newQueuePosition === null)) {
+              console.log(`[${paymentMethod}Page] Мойка завершена, очередь очищена. Переход к экрану "Проезжайте в бокс"`);
+              // Queue cleared, user can now proceed
+              // This will be handled by SuccessPaymentPage based on queuePosition
+            }
+          }
+        }
+        if (orderDetails.queue_number !== undefined) {
+          setQueueNumber(orderDetails.queue_number);
+          setGlobalQueueNumber(orderDetails.queue_number); // Store in global state
+        }
+
         if (orderDetails.amount_sum) {
           const amountSum = Number(orderDetails.amount_sum);
           console.log(`[${paymentMethod}Page] Внесено:`, amountSum);
@@ -150,9 +241,29 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
 
           if (amountSum >= Number(selectedProgram?.price)) {
             console.log(`[${paymentMethod}Page] Получена вся сумма`);
-            clearAllTimers();
-            setPaymentSuccess(true);
-            // setIsLoading(true);
+            
+            // Check queue position before setting success
+            // If queuePosition >= 2, queue is full - don't set success, cancel order
+            if (orderDetails.queue_position !== undefined && orderDetails.queue_position >= 2) {
+              console.log(`[${paymentMethod}Page] Очередь заполнена при получении суммы! queuePosition: ${orderDetails.queue_position}`);
+              setQueueFull(true);
+              setPaymentError('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.');
+              setIsLoading(false);
+              
+              // Cancel this order since queue is full
+              try {
+                await cancelOrder(order.id);
+                console.log(`[${paymentMethod}Page] Отменили заказ из-за заполненной очереди`);
+                orderCreatedRef.current = false;
+                return; // Don't set paymentSuccess
+              } catch (cancelErr) {
+                console.error(`[${paymentMethod}Page] Ошибка отмены заказа`, cancelErr);
+              }
+            } else {
+              // Queue is OK, proceed with success
+              clearAllTimers();
+              setPaymentSuccess(true);
+            }
           }
         }
       }
@@ -177,7 +288,9 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     closeLoyaltyCardModal();
     setIsLoading(false);
     setPaymentSuccess(false);
+    setPaymentError(null);
     clearCountdown();
+    orderCreatedRef.current = false;
     console.log("[usePaymentProcessing] Делам отмену заказа c id: ", order?.id);
     
     if (order?.id) {
@@ -185,6 +298,13 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     }
 
     navigate(-1);
+  };
+
+  // Retry payment after error
+  const handleRetry = () => {
+    setPaymentError(null);
+    orderCreatedRef.current = false;
+    createOrderAsync();
   };
 
   const handleStartRobot = () => {
@@ -195,6 +315,28 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       clearCountdown();
       navigate('/success');
     }
+  }
+
+  // Обработчик для кнопки "Оплатить заранее" - начинает процесс заново
+  // НЕ отменяем текущий заказ, так как он уже оплачен и пользователь в очереди
+  const handlePayInAdvance = () => {
+    console.log("Оплатить заранее - начинаем процесс заново");
+    
+    // Очищаем все таймеры
+    clearAllTimers();
+    
+    // НЕ отменяем текущий заказ - он уже оплачен и пользователь в очереди
+    // Просто очищаем локальное состояние для нового процесса оплаты
+    clearOrder();
+    setPaymentSuccess(false);
+    setQueuePosition(null);
+    setQueueNumber(null);
+    setInsertedAmount(0);
+    setIsLoading(false);
+    orderCreatedRef.current = false;
+    
+    // Переходим на главную страницу для начала нового процесса оплаты
+    navigate("/");
   }
 
   // Запуск отсчета до автоматического старта робота
@@ -287,13 +429,75 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   }, [order]);
 
   // Отдельный эффект для обработки успешного статуса PAYED
+  // Only set success if order was created in this session (orderCreatedRef.current is true)
+  // This prevents showing success immediately when navigating from "pay in advance"
   useEffect(() => {
-    if (order?.status === EOrderStatus.PAYED && !paymentSuccess) {
+    if (order?.status === EOrderStatus.PAYED && !paymentSuccess && orderCreatedRef.current) {
       console.log(`[${paymentMethod}Page] Статус заказа изменился на PAYED`);
-      clearAllTimers();
-      setPaymentSuccess(true);
+      
+      // Immediately check queue position after payment
+      // This is critical to determine if user should see advance screen or proceed immediately
+      const checkQueueAfterPayment = async () => {
+        if (order?.id) {
+          try {
+            const orderDetails = await getOrderById(order.id);
+            
+            if (orderDetails.queue_position !== undefined) {
+              const newQueuePosition = orderDetails.queue_position;
+              setQueuePosition(newQueuePosition);
+              setGlobalQueuePosition(newQueuePosition); // Store in global state
+              
+              // Check if queue is full (only 1 car allowed in queue)
+              // queuePosition >= 2 means queue is FULL - cancel order
+              if (newQueuePosition >= 2) {
+                console.log(`[${paymentMethod}Page] Очередь заполнена после оплаты! queuePosition: ${newQueuePosition}`);
+                setQueueFull(true);
+                setPaymentError('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.');
+                setIsLoading(false);
+                
+                // Cancel this order since queue is full
+                try {
+                  await cancelOrder(order.id);
+                  console.log(`[${paymentMethod}Page] Отменили заказ из-за заполненной очереди`);
+                  orderCreatedRef.current = false;
+                  setGlobalQueuePosition(null); // Clear queue position
+                  return; // Don't set paymentSuccess
+                } catch (cancelErr) {
+                  console.error(`[${paymentMethod}Page] Ошибка отмены заказа`, cancelErr);
+                }
+              } else {
+                // Queue is OK (queuePosition === 0, 1, or null)
+                setQueueFull(false);
+                clearAllTimers();
+                setPaymentSuccess(true);
+                
+                // If queuePosition === 1, user will see advance payment screen ("Ожидайте окончания мойки...")
+                // If queuePosition === 0 or null, user will see "Проезжайте в бокс" screen
+              }
+            } else {
+              // No queue position info, proceed normally
+              setGlobalQueuePosition(null);
+              clearAllTimers();
+              setPaymentSuccess(true);
+            }
+            
+            // Store queue number if available
+            if (orderDetails.queue_number !== undefined) {
+              setQueueNumber(orderDetails.queue_number);
+              setGlobalQueueNumber(orderDetails.queue_number);
+            }
+          } catch (err) {
+            console.error(`[${paymentMethod}Page] Ошибка проверки очереди после оплаты`, err);
+            // On error, proceed with success anyway
+            clearAllTimers();
+            setPaymentSuccess(true);
+          }
+        }
+      };
+      
+      checkQueueAfterPayment();
     }
-  }, [order?.status]);
+  }, [order?.status, order?.id, paymentSuccess]);
 
   // Эффект для запуска отсчета при успешной оплате
   useEffect(() => {
@@ -309,6 +513,39 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     };
   }, [paymentSuccess]);
 
+  // Определяем, идет ли мойка
+  // Queue should be visible only when:
+  // 1. There are 2+ orders (someone else is washing)
+  // 2. queuePosition >= 1 means current user is in queue (someone else is washing or ahead)
+  // queuePosition === null or 0 means no queue, user can go immediately
+  // Only 1 car allowed in queue: queuePosition >= 2 means queue is full
+  const isWashingInProgress = queuePosition !== null && queuePosition >= 1;
+
+  // Test function to simulate card tap success
+  const simulateCardTap = () => {
+    console.log('[TEST] Simulating card tap success');
+    if (order) {
+      setOrder({
+        ...order,
+        status: EOrderStatus.PAYED,
+      });
+      console.log('[TEST] Order status set to PAYED');
+    } else {
+      console.warn('[TEST] No order found, creating test order');
+      // Create a test order if none exists
+      if (selectedProgram) {
+        setOrder({
+          id: 'test-order-' + Date.now(),
+          programId: selectedProgram.id,
+          status: EOrderStatus.PAYED,
+          paymentMethod: paymentMethod,
+          createdAt: new Date().toISOString(),
+          transactionId: 'test-transaction-' + Date.now(),
+        });
+      }
+    }
+  };
+
   return {
     // handleSkipLoyalty, // Убрано из возвращаемых значений
     handleBack,
@@ -317,6 +554,15 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     order,
     paymentSuccess,
     handleStartRobot,
-    timeUntilRobotStart
+    handlePayInAdvance,
+    handleRetry,
+    timeUntilRobotStart,
+    queuePosition,
+    queueNumber,
+    isWashingInProgress,
+    qrCode,
+    paymentError,
+    simulateCardTap,
+    queueFull
   };
 };

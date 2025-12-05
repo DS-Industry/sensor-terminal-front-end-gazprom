@@ -1,5 +1,5 @@
 import { axiosInstance } from "../../axiosConfig";
-import { ICreateOrderRequest, IGetMobileQr, IGetOrderByIdResponse, ILoyaltyCheckResponse, IUcnCheckResponse } from "../../types/payment";
+import { ICreateOrderRequest, ICreateOrderResponse, IGetMobileQr, IGetOrderByIdResponse, ILoyaltyCheckResponse, IUcnCheckResponse } from "../../types/payment";
 
 enum PAYMENT {
   PAY = 'pay/',
@@ -14,12 +14,12 @@ enum PAYMENT {
 
 export async function createOrder(
   body: ICreateOrderRequest,
-): Promise<void> {  
+): Promise<ICreateOrderResponse> {  
 
   console.log(body);
   
-  
-  await axiosInstance.post(PAYMENT.PAY, body);
+  const response = await axiosInstance.post<ICreateOrderResponse>(PAYMENT.PAY, body);
+  return response.data;
 }
 
 export async function getOrderById(

@@ -14,6 +14,9 @@ import SuccessPaymentPage from "./pages/SuccessPaymentPage.tsx";
 import MobilePayPage from "./pages/MobilePayPage.tsx";
 import LoyaltyPayPage from "./pages/LoyaltyPayPage.tsx";
 import ErrorPaymentPage from "./pages/ErrorPaymentPage.tsx";
+import QrCodePayPage from "./pages/QrCodePayPage.tsx";
+import WashingInProgressPage from "./pages/WashingInProgressPage.tsx";
+import TestNavigationPage from "./pages/TestNavigationPage.tsx";
 import { NavigationHandler } from "./components/navigationHandler/NavigationHandler.tsx";
 import { GlobalWebSocketManager } from "./components/globalWebSocketManager/GlobalWebSocketManager.tsx";
 import { ModalProvider } from "./components/modalProvider/ModalProvider.tsx";
@@ -57,7 +60,11 @@ const router = createBrowserRouter([
       {
         path: "/programs/:program/appCard",
         element: <LoyaltyPayPage />,
-      }, 
+      },
+      {
+        path: "/programs/:program/qrCode",
+        element: <QrCodePayPage />,
+      },
       {
         path: "/instruction",
         element: <InstructionPage />,
@@ -69,6 +76,14 @@ const router = createBrowserRouter([
       {
         path: "/error",
         element: <ErrorPaymentPage />,
+      },
+      {
+        path: "/washing",
+        element: <WashingInProgressPage />,
+      },
+      {
+        path: "/test",
+        element: <TestNavigationPage />,
       },
     ],
   },

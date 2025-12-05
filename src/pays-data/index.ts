@@ -2,6 +2,9 @@ import BankCard from "./../assets/card.svg";
 import Cash from "./../assets/cash.svg";
 import App from "./../assets/app.svg";
 import Card from "./../assets/app-card.svg";
+
+import QRCode from "./../assets/qr.png";
+
 import { IPaymentMethod } from "../api/types/payment";
 import { EPaymentMethod } from "../components/state/order/orderSlice";
 
@@ -12,22 +15,28 @@ export const PAYS: IPaymentMethod[] = [
     type: EPaymentMethod.CARD,
     endPoint: "bankCard",
   },
-  {
-    label: "Наличный расчет",
-    type: EPaymentMethod.CASH,
-    imgUrl: Cash,
-    endPoint: "cash",
-  },
-  {
-    label: "Мобильное приложение",
-    type: EPaymentMethod.MOBILE_PAYMENT,
-    imgUrl: App,
-    endPoint: "app",
-  },
-  {
-    label: "Карта лояльности",
-    type: EPaymentMethod.LOYALTY,
-    imgUrl: Card,
-    endPoint: "appCard",
-  },
+  // {
+  //   label: "Наличный расчет",
+  //   type: EPaymentMethod.CASH,
+  //   imgUrl: Cash,
+  //   endPoint: "cash",
+  // },
+  // {
+  //   label: "Мобильное приложение",
+  //   type: EPaymentMethod.MOBILE_PAYMENT,
+  //   imgUrl: App,
+  //   endPoint: "app",
+  // },
+  // {
+  //   label: "Карта лояльности",
+  //   type: EPaymentMethod.LOYALTY,
+  //   imgUrl: Card,
+  //   endPoint: "appCard",
+  // },
+  // {
+  //   label: "QR-код",
+  //   type: EPaymentMethod.QR_CODE,
+  //   imgUrl: QRCode,
+  //   endPoint: "qrCode",
+  // }
 ];

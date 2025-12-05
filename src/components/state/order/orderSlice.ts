@@ -5,6 +5,7 @@ export enum EPaymentMethod {
   CARD = 'bank_card',
   LOYALTY = 'loyalty_card',
   MOBILE_PAYMENT = 'mobile_app',
+  QR_CODE = 'qr_code',
 }
 
 export enum EOrderStatus {

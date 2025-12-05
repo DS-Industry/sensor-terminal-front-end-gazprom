@@ -13,6 +13,10 @@ export interface ICreateOrderRequest {
   ucn?: string,
 }
 
+export interface ICreateOrderResponse {
+  qr_code?: string; 
+}
+
 export interface ILoyaltyCheckResponse {
   loyalty_status: boolean;
 }
