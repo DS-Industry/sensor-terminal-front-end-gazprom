@@ -89,13 +89,19 @@ export default function SingleProgramPage() {
                     </div>
 
                     <div className="p-6 bg-white text-center">
-                      <div>
+                      <div className="mb-4">
                         <span className="text-6xl font-bold text-gray-900 tracking-tight">
                           {Number(selectedProgram.price)}
                         </span>
                         <span className="text-2xl text-gray-500 ml-1 font-semibold">
                           {t("р.")}
                         </span>
+                      </div>
+                      <div className="flex items-center justify-center gap-2">
+                        <Check size={18} className="text-green-500 flex-shrink-0 stroke-[3]" />
+                        <Text className="text-[#008618] font-semibold text-sm">
+                          {t("Выбранная программа")}
+                        </Text>
                       </div>
                     </div>
                   </Card>
