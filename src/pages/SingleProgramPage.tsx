@@ -6,9 +6,7 @@ import { Check } from "lucide-react";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 import { Icon, Text, Card } from "@gravity-ui/uikit";
 import useStore from "../components/state/store";
-import { useEffect, useRef, useState } from "react";
-import { loyaltyCheck } from "../api/services/payment";
-import { EPaymentMethod } from "../components/state/order/orderSlice";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import gazpromHeader from "../assets/gazprom-step-2-header.png";
 
@@ -17,22 +15,8 @@ const IDLE_TIMEOUT = 30000;
 export default function SingleProgramPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { selectedProgram, setIsLoyalty, isLoyalty } = useStore();
-  const [loyaltyLoading, setLoyaltyLoading] = useState(true);
+  const { selectedProgram } = useStore();
   const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const checkLoyalty = async() => {
-    try {
-      const isLoyalty = await loyaltyCheck();
-      const loyaltyStatus = isLoyalty.loyalty_status;    
-      setIsLoyalty(loyaltyStatus);
-      setLoyaltyLoading(false);
-    } catch (error) {
-      console.error("Ошибка при проверке лояльности", error);
-    } finally {
-      setLoyaltyLoading(false);
-    }
-  }
 
   const handleFinish = () => {
     navigate("/");
@@ -46,8 +30,6 @@ export default function SingleProgramPage() {
   }
 
   useEffect(() => {
-    checkLoyalty();
-
     if (!idleTimeoutRef.current) {
       idleTimeoutRef.current = setTimeout(handleFinish, IDLE_TIMEOUT);
     }
@@ -56,21 +38,6 @@ export default function SingleProgramPage() {
       clearIdleTimeout();
     };
   }, []);
-
-  const filteredPays = PAYS.filter(pay => {
-    // Всегда исключаем MOBILE_PAYMENT
-    if (pay.type === EPaymentMethod.MOBILE_PAYMENT) {
-      return false;
-    }
-    // Если isLoyalty равно false, исключаем LOYALTY
-    if (!isLoyalty && pay.type === EPaymentMethod.LOYALTY) {
-      return false;
-    }
-    // В остальных случаях показываем карточку
-    return true;
-  });
-
-  console.log("filteredPays", filteredPays);
 
 
   return (
@@ -157,11 +124,10 @@ export default function SingleProgramPage() {
 
                 {/* Right Column - Payment Cards Grid */}
                 <div className="flex-1 max-w-4xl">
-                  <div className="grid grid-cols-2 gap-6 auto-rows-fr">
-                    {!loyaltyLoading && filteredPays.map((pay, index) => (
+                  <div className="flex justify-center">
+                    {PAYS.map((pay) => (
                       <PayCard
-                        key={index}
-                        payType={pay.type}
+                        key={pay.endPoint}
                         label={pay.label}
                         imgUrl={pay.imgUrl}
                         endPoint={pay.endPoint}

@@ -1,23 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import useStore from '../components/state/store';
 import { cancelOrder, createOrder, getOrderById, startRobot } from '../api/services/payment';
 import { EOrderStatus, EPaymentMethod } from '../components/state/order/orderSlice';
 import { AxiosError } from 'axios';
+import { logger } from '../util/logger';
+import { PAYMENT_CONSTANTS } from '../constants/payment';
 
-const DEPOSIT_TIME = 60000;
-const PAYMENT_INTERVAL = 1000;
-const START_ROBOT_INTERVAL = 20000;
+// Note: setOrder is needed for simulateCardTap test function
 
 export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const {
     order,
     selectedProgram,
-    isLoyalty,
-    closeLoyaltyCardModal,
     setIsLoading,
-    isLoyaltyCardModalOpen,
     setInsertedAmount,
     clearOrder,
     setOrder,
@@ -35,27 +34,12 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
 
   const orderCreatedRef = useRef(false);
   const depositTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const loyalityEmptyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkOrderAmountSumIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const checkLoyaltyIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const idleTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownInterval = useRef<ReturnType<typeof setInterval> | null>(null);
-  const countdownStartedRef = useRef(false); 
+  const countdownStartedRef = useRef(false);
 
-  // Очистка таймеров лояльности
-  const clearLoyaltyTimers = () => {
-    if (checkLoyaltyIntervalRef.current) {
-      clearInterval(checkLoyaltyIntervalRef.current);
-      checkLoyaltyIntervalRef.current = null;
-    }
-    if (loyalityEmptyTimeoutRef.current) {
-      clearTimeout(loyalityEmptyTimeoutRef.current);
-      loyalityEmptyTimeoutRef.current = null;
-    }
-  };
-
-  // Очистка таймеров оплаты
-  const clearPaymentTimers = () => {
+  const clearPaymentTimers = useCallback(() => {
     if (depositTimeoutRef.current) {
       clearTimeout(depositTimeoutRef.current);
       depositTimeoutRef.current = null;
@@ -64,18 +48,10 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       clearInterval(checkOrderAmountSumIntervalRef.current);
       checkOrderAmountSumIntervalRef.current = null;
     }
-  };
+  }, []);
 
-  // Очистка всех таймеров
-  const clearAllTimers = () => {
-    clearLoyaltyTimers();
-    clearPaymentTimers();
-    clearCountdown(); // Добавлена очистка отсчета
-  };
-
-  // Очистка отсчета
-  const clearCountdown = () => {
-    countdownStartedRef.current = false; // Сбрасываем флаг
+  const clearCountdown = useCallback(() => {
+    countdownStartedRef.current = false;
     if (idleTimeout.current) {
       clearTimeout(idleTimeout.current);
       idleTimeout.current = null;
@@ -85,28 +61,30 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       countdownInterval.current = null;
     }
     setTimeUntilRobotStart(0);
-  };
+  }, []);
 
-  // Создание заказа
-  const createOrderAsync = async (ucn?: string) => {
+  const clearAllTimers = useCallback(() => {
+    clearPaymentTimers();
+    clearCountdown();
+  }, [clearPaymentTimers, clearCountdown]);
+
+  const createOrderAsync = useCallback(async (ucn?: string) => {
     if (!selectedProgram || orderCreatedRef.current) {
-      console.log(`[${paymentMethod}Page] Ошибка создания заказа`);
+      logger.warn(`[${paymentMethod}] Failed to create order: missing program or order already created`);
       return;
     }
 
-    // Check if queue is full (only 1 car allowed in queue)
-    // queuePosition >= 2 means there's already 1 car in queue, so queue is full
-    if (queuePosition !== null && queuePosition >= 2) {
-      console.log(`[${paymentMethod}Page] Очередь заполнена, queuePosition: ${queuePosition}`);
+    if (queuePosition !== null && queuePosition >= PAYMENT_CONSTANTS.MAX_QUEUE_POSITION) {
+      logger.info(`[${paymentMethod}] Queue is full, queuePosition: ${queuePosition}`);
       setQueueFull(true);
-      setPaymentError('Очередь заполнена. Пожалуйста, подождите.');
+      setPaymentError(t('Очередь заполнена. Пожалуйста, подождите.'));
       setIsLoading(false);
       return;
     }
 
     orderCreatedRef.current = true;
-    setPaymentError(null); // Clear any previous errors
-    setQueueFull(false); // Reset queue full flag
+    setPaymentError(null);
+    setQueueFull(false);
 
     try {
       setIsLoading(true);
@@ -115,21 +93,17 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
         payment_type: paymentMethod,
         ucn: ucn,
       });
-      console.log(`[${paymentMethod}Page] Создали заказ ${ucn ? 'с UCN' : 'БЕЗ UCN'}`);
-      
-      // Check queue position from order response if available
-      // Note: queue_position might not be in createOrder response, will be checked in checkPaymentAsync
+      logger.debug(`[${paymentMethod}] Order created ${ucn ? 'with UCN' : 'without UCN'}`);
       
       if (response.qr_code) {
-        console.log(`[${paymentMethod}Page] Получили QR-код из ответа createOrder`);
+        logger.debug(`[${paymentMethod}] Received QR code from createOrder response`);
         setQrCode(response.qr_code);
       }
     } catch (err) {
-      console.error(`[${paymentMethod}Page] Ошибка создания заказа`, err);
+      logger.error(`[${paymentMethod}] Error creating order`, err);
       setIsLoading(false);
       
-      // Extract error message from API response
-      let errorMessage = 'Произошла ошибка при создании заказа';
+      let errorMessage = t('Произошла ошибка при создании заказа');
       
       if (err instanceof AxiosError) {
         const errorData = err.response?.data;
@@ -145,188 +119,131 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       }
       
       setPaymentError(errorMessage);
-      orderCreatedRef.current = false; // Allow retry
+      orderCreatedRef.current = false;
     }
-  };
-  
-  // ЗАКОММЕНТИРОВАНА ЛОГИКА ЛОЯЛЬНОСТИ
-  // // Проверка лояльности
-  // const checkLoyaltyAsync = async () => {
-  //   try {
-  //     const ucnResponse = await ucnCheck();
-  //     const ucnCode = ucnResponse.ucn;
-  //     if (ucnCode) {
-  //       console.log(`[${paymentMethod}Page] Получили ucn код:`, ucnCode);
-  //       clearLoyaltyTimers();
-  //       closeLoyaltyCardModal();
-  //       if (Number(ucnCode) !== -1) {
-  //         console.log("создание заказа из Number(ucnCode) !== -1");
-  //         await createOrderAsync(ucnCode);
-  //       } else {
-  //         console.log("создание заказа из } else {");
-  //         await createOrderAsync();
-  //       }
-  //     }
-  //   } catch (e) {
-  //     console.log(`[${paymentMethod}Page] Ошибка ucnCheck`, e);
-  //   }
-  // };
-  
-  // Проверка платежа
-  const checkPaymentAsync = async () => {
+  }, [selectedProgram, paymentMethod, queuePosition, setIsLoading, t]);
+
+  const checkPaymentAsync = useCallback(async () => {
     try {
-      if (order?.id) {
-        console.log(`[${paymentMethod}Page] Сделали запрос getOrderById, ждем ответ... `);
+      if (!order?.id) {
+        return;
+      }
 
-        const orderDetails = await getOrderById(order.id);
+      logger.debug(`[${paymentMethod}] Checking order status, orderId: ${order.id}`);
+      const orderDetails = await getOrderById(order.id);
+      logger.debug(`[${paymentMethod}] Received order details`);
 
-        console.log(`[${paymentMethod}Page] Получили ответ getOrderById`);
-
-        // Обновляем информацию об очереди
-        if (orderDetails.queue_position !== undefined) {
-          const newQueuePosition = orderDetails.queue_position;
-          const previousQueuePosition = queuePosition;
-          setQueuePosition(newQueuePosition);
-          setGlobalQueuePosition(newQueuePosition); // Store in global state for SuccessPaymentPage
+      if (orderDetails.queue_position !== undefined) {
+        const newQueuePosition = orderDetails.queue_position;
+        const previousQueuePosition = queuePosition;
+        setQueuePosition(newQueuePosition);
+        setGlobalQueuePosition(newQueuePosition);
+        
+        if (newQueuePosition >= PAYMENT_CONSTANTS.MAX_QUEUE_POSITION) {
+          logger.info(`[${paymentMethod}] Queue is full! queuePosition: ${newQueuePosition}`);
+          setQueueFull(true);
+          setPaymentError(t('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.'));
           
-          // Check if queue is full (only 1 car allowed in queue)
-          // queuePosition >= 2 means there are 2+ cars in queue (queue is full)
-          // Only 1 car allowed: queuePosition === 1 is OK, queuePosition >= 2 is full
-          if (newQueuePosition >= 2) {
-            console.log(`[${paymentMethod}Page] Очередь заполнена! queuePosition: ${newQueuePosition}`);
+          if (order?.id && order?.status !== EOrderStatus.PAYED) {
+            try {
+              await cancelOrder(order.id);
+              logger.info(`[${paymentMethod}] Cancelled order due to full queue`);
+              orderCreatedRef.current = false;
+            } catch (cancelErr) {
+              logger.error(`[${paymentMethod}] Error cancelling order`, cancelErr);
+            }
+          }
+        } else {
+          setQueueFull(false);
+          
+          if (previousQueuePosition !== null && previousQueuePosition >= 1 && (newQueuePosition === 0 || newQueuePosition === null)) {
+            logger.info(`[${paymentMethod}] Washing completed, queue cleared`);
+          }
+        }
+      }
+
+      if (orderDetails.queue_number !== undefined) {
+        setQueueNumber(orderDetails.queue_number);
+        setGlobalQueueNumber(orderDetails.queue_number);
+      }
+
+      if (orderDetails.amount_sum) {
+        const amountSum = Number(orderDetails.amount_sum);
+        logger.debug(`[${paymentMethod}] Amount inserted: ${amountSum}`);
+
+        if (amountSum > 0 && depositTimeoutRef.current) {
+          clearTimeout(depositTimeoutRef.current);
+          depositTimeoutRef.current = null;
+        }
+
+        if (amountSum >= Number(selectedProgram?.price)) {
+          logger.info(`[${paymentMethod}] Full amount received`);
+          
+          if (orderDetails.queue_position !== undefined && orderDetails.queue_position >= PAYMENT_CONSTANTS.MAX_QUEUE_POSITION) {
+            logger.info(`[${paymentMethod}] Queue is full when receiving payment! queuePosition: ${orderDetails.queue_position}`);
             setQueueFull(true);
-            setPaymentError('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.');
-            // Cancel this order since queue is full (only if not already paid)
-            if (order?.id && order?.status !== EOrderStatus.PAYED) {
-              try {
-                await cancelOrder(order.id);
-                console.log(`[${paymentMethod}Page] Отменили заказ из-за заполненной очереди`);
-                orderCreatedRef.current = false; // Allow retry after queue clears
-              } catch (cancelErr) {
-                console.error(`[${paymentMethod}Page] Ошибка отмены заказа`, cancelErr);
-              }
+            setPaymentError(t('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.'));
+            setIsLoading(false);
+            
+            try {
+              await cancelOrder(order.id);
+              logger.info(`[${paymentMethod}] Cancelled order due to full queue`);
+              orderCreatedRef.current = false;
+              return;
+            } catch (cancelErr) {
+              logger.error(`[${paymentMethod}] Error cancelling order`, cancelErr);
             }
           } else {
-            setQueueFull(false);
-            
-            // If queue position changed from >= 1 to 0/null, washing is done
-            // Transition to "Проезжайте в бокс" screen
-            if (previousQueuePosition !== null && previousQueuePosition >= 1 && (newQueuePosition === 0 || newQueuePosition === null)) {
-              console.log(`[${paymentMethod}Page] Мойка завершена, очередь очищена. Переход к экрану "Проезжайте в бокс"`);
-              // Queue cleared, user can now proceed
-              // This will be handled by SuccessPaymentPage based on queuePosition
-            }
-          }
-        }
-        if (orderDetails.queue_number !== undefined) {
-          setQueueNumber(orderDetails.queue_number);
-          setGlobalQueueNumber(orderDetails.queue_number); // Store in global state
-        }
-
-        if (orderDetails.amount_sum) {
-          const amountSum = Number(orderDetails.amount_sum);
-          console.log(`[${paymentMethod}Page] Внесено:`, amountSum);
-
-          if (amountSum > 0) {
-            if (depositTimeoutRef.current) {
-              clearTimeout(depositTimeoutRef.current);
-              depositTimeoutRef.current = null;
-            }
-          }
-
-          // Для наличных обновляем сумму в UI
-          if (paymentMethod === EPaymentMethod.CASH) {
-            setInsertedAmount(amountSum);
-          }
-
-          if (amountSum >= Number(selectedProgram?.price)) {
-            console.log(`[${paymentMethod}Page] Получена вся сумма`);
-            
-            // Check queue position before setting success
-            // If queuePosition >= 2, queue is full - don't set success, cancel order
-            if (orderDetails.queue_position !== undefined && orderDetails.queue_position >= 2) {
-              console.log(`[${paymentMethod}Page] Очередь заполнена при получении суммы! queuePosition: ${orderDetails.queue_position}`);
-              setQueueFull(true);
-              setPaymentError('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.');
-              setIsLoading(false);
-              
-              // Cancel this order since queue is full
-              try {
-                await cancelOrder(order.id);
-                console.log(`[${paymentMethod}Page] Отменили заказ из-за заполненной очереди`);
-                orderCreatedRef.current = false;
-                return; // Don't set paymentSuccess
-              } catch (cancelErr) {
-                console.error(`[${paymentMethod}Page] Ошибка отмены заказа`, cancelErr);
-              }
-            } else {
-              // Queue is OK, proceed with success
-              clearAllTimers();
-              setPaymentSuccess(true);
-            }
+            clearAllTimers();
+            setPaymentSuccess(true);
           }
         }
       }
     } catch (e) {
-      console.log(`[${paymentMethod}Page] Ошибка getOrderById`, e);
+      logger.error(`[${paymentMethod}] Error checking payment status`, e);
     }
-  };
-  
-  // ЗАКОММЕНТИРОВАНА ЛОГИКА ОТКАЗА ОТ ЛОЯЛЬНОСТИ
-  // // Обработка отказа от лояльности
-  // const handleSkipLoyalty = async () => {
-  //   console.log(`[${paymentMethod}Page] Отказ от карты лояльности`);
-  //   clearLoyaltyTimers();
-  //   closeLoyaltyCardModal();
-  //   console.log("создание заказа из handleSkipLoyalty");
-  //   await createOrderAsync();
-  // };
-  
-  // Обработка кнопки назад
-  const handleBack = () => {
+  }, [order, paymentMethod, queuePosition, selectedProgram, setIsLoading, setGlobalQueuePosition, setGlobalQueueNumber, clearAllTimers, t]);
+
+  const handleBack = useCallback(async () => {
     clearAllTimers();
-    closeLoyaltyCardModal();
     setIsLoading(false);
     setPaymentSuccess(false);
     setPaymentError(null);
     clearCountdown();
     orderCreatedRef.current = false;
-    console.log("[usePaymentProcessing] Делам отмену заказа c id: ", order?.id);
     
     if (order?.id) {
-      cancelOrder(order.id);
+      try {
+        await cancelOrder(order.id);
+        logger.info(`[${paymentMethod}] Order cancelled on back button`);
+      } catch (error) {
+        logger.error(`[${paymentMethod}] Error cancelling order on back`, error);
+      }
     }
 
     navigate(-1);
-  };
+  }, [clearAllTimers, setIsLoading, clearCountdown, order, paymentMethod, navigate]);
 
-  // Retry payment after error
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
     setPaymentError(null);
     orderCreatedRef.current = false;
     createOrderAsync();
-  };
+  }, [createOrderAsync]);
 
-  const handleStartRobot = () => {
-    console.log("Запускаем робот");
-
+  const handleStartRobot = useCallback(() => {
     if (order?.id) {
-      startRobot(order.id);
+      logger.info(`[${paymentMethod}] Starting robot for order: ${order.id}`);
+      startRobot(order.id).catch((error) => {
+        logger.error(`[${paymentMethod}] Error starting robot`, error);
+      });
       clearCountdown();
       navigate('/success');
     }
-  }
+  }, [order, paymentMethod, clearCountdown, navigate]);
 
-  // Обработчик для кнопки "Оплатить заранее" - начинает процесс заново
-  // НЕ отменяем текущий заказ, так как он уже оплачен и пользователь в очереди
-  const handlePayInAdvance = () => {
-    console.log("Оплатить заранее - начинаем процесс заново");
-    
-    // Очищаем все таймеры
+  const handlePayInAdvance = useCallback(() => {
+    logger.info(`[${paymentMethod}] Pay in advance - starting new process`);
     clearAllTimers();
-    
-    // НЕ отменяем текущий заказ - он уже оплачен и пользователь в очереди
-    // Просто очищаем локальное состояние для нового процесса оплаты
     clearOrder();
     setPaymentSuccess(false);
     setQueuePosition(null);
@@ -334,35 +251,30 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     setInsertedAmount(0);
     setIsLoading(false);
     orderCreatedRef.current = false;
-    
-    // Переходим на главную страницу для начала нового процесса оплаты
     navigate("/");
-  }
+  }, [clearAllTimers, clearOrder, setIsLoading, setInsertedAmount, navigate, paymentMethod]);
 
-  // Запуск отсчета до автоматического старта робота
-  const startCountdown = () => {
+  const startCountdown = useCallback(() => {
     if (countdownStartedRef.current) {
-      console.log(`[${paymentMethod}Page] Отсчет уже запущен, пропускаем`);
+      logger.debug(`[${paymentMethod}] Countdown already started, skipping`);
       return;
     }
 
-    console.log(`[${paymentMethod}Page] Запускаем отсчет автоматического старта`);
+    logger.debug(`[${paymentMethod}] Starting automatic start countdown`);
     countdownStartedRef.current = true;
     
-    const initialTime = START_ROBOT_INTERVAL / 1000;
+    const initialTime = PAYMENT_CONSTANTS.START_ROBOT_INTERVAL / 1000;
     setTimeUntilRobotStart(initialTime);
 
-    // Запускаем таймер для автоматического старта
     idleTimeout.current = setTimeout(() => {
-      console.log(`[${paymentMethod}Page] Автоматический запуск робота по таймеру`);
+      logger.info(`[${paymentMethod}] Automatic robot start triggered`);
       handleStartRobot();
-    }, START_ROBOT_INTERVAL);
+    }, PAYMENT_CONSTANTS.START_ROBOT_INTERVAL);
 
-    // Запускаем интервал для обновления отсчета каждую секунду
     countdownInterval.current = setInterval(() => {
       setTimeUntilRobotStart(prev => {
         if (prev <= 1) {
-          console.log(`[${paymentMethod}Page] Отсчет завершен`);
+          logger.debug(`[${paymentMethod}] Countdown completed`);
           if (countdownInterval.current) {
             clearInterval(countdownInterval.current);
             countdownInterval.current = null;
@@ -372,38 +284,17 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
         return prev - 1;
       });
     }, 1000);
-  };
-  
-  // Эффект для лояльности - ЗАКОММЕНТИРОВАН
+  }, [paymentMethod, handleStartRobot]);
+
   useEffect(() => {
-    // ЗАКОММЕНТИРОВАНА ВСЯ ЛОГИКА ЛОЯЛЬНОСТИ
-    // if (isLoyalty) {
-    //   console.log(`[${paymentMethod}Page] Сценарий с лояльностью`);
-    //   openLoyaltyCardModal();
-    //   openLoyaltyCardReader();
-    //   checkLoyaltyIntervalRef.current = setInterval(checkLoyaltyAsync, LOYALTY_INTERVAL);
-    //   loyalityEmptyTimeoutRef.current = setTimeout(() => {
-    //     console.log(`[${paymentMethod}Page] Таймаут лояльности истек`);
-    //     clearLoyaltyTimers();
-    //     closeLoyaltyCardModal();
-    //     console.log("создание заказа из isLoyalty");
-    //     createOrderAsync();
-    //   }, DEPOSIT_TIME);
-    // } else {
-    //   console.log("создание заказа из else isLoyalty");
-    //   createOrderAsync();
-    // }
-    
-    // ТЕПЕРЬ ВСЕГДА СОЗДАЕМ ЗАКАЗ СРАЗУ
-    console.log("создание заказа - лояльность отключена");
+    logger.debug(`[${paymentMethod}] Creating order`);
     createOrderAsync();
     
     return () => {
       clearAllTimers();
     };
-  }, [isLoyalty]); // Оставляем зависимость, но логика внутри упрощена
-  
-  // Эффект для отслеживания статуса заказа
+  }, [createOrderAsync, clearAllTimers, paymentMethod]);
+
   useEffect(() => {
     if (order?.status === EOrderStatus.WAITING_PAYMENT) {
       setIsLoading(false);
@@ -411,145 +302,170 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       depositTimeoutRef.current = setTimeout(async () => {
         try {
           if (order.id) {
-            console.log(`[${paymentMethod}Page] Отмена заказа по таймауту`);
+            logger.info(`[${paymentMethod}] Order timeout, cancelling order`);
             await cancelOrder(order.id);
             navigate("/");
           }
         } catch (e) {
-          console.log(`[${paymentMethod}Page] Ошибка отмены заказа`, e);
+          logger.error(`[${paymentMethod}] Error cancelling order on timeout`, e);
         }
-      }, DEPOSIT_TIME);
+      }, PAYMENT_CONSTANTS.DEPOSIT_TIME);
 
-      checkOrderAmountSumIntervalRef.current = setInterval(checkPaymentAsync, PAYMENT_INTERVAL);
+      checkOrderAmountSumIntervalRef.current = setInterval(checkPaymentAsync, PAYMENT_CONSTANTS.PAYMENT_INTERVAL);
     }
 
     return () => {
       clearPaymentTimers();
     };
-  }, [order]);
+  }, [order, paymentMethod, navigate, checkPaymentAsync, clearPaymentTimers, setIsLoading]);
 
-  // Отдельный эффект для обработки успешного статуса PAYED
-  // Only set success if order was created in this session (orderCreatedRef.current is true)
-  // This prevents showing success immediately when navigating from "pay in advance"
   useEffect(() => {
     if (order?.status === EOrderStatus.PAYED && !paymentSuccess && orderCreatedRef.current) {
-      console.log(`[${paymentMethod}Page] Статус заказа изменился на PAYED`);
+      logger.info(`[${paymentMethod}] Order status changed to PAYED`);
       
-      // Immediately check queue position after payment
-      // This is critical to determine if user should see advance screen or proceed immediately
       const checkQueueAfterPayment = async () => {
-        if (order?.id) {
-          try {
-            const orderDetails = await getOrderById(order.id);
+        if (!order?.id) {
+          return;
+        }
+
+        // Check if this is a test order (starts with 'test-order-')
+        const isTestOrder = order.id.startsWith('test-order-');
+        
+        if (isTestOrder) {
+          // For test orders, skip API call and directly set success
+          logger.debug(`[${paymentMethod}] Test order detected, skipping API call`);
+          setQueueFull(false);
+          setQueuePosition(0);
+          setGlobalQueuePosition(0);
+          clearAllTimers();
+          setPaymentSuccess(true);
+          setIsLoading(false);
+          return;
+        }
+
+        try {
+          const orderDetails = await getOrderById(order.id);
+          
+          if (orderDetails.queue_position !== undefined) {
+            const newQueuePosition = orderDetails.queue_position;
+            setQueuePosition(newQueuePosition);
+            setGlobalQueuePosition(newQueuePosition);
             
-            if (orderDetails.queue_position !== undefined) {
-              const newQueuePosition = orderDetails.queue_position;
-              setQueuePosition(newQueuePosition);
-              setGlobalQueuePosition(newQueuePosition); // Store in global state
+            if (newQueuePosition >= PAYMENT_CONSTANTS.MAX_QUEUE_POSITION) {
+              logger.info(`[${paymentMethod}] Queue is full after payment! queuePosition: ${newQueuePosition}`);
+              setQueueFull(true);
+              setPaymentError(t('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.'));
+              setIsLoading(false);
               
-              // Check if queue is full (only 1 car allowed in queue)
-              // queuePosition >= 2 means queue is FULL - cancel order
-              if (newQueuePosition >= 2) {
-                console.log(`[${paymentMethod}Page] Очередь заполнена после оплаты! queuePosition: ${newQueuePosition}`);
-                setQueueFull(true);
-                setPaymentError('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.');
-                setIsLoading(false);
-                
-                // Cancel this order since queue is full
-                try {
-                  await cancelOrder(order.id);
-                  console.log(`[${paymentMethod}Page] Отменили заказ из-за заполненной очереди`);
-                  orderCreatedRef.current = false;
-                  setGlobalQueuePosition(null); // Clear queue position
-                  return; // Don't set paymentSuccess
-                } catch (cancelErr) {
-                  console.error(`[${paymentMethod}Page] Ошибка отмены заказа`, cancelErr);
-                }
-              } else {
-                // Queue is OK (queuePosition === 0, 1, or null)
-                setQueueFull(false);
-                clearAllTimers();
-                setPaymentSuccess(true);
-                
-                // If queuePosition === 1, user will see advance payment screen ("Ожидайте окончания мойки...")
-                // If queuePosition === 0 or null, user will see "Проезжайте в бокс" screen
+              try {
+                await cancelOrder(order.id);
+                logger.info(`[${paymentMethod}] Cancelled order due to full queue`);
+                orderCreatedRef.current = false;
+                setGlobalQueuePosition(null);
+                return;
+              } catch (cancelErr) {
+                logger.error(`[${paymentMethod}] Error cancelling order`, cancelErr);
               }
             } else {
-              // No queue position info, proceed normally
-              setGlobalQueuePosition(null);
+              setQueueFull(false);
               clearAllTimers();
               setPaymentSuccess(true);
             }
-            
-            // Store queue number if available
-            if (orderDetails.queue_number !== undefined) {
-              setQueueNumber(orderDetails.queue_number);
-              setGlobalQueueNumber(orderDetails.queue_number);
-            }
-          } catch (err) {
-            console.error(`[${paymentMethod}Page] Ошибка проверки очереди после оплаты`, err);
-            // On error, proceed with success anyway
+          } else {
+            setGlobalQueuePosition(null);
             clearAllTimers();
             setPaymentSuccess(true);
           }
+          
+          if (orderDetails.queue_number !== undefined) {
+            setQueueNumber(orderDetails.queue_number);
+            setGlobalQueueNumber(orderDetails.queue_number);
+          }
+        } catch (err) {
+          logger.error(`[${paymentMethod}] Error checking queue after payment`, err);
+          clearAllTimers();
+          setPaymentSuccess(true);
         }
       };
       
       checkQueueAfterPayment();
     }
-  }, [order?.status, order?.id, paymentSuccess]);
+  }, [order?.status, order?.id, paymentSuccess, paymentMethod, setIsLoading, setGlobalQueuePosition, setGlobalQueueNumber, clearAllTimers, t]);
 
-  // Эффект для запуска отсчета при успешной оплате
   useEffect(() => {
-    console.log(`[${paymentMethod}Page] paymentSuccess: ${paymentSuccess}, countdownStarted: ${countdownStartedRef.current}`);
-    
     if (paymentSuccess && !countdownStartedRef.current) {
-      console.log(`[${paymentMethod}Page] Успешная оплата, запускаем отсчет`);
+      logger.debug(`[${paymentMethod}] Payment successful, starting countdown`);
       startCountdown();
     }
+  }, [paymentSuccess, paymentMethod, startCountdown]);
 
-    return () => {
-      // Не очищаем отсчет здесь, чтобы он не прерывался при перерисовках
-    };
-  }, [paymentSuccess]);
-
-  // Определяем, идет ли мойка
-  // Queue should be visible only when:
-  // 1. There are 2+ orders (someone else is washing)
-  // 2. queuePosition >= 1 means current user is in queue (someone else is washing or ahead)
-  // queuePosition === null or 0 means no queue, user can go immediately
-  // Only 1 car allowed in queue: queuePosition >= 2 means queue is full
   const isWashingInProgress = queuePosition !== null && queuePosition >= 1;
 
   // Test function to simulate card tap success
-  const simulateCardTap = () => {
-    console.log('[TEST] Simulating card tap success');
-    if (order) {
-      setOrder({
-        ...order,
-        status: EOrderStatus.PAYED,
-      });
-      console.log('[TEST] Order status set to PAYED');
-    } else {
-      console.warn('[TEST] No order found, creating test order');
-      // Create a test order if none exists
-      if (selectedProgram) {
-        setOrder({
-          id: 'test-order-' + Date.now(),
-          programId: selectedProgram.id,
-          status: EOrderStatus.PAYED,
-          paymentMethod: paymentMethod,
-          createdAt: new Date().toISOString(),
-          transactionId: 'test-transaction-' + Date.now(),
-        });
+  const simulateCardTap = useCallback(() => {
+    logger.debug('[TEST] Simulating card tap success');
+    
+    // Ensure order exists and has an ID, or create one
+    if (!order || !order.id) {
+      logger.warn('[TEST] No order found, creating test order');
+      if (!selectedProgram) {
+        logger.error('[TEST] Cannot create test order: no selected program');
+        setPaymentError('No program selected. Please select a program first.');
+        return;
       }
+      
+      const testOrderId = 'test-order-' + Date.now();
+      const testOrder = {
+        id: testOrderId,
+        programId: selectedProgram.id,
+        status: EOrderStatus.PAYED,
+        paymentMethod: paymentMethod,
+        createdAt: new Date().toISOString(),
+        transactionId: 'test-transaction-' + Date.now(),
+      };
+      
+      // Set orderCreatedRef to true so the payment success flow triggers
+      orderCreatedRef.current = true;
+      
+      // Clear any errors and timers first
+      setPaymentError(null);
+      setQueueFull(false);
+      setIsLoading(false);
+      clearAllTimers();
+      
+      // Update order in store - this will trigger the useEffect
+      setOrder(testOrder);
+      
+      logger.debug('[TEST] Test order created, useEffect should trigger payment success');
+      return;
     }
-  };
+    
+    // If order exists, update its status to PAYED
+    logger.debug('[TEST] Updating existing order to PAYED status', order.id);
+    
+    // Ensure orderCreatedRef is true so the useEffect triggers
+    if (!orderCreatedRef.current) {
+      orderCreatedRef.current = true;
+      logger.debug('[TEST] Set orderCreatedRef to true');
+    }
+    
+    // Clear any errors and timers
+    setPaymentError(null);
+    setQueueFull(false);
+    setIsLoading(false);
+    clearAllTimers();
+    
+    // Update order status to PAYED - this will trigger the useEffect at line 322
+    setOrder({
+      ...order,
+      status: EOrderStatus.PAYED,
+    });
+    
+    logger.debug('[TEST] Order status updated to PAYED, useEffect should trigger payment success');
+  }, [order, selectedProgram, paymentMethod, setOrder, clearAllTimers, setIsLoading]);
 
   return {
-    // handleSkipLoyalty, // Убрано из возвращаемых значений
     handleBack,
-    isLoyaltyCardModalOpen,
     selectedProgram,
     order,
     paymentSuccess,

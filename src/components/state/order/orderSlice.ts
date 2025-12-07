@@ -43,7 +43,7 @@ export const createOrderSlice: StoreSlice<OrderSlice> = (set, get) => ({
 
   setOrder: (orderData = {}) => {
     const order: Order = {
-      status: orderData. status || EOrderStatus.CREATED,
+      status: orderData.status || EOrderStatus.CREATED,
       createdAt: orderData.createdAt || new Date().toISOString(),
       ...orderData, 
     };

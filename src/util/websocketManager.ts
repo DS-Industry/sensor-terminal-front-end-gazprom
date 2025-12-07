@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 const WS_BASE_URL = import.meta.env.VITE_API_BASE_WS_URL || "";
 
 type WebSocketEvent = 'status_update' | 'mobile_payment' | 'device_status' | 'error' | 'card_reader';
@@ -35,13 +37,13 @@ class WebSocketManager {
     if (this.ws?.readyState === WebSocket.OPEN) return;
 
     try {
-      console.log('🌐 Attempting WebSocket connection...');
+      logger.debug('Attempting WebSocket connection...');
       this.ws = new WebSocket(`${WS_BASE_URL}/ws/orders/status/`);
       this.isConnected = false;
 
       this.connectionTimeout = setTimeout(() => {
         if (!this.isConnected) {
-          console.warn('🌐 WebSocket connection timeout');
+          logger.warn('WebSocket connection timeout');
           this.handleReconnect();
         }
       }, 5000);
@@ -51,7 +53,7 @@ class WebSocketManager {
           clearTimeout(this.connectionTimeout);
           this.connectionTimeout = null;
         }
-        console.log('🌐 Global WebSocket connected');
+        logger.info('Global WebSocket connected');
         this.reconnectAttempts = 0;
         this.isConnected = true;
       };
@@ -59,15 +61,15 @@ class WebSocketManager {
       this.ws.onmessage = (event) => {
         try {
           const data: WebSocketMessage = JSON.parse(event.data);
-          console.log('🌐 WebSocket message received:', data);
+          logger.debug('WebSocket message received', data);
           this.notifyListeners(data);
         } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+          logger.error('Error parsing WebSocket message', error);
         }
       };
 
       this.ws.onerror = (error) => {
-        console.error('🌐 Global WebSocket error:', error);
+        logger.error('Global WebSocket error', error);
         this.isConnected = false;
         if (this.connectionTimeout) {
           clearTimeout(this.connectionTimeout);
@@ -76,7 +78,7 @@ class WebSocketManager {
       };
 
       this.ws.onclose = (event) => {
-        console.log(`🌐 WebSocket disconnected: ${event.code} ${event.reason}`);
+        logger.info(`WebSocket disconnected: ${event.code} ${event.reason}`);
         this.isConnected = false;
         if (this.connectionTimeout) {
           clearTimeout(this.connectionTimeout);
@@ -86,7 +88,7 @@ class WebSocketManager {
       };
 
     } catch (error) {
-      console.error('Failed to create WebSocket:', error);
+      logger.error('Failed to create WebSocket', error);
       this.handleReconnect();
     }
   }
@@ -94,11 +96,11 @@ class WebSocketManager {
   private handleReconnect() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      console.log(`🌐 Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+      logger.info(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
       
       setTimeout(() => this.connect(), this.reconnectInterval);
     } else {
-      console.error('🌐 Max reconnection attempts reached');
+      logger.error('Max reconnection attempts reached');
     }
   }
 
@@ -125,7 +127,7 @@ class WebSocketManager {
         try {
           listener(data);
         } catch (error) {
-          console.error('Error in WebSocket listener:', error);
+          logger.error('Error in WebSocket listener', error);
         }
       });
     }

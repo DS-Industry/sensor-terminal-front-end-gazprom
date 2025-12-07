@@ -9,17 +9,13 @@ import { ThemeProvider } from "@gravity-ui/uikit";
 import SingleProgramPage from "./pages/SingleProgramPage.tsx";
 import InstructionPage from "./pages/InstructionPage.tsx";
 import CardPayPage from "./pages/CardPayPage.tsx";
-import CashPayPage from "./pages/CashPayPage.tsx";
 import SuccessPaymentPage from "./pages/SuccessPaymentPage.tsx";
-import MobilePayPage from "./pages/MobilePayPage.tsx";
-import LoyaltyPayPage from "./pages/LoyaltyPayPage.tsx";
 import ErrorPaymentPage from "./pages/ErrorPaymentPage.tsx";
-import QrCodePayPage from "./pages/QrCodePayPage.tsx";
 import WashingInProgressPage from "./pages/WashingInProgressPage.tsx";
-import TestNavigationPage from "./pages/TestNavigationPage.tsx";
 import { NavigationHandler } from "./components/navigationHandler/NavigationHandler.tsx";
 import { GlobalWebSocketManager } from "./components/globalWebSocketManager/GlobalWebSocketManager.tsx";
 import { ModalProvider } from "./components/modalProvider/ModalProvider.tsx";
+import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 
 function Root() {
   return (
@@ -50,22 +46,6 @@ const router = createBrowserRouter([
         element: <CardPayPage />,
       },
       {
-        path: "/programs/:program/cash",
-        element: <CashPayPage />,
-      },
-      {
-        path: "/programs/:program/app",
-        element: <MobilePayPage />,
-      },
-      {
-        path: "/programs/:program/appCard",
-        element: <LoyaltyPayPage />,
-      },
-      {
-        path: "/programs/:program/qrCode",
-        element: <QrCodePayPage />,
-      },
-      {
         path: "/instruction",
         element: <InstructionPage />,
       },
@@ -81,18 +61,16 @@ const router = createBrowserRouter([
         path: "/washing",
         element: <WashingInProgressPage />,
       },
-      {
-        path: "/test",
-        element: <TestNavigationPage />,
-      },
     ],
   },
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <ThemeProvider theme="light">
-    <Suspense fallback="...is loading">
-      <RouterProvider router={router} />
-    </Suspense>
-  </ThemeProvider>
+  <ErrorBoundary>
+    <ThemeProvider theme="light">
+      <Suspense fallback="...is loading">
+        <RouterProvider router={router} />
+      </Suspense>
+    </ThemeProvider>
+  </ErrorBoundary>
 );

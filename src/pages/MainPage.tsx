@@ -8,6 +8,7 @@ import useStore from "../components/state/store";
 import { EOrderStatus } from "../components/state/order/orderSlice";
 import { startRobot } from "../api/services/payment";
 import { useNavigate } from "react-router-dom";
+import { logger } from "../util/logger";
 
 import gazpromHeader from "../assets/gazprom-step-2-header.png"
 
@@ -21,22 +22,21 @@ export default function MainPage() {
     clearOrder();
     setInsertedAmount(0);
     setIsLoading(false);
-  }, [])
+  }, [clearOrder, setInsertedAmount, setIsLoading])
 
   useEffect(() => {
     if (order?.status === EOrderStatus.PAYED) {
-      console.log("Оплата мобильным приложением", order);
-
       if (order.id) {
-        startRobot(order.id);
+        startRobot(order.id).catch((error) => {
+          logger.error('Error starting robot from MainPage', error);
+        });
         navigate('/success');
       }
     }
-  }, [order])
+  }, [order, navigate])
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-200">
-      {/* Video Section - 40% of screen height */}
       <div className="w-full flex-shrink-0" style={{ height: '30vh', minHeight: '300px' }}>
         <img 
           src={gazpromHeader} 
@@ -45,23 +45,18 @@ export default function MainPage() {
         />
       </div>
       
-      {/* Content Section - 60% of screen height */}
       <div className="flex-1 flex flex-col">
-        {/* Header with Logo and Controls */}
-        <HeaderWithLogo isMainPage={true}/> 
+        <HeaderWithLogo isMainPage={true} title={t("Выберите программу")} /> 
 
-        {/* Main Content Area */}
         <div className="flex-1 px-7 pb-7">
           <div className="flex flex-col h-full">
             
-            {/* Title Section */}
-            <div className="mb-8">
+            {/* <div className="mb-8">
               <div className="text-gray-900 font-bold text-4xl text-center">
                 {t("Выберите программу")}
               </div>
-            </div>
+            </div> */}
 
-            {/* Program Cards Section */}
             {programs && (
               <div className="flex-1 flex flex-col justify-center">
                 <div
@@ -72,6 +67,7 @@ export default function MainPage() {
                   >
                     {programs.map((item) => (
                       <ProgramCard
+                        key={`program-card-${item.id}`}
                         id={item.id}
                         name={item.name}
                         price={item.price}

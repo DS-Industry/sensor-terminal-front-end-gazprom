@@ -5,137 +5,161 @@ import Stop from "./../assets/red-close.svg";
 import Cycle from "./../assets/cycle.svg";
 import AttentionTag from "../components/tags/AttentionTag";
 import Fire from "./../assets/Fire_perspective_matte.svg";
+import CheckMark from "./../assets/Success_perspective_matte 1.svg";
+import CarInstruction from "./../assets/car-instruction.svg";
 import { Trans, useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 
 export default function InstructionPage() {
-  const { t, i18n } = useTranslation();
-  console.log(i18n.language);
-  const navigate = useNavigate();
+  const { t } = useTranslation();
   
   return (
     <InstructionLayout>
-      <div className=" px-20">
-        <h1 className=" font-inter-bold text-5xl my-14">{t("Инструкция")}</h1>
-        <ul className=" flex flex-col gap-11">
-          <li className=" flex flex-row items-start justify-between gap-3">
-            <p className=" text-4xl font-inter-bold text-primary">1</p>
-            <img
-              src={Arrow}
-              alt="up window"
-              className=" size-[75px] min-h-[75px] max-h-[75px] min-w-[75px] max-w-[75px]"
-            />
+      <div className="bg-white min-h-screen w-full">
+        <div className="flex flex-row gap-12 px-16 py-12">
+          <div className="flex-1">
+            <ul className="flex flex-col gap-10">
+              <li className="flex flex-row items-center gap-5">
+                <div className="flex items-center justify-center w-[38px] h-[38px] rounded-full bg-[#0B68E1] text-white text-xl font-inter-bold flex-shrink-0">
+                  1
+                </div>
+                <img
+                  src={CheckMark}
+                  alt="checkmark"
+                  className="w-14 h-14 flex-shrink-0"
+                />
+                <p className="text-xl text-left pt-2 text-black" style={{ fontSize: '20px' }}>
+                  {t("instruction_new_step1")}
+                </p>
+              </li>
 
-            <p className=" font-inter-bold text-2xl text-left ml-5">
-              <Trans i18nKey="instrutction_step1">
-                Закройте окна. Когда загорится индикатор –
-                <span className=" text-green-500"> зеленая стрелка</span>, не
-                спеша заезжайте в бокс.
-              </Trans>
-            </p>
-          </li>
-          <li className=" flex flex-row items-start justify-between gap-1">
-            <p className=" text-4xl font-inter-bold text-primary">2</p>
-            <img
-              src={Car}
-              alt="car-bottom-wash"
-              className=" size-[100px] min-h-[100px] max-h-[100px] min-w-[100px] max-w-[100px]"
-            />
-            <p className=" font-inter-bold text-2xl text-left ml-5">
-              <Trans i18nKey={"instrutction_step2"}>
-                Перед началом основной мойки в программах стандарт и премиум,
-                при въезде в бокс, вода подается на днище машины.
-              </Trans>
+              <li className="flex flex-row items-center gap-5">
+                <div className="flex items-center justify-center w-[38px] h-[38px] rounded-full bg-[#0B68E1] text-white text-xl font-inter-bold flex-shrink-0">
+                  2
+                </div>
+                <img
+                  src={Arrow}
+                  alt="arrow"
+                  className="w-14 h-14 flex-shrink-0"
+                />
+                <p className="text-xl text-left pt-2" style={{ fontSize: '20px', color: '#000000' }}>
+                  <Trans 
+                    i18nKey="instruction_new_step2"
+                    components={{
+                      highlight: <span className="font-bold" style={{ color: '#00B600', fontSize: '24px', display: 'inline' }} />
+                    }}
+                  />
+                </p>
+              </li>
 
-              <p className=" mt-5">
-                <Trans i18nKey={"instrutction_step2_2"}>
-                  <span className=" hidden">.</span>
-                  <span className=" text-primary">
-                    Медленно проезжайте{" "}
-                  </span>{" "}
-                  над зоной распыления воды, чтобы помыть днище машины и диски.
-                </Trans>
-              </p>
-            </p>
-          </li>
-          <li className=" flex flex-row items-start justify-between gap-3">
-            <p className=" text-4xl font-inter-bold text-primary">3</p>
+              <li className="flex flex-row items-center gap-5">
+                <div className="flex items-center justify-center w-[38px] h-[38px] rounded-full bg-[#0B68E1] text-white text-xl font-inter-bold flex-shrink-0">
+                  3
+                </div>
+                <img
+                  src={Car}
+                  alt="car"
+                  className="w-14 h-14 flex-shrink-0"
+                />
+                <p className="text-xl text-left pt-2" style={{ fontSize: '20px', color: '#000000' }}>
+                  <Trans 
+                    i18nKey="instruction_new_step3"
+                    components={{
+                      highlight: <span className="font-bold" style={{ color: '#0967E1', fontSize: '24px', display: 'inline' }} />
+                    }}
+                  />
+                </p>
+              </li>
+
+              <li className="flex flex-row items-center gap-5">
+                <div className="flex items-center justify-center w-[38px] h-[38px] rounded-full bg-[#0B68E1] text-white text-xl font-inter-bold flex-shrink-0">
+                  4
+                </div>
+                <img
+                  src={Stop}
+                  alt="stop"
+                  className="w-14 h-14 flex-shrink-0"
+                />
+                <p className="text-xl text-left pt-2 text-black" style={{ fontSize: '20px' }}>
+                  {t("instruction_new_step4")}
+                </p>
+              </li>
+
+              <li className="flex flex-row items-center gap-5">
+                <div className="flex items-center justify-center w-[38px] h-[38px] rounded-full bg-[#0B68E1] text-white text-xl font-inter-bold flex-shrink-0">
+                  5
+                </div>
+                <img
+                  src={Cycle}
+                  alt="cycle"
+                  className="w-14 h-14 flex-shrink-0"
+                />
+                <p className="text-xl text-left pt-2 text-black" style={{ fontSize: '20px' }}>
+                  {t("instruction_new_step5")}
+                </p>
+              </li>
+
+              <li className="flex flex-row items-center gap-5">
+                <div className="flex items-center justify-center w-[38px] h-[38px] rounded-full bg-[#0B68E1] text-white text-xl font-inter-bold flex-shrink-0">
+                  6
+                </div>
+                <img
+                  src={Arrow}
+                  alt="arrow"
+                  className="w-14 h-14 flex-shrink-0"
+                />
+                <p className="text-xl text-left pt-2 text-black" style={{ fontSize: '20px' }}>
+                  {t("instruction_new_step6")}
+                </p>
+              </li>
+            </ul>
+          </div>
+
+          <div className="w-80 flex-shrink-0 flex flex-col items-center">
             <img
-              src={Stop}
-              alt="stop"
-              className=" size-[75px] min-h-[75px] max-h-[75px] min-w-[75px] max-w-[75px]"
+              src={CarInstruction}
+              alt="car diagram"
+              className="w-full h-auto mb-6"
+              style={{
+                filter: "grayscale(100%)"
+              }}
             />
-            <p className=" font-inter-bold text-2xl text-left ml-5">
-              <Trans i18nKey={"instrutction_step3"}>
-                Когда мойка днища завершится, можете проехать дальше в центр
-                бокса. Расположите автомобиль по центру бокса, зеленая стрелка
-                сменится на красный крест, начнется основная мойка.
-              </Trans>
-            </p>
-          </li>
-          <li className=" flex flex-row items-start justify-between gap-3">
-            <p className=" text-4xl font-inter-bold text-primary">4</p>
-            <img
-              src={Cycle}
-              alt="cycle"
-              className=" size-[75px] min-h-[75px] max-h-[75px] min-w-[75px] max-w-[75px]"
-            />
-            <p className=" font-inter-bold text-2xl text-left ml-5">
-              <Trans i18nKey={"instrutction_step4"}>
-                Консоли, подающие воду и моющие средства, пройдут необходимое
-                количество циклов вокруг автомобиля, согласно выбранной
-                программе.
-              </Trans>
-            </p>
-          </li>
-          <li className=" flex flex-row items-start justify-between gap-3">
-            <p className=" text-4xl font-inter-bold text-primary">5</p>
-            <img
-              src={Arrow}
-              alt="up window"
-              className=" size-[75px] min-h-[75px] max-h-[75px] min-w-[75px] max-w-[75px]"
-            />
-            <p className=" font-inter-bold text-2xl text-left ml-5">
-              <Trans i18nKey={"instrutction_step5"}>
-                По окончании мойки загорится зеленая стрелка. Мойка окончена,
-                можно выезжать.
-              </Trans>
-            </p>
-          </li>
-          <button
-            className="fixed right-8 bottom-8 px-8 py-4 rounded-3xl text-white font-semibold text-medium transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg z-50"
-            onClick={() => navigate("/")}
-            style={{ backgroundColor: "#0B68E1" }}
-            >
-            <div className="flex items-center justify-center gap-2">
-              {t("Далее")}
+            <div className="flex flex-col gap-3 w-full">
+              <div>
+                <p className="text-start font-bold mb-2 text-[22px]">
+                  {t("Ширина")}: {t("до")} 2,6 м
+                </p>
+              </div>
+              <div>
+                <p className="text-start font-bold mb-2 text-[22px]">
+                  {t("Длина")}: {t("до")} 6,25 м
+                </p>
+              </div>
+              <div>
+                <p className="text-start font-bold mb-2 text-[22px]">
+                  {t("Высота")}: {t("до")} 2 м
+                </p>
+              </div>
             </div>
-          </button>
-        </ul>
-        <AttentionTag
-          label={t("Не перемещайте автомобиль во время мойки!")}
-          additionalStyles={` absolute right-10 ${
-            i18n.language === "en"
-              ? "bottom-[21rem]"
-              : i18n.language === "uz"
-              ? " bottom-[23rem]"
-              : "bottom-[24rem]"
-          } text-red-400 `}
-        />
-      </div>
-      <div
-        className={` px-16 flex flex-row  items-center rounded-[3rem] bg-primary py-5 ${
-          i18n.language === "en" ? "mt-6" : "mt-14"
-        }`}
-      >
-        <img src={Fire} alt="fire" className=" min-h-[56px] min-w-[56px]" />
-        <div>
-          <p className=" text-left font-inter-regular text-2xl ml-10 text-white-500">
-            {t("Для того чтобы начать следующий цикл мойки,")}
-          </p>
-          <p className=" text-left font-inter-regular text-2xl ml-10 text-white-500">
-            {t("необходимо в обязательном порядке выехать из поста!")}
-          </p>
+          </div>
+        </div>
+
+        {/* Warning Boxes - Fixed Bottom Right */}
+        <div className="fixed right-0 bottom-0 z-40 flex flex-col gap-4 items-end">
+          <AttentionTag
+            label={t("Не рекомендуется мыть автомобили с панорамной крышей!")}
+            additionalStyles="text-red-400 w-[367px]"
+            icon={Fire}
+          />
+          <AttentionTag
+            label={t("Не перемещайте автомобиль во время мойки!")}
+            additionalStyles="text-red-400 w-[332px]"
+            icon={Fire}
+          />
+          <AttentionTag
+            label={t("Для того, чтобы начать следующий цикл мойки, нужно обязательно выехать из поста!")}
+            additionalStyles="text-red-400 w-[411px]"
+            icon={Fire}
+          />
         </div>
       </div>
     </InstructionLayout>

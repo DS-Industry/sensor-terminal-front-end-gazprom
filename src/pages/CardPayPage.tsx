@@ -48,8 +48,8 @@ export default function CardPayPage() {
         <div className="flex-1 flex flex-col">
           {/* Title Section */}
           <PaymentTitleSection
-            title="Оплата картой"
-            description="Приложите банковскую карту для оплаты"
+            title={t("Оплата картой")}
+            description={t("Приложите банковскую карту для оплаты")}
             icon={CreditCard}
           />
 
@@ -68,7 +68,7 @@ export default function CardPayPage() {
                     <div className="text-gray-800 text-xl mb-8 bg-white p-6 rounded-2xl shadow-lg">
                       {queueFull 
                         ? t("В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.")
-                        : paymentError
+                        : paymentError || t("Произошла неизвестная ошибка")
                       }
                     </div>
                     <div className="flex gap-4 justify-center">
@@ -157,6 +157,7 @@ export default function CardPayPage() {
                           className="w-full px-8 py-4 rounded-3xl text-blue-600 font-semibold text-medium transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg z-50 mb-2"
                           onClick={handleStartRobot}
                           style={{ backgroundColor: "white" }}
+                          aria-label={t("Запустить")}
                         >
                           <div className="flex items-center justify-center gap-2">
                             {t("Запустить")}
@@ -183,10 +184,6 @@ export default function CardPayPage() {
           </div>
         </div>
       </div>
-      
-      {/*{isLoyaltyCardModalOpen && (*/}
-      {/*  <LoyaltyCardModal onSkipLoyalty={handleSkipLoyalty} />*/}
-      {/*)}*/}
     </div>
   );
 }

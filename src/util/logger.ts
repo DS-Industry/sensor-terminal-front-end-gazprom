@@ -1,0 +1,61 @@
+/**
+ * Logger utility for application-wide logging
+ * Provides environment-aware logging with different log levels
+ */
+
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+class Logger {
+  private isDevelopment: boolean;
+
+  constructor() {
+    this.isDevelopment = import.meta.env.DEV;
+  }
+
+  private shouldLog(level: LogLevel): boolean {
+    // In production, only log errors and warnings
+    if (!this.isDevelopment) {
+      return level === 'error' || level === 'warn';
+    }
+    return true;
+  }
+
+  private formatMessage(level: LogLevel, message: string, ...args: any[]): string {
+    const timestamp = new Date().toISOString();
+    const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
+    return `${prefix} ${message}`;
+  }
+
+  debug(message: string, ...args: any[]): void {
+    if (this.shouldLog('debug')) {
+      console.debug(this.formatMessage('debug', message), ...args);
+    }
+  }
+
+  info(message: string, ...args: any[]): void {
+    if (this.shouldLog('info')) {
+      console.info(this.formatMessage('info', message), ...args);
+    }
+  }
+
+  warn(message: string, ...args: any[]): void {
+    if (this.shouldLog('warn')) {
+      console.warn(this.formatMessage('warn', message), ...args);
+    }
+  }
+
+  error(message: string, error?: Error | unknown, ...args: any[]): void {
+    if (this.shouldLog('error')) {
+      const errorDetails = error instanceof Error 
+        ? { message: error.message, stack: error.stack }
+        : error;
+      console.error(this.formatMessage('error', message), errorDetails, ...args);
+      
+      // In production, you might want to send errors to an error tracking service
+      // Example: Sentry.captureException(error);
+    }
+  }
+}
+
+export const logger = new Logger();
+

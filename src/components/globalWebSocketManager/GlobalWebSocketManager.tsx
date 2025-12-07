@@ -3,6 +3,7 @@ import useStore from '../state/store';
 import { globalWebSocketManager } from '../../util/websocketManager';
 import { EOrderStatus } from '../state/order/orderSlice';
 import { getOrderById } from '../../api/services/payment';
+import { logger } from '../../util/logger';
 
 const MAX_ATTEMPS = 10;
 const INTERVAL = 1000;
@@ -15,18 +16,17 @@ export function GlobalWebSocketManager() {
 
     const checkLoop = async () => {
       if (attempts >= MAX_ATTEMPS) {
-        console.log("Достигнуто максимальное количество попыток запроса чека");
+        logger.warn(`Max attempts reached for check request: ${id}`);
         return;
       }
 
       attempts++;
       const response = await getOrderById(id);
 
-      console.log(`Запрос заказа ${id}, попытка ${attempts}`, response);
+      logger.debug(`Order request ${id}, attempt ${attempts}`, response);
 
       if (response.qr_code) {
-        console.log("Получили qr:", response.qr_code);
-
+        logger.debug(`Received QR code: ${response.qr_code}`);
         setBankCheck(response.qr_code);
         return; 
       }
@@ -34,7 +34,7 @@ export function GlobalWebSocketManager() {
       if (attempts < MAX_ATTEMPS) {
         setTimeout(checkLoop, INTERVAL);
       } else {
-        console.log("QR код не получен после всех попыток");
+        logger.warn(`QR code not received after all attempts for order: ${id}`);
       }
     };
 
@@ -42,11 +42,11 @@ export function GlobalWebSocketManager() {
   };
 
   useEffect(() => {
-    console.log('Initializing global WebSocket manager...');
+    logger.debug('Initializing global WebSocket manager...');
 
     const handleStatusUpdate = (data: any) => {
       if (data.type === 'status_update' && data.order_id) {
-        console.log('🔄 Updating order status globally:', data.status);
+        logger.debug(`Updating order status globally: ${data.status}`);
 
         setOrder({
           ...order,
@@ -64,7 +64,7 @@ export function GlobalWebSocketManager() {
 
     const handleError = (data: any) => {
       if (data.type === 'error') {
-        console.error('🔴 WebSocket error received:', data);
+        logger.error('WebSocket error received', data);
 
         setErrorCode(data.code);
         setNavigationTarget('/error');

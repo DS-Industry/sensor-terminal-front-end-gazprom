@@ -1,14 +1,17 @@
 import { Card, Icon } from '@gravity-ui/uikit';
-import { ArrowLeft } from "@gravity-ui/icons";
+import { ArrowLeft, Check } from "@gravity-ui/icons";
 import ClientLogo from "../logo/Logo";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from 'react-router-dom';
 import useStore from '../state/store';
+import { logger } from '../../util/logger';
 
 interface IHeaderWithLogoProps {
   isMainPage?: boolean;
+  isInstructionPage?: boolean;
   backButtonClick?: () => void;
   disableBackConfirmation?: boolean;
+  title?: string;
 }
 
 export default function HeaderWithLogo(props: IHeaderWithLogoProps) {
@@ -20,10 +23,15 @@ export default function HeaderWithLogo(props: IHeaderWithLogoProps) {
   } = useStore();
 
   const handleBackClick = () => {
-    console.log("[HeaderWithLogo] Нажали назад");
+    logger.debug("[HeaderWithLogo] Back button clicked");
+
+    if (props.isInstructionPage) {
+      navigate("/");
+      return;
+    }
 
     if (props.backButtonClick) {
-      console.log("[HeaderWithLogo] Есть пропс backButtonClick");
+      logger.debug("[HeaderWithLogo] Using custom backButtonClick handler");
       openBackConfirmationModal();
 
       setBackConfirmationCallback(() => {
@@ -40,6 +48,7 @@ export default function HeaderWithLogo(props: IHeaderWithLogoProps) {
     <Card className="mx-7 my-5 p-4 shadow-lg border-0">
       <div className="flex justify-between items-center">
         <ClientLogo />
+        {props.title && <div className="text-[35px] font-bold">{props.title}</div>}
         <div className="flex items-center gap-4">
           {props.isMainPage
             ? <>
@@ -48,7 +57,7 @@ export default function HeaderWithLogo(props: IHeaderWithLogoProps) {
                 onClick={() => navigate("/instruction")}
                 style={{ backgroundColor: "#0B68E1" }}
               >
-                Инструкция
+                {t("Инструкция")}
               </button>
             </>
             :
@@ -58,8 +67,8 @@ export default function HeaderWithLogo(props: IHeaderWithLogoProps) {
               style={{ backgroundColor: "#0B68E1" }}
             >
               <div className="flex items-center gap-2">
-                <Icon data={ArrowLeft} size={20} />
-                {t("Назад")}
+                {props.isInstructionPage ? <Icon data={Check} size={20} /> : <Icon data={ArrowLeft} size={20} />}
+                {props.isInstructionPage ? t("Я ознакомился") : t("Назад")}
               </div>
             </button>
           }

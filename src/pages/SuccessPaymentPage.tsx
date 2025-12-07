@@ -4,11 +4,12 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import useStore from "../components/state/store";
 import { EOrderStatus } from "../components/state/order/orderSlice";
 import BoxImage from "../assets/бокс.png";
-import CarImage from "../assets/машина.png";
+import CarImage from "../assets/car.png";
 import MediaCampaign from "../components/mediaCampaign/mediaCampaign";
 import { useMediaCampaign } from "../hooks/useMediaCampaign";
 import { Clock } from "@gravity-ui/icons";
 import { Icon } from "@gravity-ui/uikit";
+import { logger } from "../util/logger";
 
 const MEDIA_CAMPAIGN_URL = import.meta.env.VITE_MEDIA_CAMPAIGN_URL || "";
 
@@ -21,7 +22,7 @@ export default function SuccessPaymentPage() {
   const { setIsLoading, order, queuePosition } = useStore();
   const { attachemntUrl, mediaStatus } = useMediaCampaign(MEDIA_CAMPAIGN_URL);
   
-  const [displayText, setDisplayText] = useState("Проезжайте в бокс!");
+  const [displayText, setDisplayText] = useState(t("Можете проезжать в бокс!"));
   const [timeRemaining, setTimeRemaining] = useState(180); // 3 minutes in seconds
   
   // Determine state from URL param or queue position
@@ -34,22 +35,19 @@ export default function SuccessPaymentPage() {
     navigate("/");
   }
 
-  const handlePayInAdvance = () => {
-    navigate("/");
-  }
 
   useEffect(() => {
     if (order?.status === EOrderStatus.COMPLETED) {
       handleFinish();
     }
-  }, [order]);
+  }, [order, navigate]);
 
   // Monitor queue position changes - when queue clears (becomes 0 or null), transition to "Проезжайте в бокс"
   useEffect(() => {
-    // If we're in advance state and queue clears, transition to initial state
-    if (state === 'advance' && (queuePosition === null || queuePosition === 0)) {
-      console.log('[SuccessPaymentPage] Очередь очищена, переход к экрану "Проезжайте в бокс"');
-      // Queue cleared, show "Проезжайте в бокс" screen
+      // If we're in advance state and queue clears, transition to initial state
+      if (state === 'advance' && (queuePosition === null || queuePosition === 0)) {
+        logger.info('[SuccessPaymentPage] Queue cleared, transitioning to "Проезжайте в бокс" screen');
+        // Queue cleared, show "Проезжайте в бокс" screen
       // The state will automatically update because queuePosition changed
       // Force update by removing state param from URL to show initial state
       navigate('/success', { replace: true });
@@ -60,15 +58,16 @@ export default function SuccessPaymentPage() {
     setIsLoading(false);
 
     if (state === 'initial') {
+      setDisplayText(t("Можете проезжать в бокс!"));
       const textTimer = setTimeout(() => {
-        setDisplayText("Идет мойка");
+        setDisplayText(t("Идёт мойка..."));
       }, 10000);
 
       return () => {
         clearTimeout(textTimer);
       };
     }
-  }, [state]);
+  }, [state, setIsLoading, t]);
 
   // Continuously monitor queue position to detect when queue clears
   useEffect(() => {
@@ -76,6 +75,9 @@ export default function SuccessPaymentPage() {
       // Poll order status to check queue position
       const checkQueueStatus = async () => {
         try {
+          if (!order.id) {
+            return;
+          }
           const { getOrderById } = await import('../api/services/payment');
           const orderDetails = await getOrderById(order.id);
           
@@ -88,12 +90,12 @@ export default function SuccessPaymentPage() {
             
             // If queue clears (becomes 0 or null), transition to "Проезжайте в бокс"
             if (newQueuePosition === 0 || newQueuePosition === null) {
-              console.log('[SuccessPaymentPage] Очередь очищена, переход к экрану "Проезжайте в бокс"');
+              logger.info('[SuccessPaymentPage] Queue cleared, transitioning to "Проезжайте в бокс" screen');
               navigate('/success', { replace: true });
             }
           }
         } catch (err) {
-          console.error('[SuccessPaymentPage] Ошибка проверки статуса очереди', err);
+          logger.error('[SuccessPaymentPage] Error checking queue status', err);
         }
       };
 
@@ -124,7 +126,6 @@ export default function SuccessPaymentPage() {
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
     return `${mins} ${t("мин.")}`;
   };
 
@@ -182,15 +183,6 @@ export default function SuccessPaymentPage() {
               />
             </div>
 
-            {/* Test Navigation - Remove in production */}
-            <div className="mt-8 flex gap-4">
-              <button
-                onClick={() => navigate('/success')}
-                className="px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm opacity-70 hover:opacity-100"
-              >
-                🧪 Test Initial State
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -226,40 +218,24 @@ export default function SuccessPaymentPage() {
         </div>
 
         {/* Car Wash Bay with Car Animation */}
-        <div className="relative w-full h-[500px] flex items-end justify-end pr-0 overflow-x-visible overflow-y-hidden">
+        <div className="relative w-full h-[800px] flex items-end justify-end pr-0 overflow-x-visible overflow-y-hidden">
           {/* Car - Animated - Starts from left, drives to box */}
-          <div className="absolute bottom-8 left-0 z-20 car-drive-animation">
+          <div className="absolute -bottom-8 left-0 z-20 car-drive-animation">
             <img
               src={CarImage}
               alt="Car"
-              className="w-auto h-64 md:h-80 object-contain"
+              className="w-auto h-[700px] md:h-[750px] object-contain"
             />
           </div>
 
           {/* Box/Car Wash Bay - Positioned at right edge */}
-          <div className="relative z-10 h-full flex items-end justify-end">
+          <div className="relative z-999 h-full flex items-start justify-end">
             <img
               src={BoxImage}
               alt="Car wash box"
-              className="h-full max-h-[500px] w-auto object-contain"
+              className="h-full max-h-[700px] w-auto object-contain"
             />
           </div>
-        </div>
-
-        {/* Test Navigation - Remove in production */}
-        <div className="absolute top-4 right-4 flex gap-2">
-          <button
-            onClick={() => navigate('/success?state=advance')}
-            className="px-3 py-1 bg-yellow-500 text-white rounded-lg text-xs opacity-70 hover:opacity-100"
-          >
-            🧪 Test Advance
-          </button>
-          <button
-            onClick={() => navigate('/washing')}
-            className="px-3 py-1 bg-yellow-500 text-white rounded-lg text-xs opacity-70 hover:opacity-100"
-          >
-            🧪 Test Washing
-          </button>
         </div>
       </div>
     </div>

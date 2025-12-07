@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../state/store';
+import { logger } from '../../util/logger';
 
 export function NavigationHandler() {
   const navigate = useNavigate();
@@ -8,7 +9,7 @@ export function NavigationHandler() {
 
   useEffect(() => {
     if (navigationTarget) {
-      console.log(`🔄 NavigationHandler: navigating to ${navigationTarget}`);
+      logger.debug(`NavigationHandler: navigating to ${navigationTarget}`);
       navigate(navigationTarget);
       clearNavigation();
     }

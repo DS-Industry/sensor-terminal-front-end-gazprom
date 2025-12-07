@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { VIDEO_TYPES } from '../hard-data';
 import SpareMedia from '../../assets/spare-media.jpg';
+import { logger } from '../../util/logger';
 
 interface IMediaCampaign {
   attachemntUrl: {
@@ -35,7 +36,7 @@ export default function MediaCampaign(props: IMediaCampaign) {
   }
 
   const handleMediaError = () => {
-    console.error('Media failed to load during playback');
+    logger.error('Media failed to load during playback');
   };
 
   const renderMedia = () => {
