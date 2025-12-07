@@ -41,6 +41,7 @@ export default function MainPage() {
         <img 
           src={gazpromHeader} 
           alt="Header" 
+          className="object-cover"
         />
       </div>
       

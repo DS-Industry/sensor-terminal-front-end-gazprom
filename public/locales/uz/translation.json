@@ -104,5 +104,9 @@
   "instruction_new_step4": "Pastki yuvish tugagandan so'ng, boksning markaziga qarab harakatlaning. Avtomobilni qutining o'rtasiga qo'ying. Raqamli ekranda \"To'xtatish\" yozuvi paydo bo'lganda - harakatni to'xtating. Motorni o'chiring",
   "instruction_new_step5": "Suv va yuvish vositalarini etkazib beradigan konsollar tanlangan dasturga muvofiq avtomobil atrofida kerakli miqdordagi tsikllardan o'tadi",
   "instruction_new_step6": "Yuvish tugagandan so'ng, raqamli ekrandagi ko'rsatmalar va ovozli signallarga amal qiling, siz boksdan chiqishingiz mumkin",
-  "Для того, чтобы начать следующий цикл мойки, нужно обязательно выехать из поста!": "Keyingi yuvish tsiklini boshlash uchun postdan albatta chiqib ketish kerak!"
+  "Для того, чтобы начать следующий цикл мойки, нужно обязательно выехать из поста!": "Keyingi yuvish tsiklini boshlash uchun postdan albatta chiqib ketish kerak!",
+  "Вы действительно хотите вернуться назад?": "Haqiqatan ham orqaga qaytmoqchimisiz?",
+  "Внесённые средства будут утрачены!": "Kiritilgan mablag'lar yo'qoladi!",
+  "Да, вернуться": "Ha, qaytish",
+  "Отменить": "Bekor qilish"
 }

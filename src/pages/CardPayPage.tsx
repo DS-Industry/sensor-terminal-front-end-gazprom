@@ -33,6 +33,7 @@ export default function CardPayPage() {
         <img 
           src={gazpromHeader} 
           alt="Header" 
+          className="object-cover"
         />
       </div>
       <div className="flex-1 flex flex-col">

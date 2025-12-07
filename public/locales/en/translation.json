@@ -127,5 +127,9 @@
   "instruction_new_step4": "When the undercarriage wash is complete, drive further into the center of the box. Position the car in the center of the box. When the digital display shows \"Stop\" - finish moving. Turn off the engine",
   "instruction_new_step5": "Consoles supplying water and detergents will complete the required number of cycles around the car, according to the selected program",
   "instruction_new_step6": "Upon completion of the wash, follow the instructions on the digital display and voice signals, you may exit the box",
-  "Для того, чтобы начать следующий цикл мойки, нужно обязательно выехать из поста!": "In order to start the next wash cycle, you must exit the bay!"
+  "Для того, чтобы начать следующий цикл мойки, нужно обязательно выехать из поста!": "In order to start the next wash cycle, you must exit the bay!",
+  "Вы действительно хотите вернуться назад?": "Do you really want to go back?",
+  "Внесённые средства будут утрачены!": "Deposited funds will be lost!",
+  "Да, вернуться": "Yes, go back",
+  "Отменить": "Cancel"
 }

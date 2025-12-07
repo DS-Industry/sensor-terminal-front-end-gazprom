@@ -1,7 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@gravity-ui/uikit';
+import { ArrowLeft } from '@gravity-ui/icons';
 import useStore from '../state/store';
+import { logger } from '../../util/logger';
 
 export function BackConfirmationModal() {
   const { t } = useTranslation();
@@ -9,7 +12,15 @@ export function BackConfirmationModal() {
     isBackConfirmationModalOpen,
     closeBackConfirmationModal,
     backConfirmationCallback,
+    setBackConfirmationCallback,
   } = useStore();
+  
+  // Store callback in ref to ensure we always have the latest value
+  const callbackRef = useRef(backConfirmationCallback);
+  
+  useEffect(() => {
+    callbackRef.current = backConfirmationCallback;
+  }, [backConfirmationCallback]);
 
   useEffect(() => {
     if (isBackConfirmationModalOpen) {
@@ -29,35 +40,59 @@ export function BackConfirmationModal() {
     closeBackConfirmationModal();
   };
 
-  const handleCancel = () => {
+  const handleCancel = (e: React.MouseEvent) => {
+    e.stopPropagation();
     closeBackConfirmationModal();
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      closeBackConfirmationModal();
+    }
   };
 
   if (typeof document === 'undefined' || !isBackConfirmationModalOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+    <div 
+      className="fixed inset-0 z-[9999] flex items-center justify-center"
+      onClick={handleBackdropClick}
+    >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-      <div className="relative z-10 bg-white rounded-[2.25rem] p-24 max-w-4xl w-full mx-8 text-center">
-        <h2 className="text-6xl font-bold mb-12 text-gray-900">
+      <div 
+        className="relative z-10 bg-white rounded-[2.25rem] p-24 max-w-4xl w-full mx-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-[40px] font-bold mb-12 text-gray-900">
           {t("Подтверждение возврата")}
         </h2>
-        <p className="text-3xl text-gray-600 mb-16">
-          {t("Вы действительно хотите вернуться назад? Внесенные средства будут утрачены.")}
-        </p>
+        
+        <div className="flex items-start justify-between mb-16 gap-8">
+          <div className="flex-1">
+            <p className="text-[25px] text-gray-900 mb-4">
+              {t("Вы действительно хотите вернуться назад?")}
+            </p>
+            <p className="text-[25px] text-gray-900">
+              {t("Внесённые средства будут утрачены!")}
+            </p>
+          </div>
+        </div>
+        
+        {/* Buttons */}
         <div className="flex justify-center gap-12">
           <button
-            className="px-18 py-9 rounded-3xl text-white font-bold text-3xl transition-all duration-300 hover:opacity-90"
+            className="px-18 py-9 rounded-3xl text-white font-bold text-3xl transition-all duration-300 hover:opacity-90 flex items-center gap-3"
             style={{ backgroundColor: "#0B68E1" }}
-            onClick={handleCancel}
-          >
-            {t("Отмена")}
-          </button>
-          <button
-            className="px-18 py-9 rounded-3xl text-gray-600 font-bold text-3xl transition-all duration-300 hover:bg-gray-100"
             onClick={handleConfirm}
           >
-            {t("Да")}
+            <Icon data={ArrowLeft} size={24} className="text-white" />
+            {t("Да, вернуться")}
+          </button>
+          <button
+            className="px-18 py-9 rounded-3xl text-gray-900 font-bold text-3xl transition-all duration-300 hover:bg-gray-100 border-2 border-gray-300"
+            onClick={handleCancel}
+          >
+            {t("Отменить")}
           </button>
         </div>
       </div>
