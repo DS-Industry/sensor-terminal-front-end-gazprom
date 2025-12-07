@@ -25,7 +25,7 @@ export default function PayCard({
   return (
     <Card
       type="action"
-      className="w-80 h-64 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer hover:scale-105 border-0 overflow-hidden"
+      className="w-80 h-64 bg-[#0967E1] text-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer hover:scale-105 border-0 overflow-hidden"
       onClick={() => {
         navigate(`./${endPoint}`, {
           state: {
@@ -51,7 +51,7 @@ export default function PayCard({
     >
       <div className="p-6 h-full flex flex-col">
         <div className="flex justify-between items-start mb-4">
-          <Text className="text-white font-bold text-2xl">
+          <Text className="text-white font-bold text-[20px]">
             {t(`${label}`)}
           </Text>
         </div>
@@ -65,13 +65,13 @@ export default function PayCard({
         </div>
 
         <div className="mt-4 h-20 flex items-center">
-          <div className="bg-white/20 p-2 rounded-2xl text-center w-full h-full flex flex-col justify-center">
-            <div className="text-white/80 text-sm mb-1">{t("Банковские карты")}</div>
+          <div className="bg-[#89BAFB99] p-2 rounded-2xl text-center w-full h-full flex flex-col justify-center">
+            <div className="text-white/80 text-[15px] mb-1">{t("Банковские карты")}</div>
             <div className="flex flex-row justify-center gap-3 items-center h-6">
-              <RiMastercardLine className="text-white text-xl" />
-              <RiVisaLine className="text-white text-xl" />
-              <FaApplePay className="text-white text-xl" />
-              <FaGooglePay className="text-white text-xl" />
+              <RiMastercardLine className="text-white text-2xl" />
+              <RiVisaLine className="text-white text-2xl" />
+              <FaApplePay className="text-white text-2xl" />
+              <FaGooglePay className="text-white text-2xl" />
             </div>
           </div>
         </div>
