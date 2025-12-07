@@ -29,33 +29,23 @@ export default function CardPayPage() {
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-100">
-      {/* Video Section - 40% of screen height */}
-      <div className="w-full flex-shrink-0" style={{ height: '30vh', minHeight: '300px' }}>
+      <div className="w-full flex-shrink-0" style={{ height: '260px', minHeight: '260px' }}>
         <img 
           src={gazpromHeader} 
           alt="Header" 
-          className="w-full h-full object-cover"
         />
       </div>
-      {/* <MediaCampaign attachemntUrl={attachemntUrl} mediaStatus={mediaStatus}/> */}
-      
-      {/* Content Section - 60% of screen height */}
       <div className="flex-1 flex flex-col">
-        {/* Header with Logo and Controls */}
         <HeaderWithLogo backButtonClick={handleBack} />
 
-        {/* Main Content Area - Full Screen */}
         <div className="flex-1 flex flex-col">
-          {/* Title Section */}
           <PaymentTitleSection
             title={t("Оплата картой")}
             description={t("Приложите банковскую карту для оплаты")}
             icon={CreditCard}
           />
 
-          {/* Payment Interface - Full Height */}
           <div className="flex-1 flex justify-end">
-            {/* Left Side - Instructions and Graphics */}
 
             {paymentSuccess
               ? <SuccessPayment />
@@ -90,9 +80,9 @@ export default function CardPayPage() {
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+                <div className="flex-1 flex flex-col items-center justify-center bg-[#EEEEEE]">
                   <div className="relative mb-12">
-                    <img src={Wifi} alt="wifi" className="w-80 h-80 object-contain" />
+                    <img src={Wifi} alt="wifi" className="w-68 h-68 object-contain" />
                     <img
                       src={Card}
                       alt="card"
@@ -109,7 +99,6 @@ export default function CardPayPage() {
                     <div className="text-gray-600 text-lg">
                       {t("Дождитесь подтверждения оплаты")}
                     </div>
-                    {/* Test button - remove in production */}
                     <button
                       onClick={simulateCardTap}
                       className="mt-6 px-6 py-3 bg-green-500 text-white rounded-xl font-semibold text-sm hover:bg-green-600 transition-all duration-300 shadow-lg opacity-70 hover:opacity-100"
@@ -121,22 +110,21 @@ export default function CardPayPage() {
                 </div>
               )}
 
-            {/* Right Side - Payment Details */}
             <div className="w-96 bg-gradient-to-br from-blue-500 to-blue-600 text-white flex flex-col">
-              <div className="p-8 h-full flex flex-col justify-start gap-6">
-                {/* Payment Methods */}
-                <div className="flex flex-col items-center mb-12">
-                  <div className="text-white/80 text-sm mb-6 font-medium">{t("Поддерживаемые карты")}</div>
-                  <div className="flex flex-wrap justify-center gap-6">
+              <div className="py-3 px-6 h-full flex flex-col justify-start gap-6">
+                <div className="flex flex-col items-center">
+                  <div className="text-white/80 text-[20px] font-medium">{t("Поддерживаемые карты")}</div>
+                  <div className="grid grid-cols-3 gap-3 place-items-center">
                     <RiMastercardLine className="text-white text-5xl" />
                     <RiVisaLine className="text-white text-5xl" />
                     <img src={Mir} alt="mir" className="w-16 h-16 object-contain" />
-                    <FaGooglePay className="text-white text-5xl" />
-                    <FaApplePay className="text-white text-5xl" />
+                    <div className="col-span-3 flex justify-center items-center gap-3">
+                      <FaGooglePay className="text-white text-5xl" />
+                      <FaApplePay className="text-white text-5xl" />
+                    </div>
                   </div>
                 </div>
 
-                {/* Payment Details */}
                 <div className="space-y-6">
                   <div className="bg-white/10 p-4 rounded-2xl">
                     <div className="text-white/80 text-sm mb-2">{t("Программа")}</div>

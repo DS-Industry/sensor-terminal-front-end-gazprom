@@ -13,11 +13,10 @@ export default function InstructionLayout({
   
   return (
     <main className=" w-screen min-h-screen bg-white">
-      <div className="w-full flex-shrink-0" style={{ height: '30vh', minHeight: '300px' }}>
+      <div className="w-full flex-shrink-0" style={{ height: '260px', minHeight: '260px' }}>
         <img 
           src={gazpromHeader} 
           alt="Header" 
-          className="w-full h-full object-cover"
         />
       </div>
       <HeaderWithLogo title={t("Инструкция")} isInstructionPage={true} /> 

@@ -37,11 +37,10 @@ export default function MainPage() {
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-200">
-      <div className="w-full flex-shrink-0" style={{ height: '30vh', minHeight: '300px' }}>
+      <div className="w-full flex-shrink-0" style={{ height: '260px', minHeight: '260px' }}>
         <img 
           src={gazpromHeader} 
           alt="Header" 
-          className="w-full h-full object-cover"
         />
       </div>
       
@@ -51,12 +50,6 @@ export default function MainPage() {
         <div className="flex-1 px-7 pb-7">
           <div className="flex flex-col h-full">
             
-            {/* <div className="mb-8">
-              <div className="text-gray-900 font-bold text-4xl text-center">
-                {t("Выберите программу")}
-              </div>
-            </div> */}
-
             {programs && (
               <div className="flex-1 flex flex-col justify-center">
                 <div

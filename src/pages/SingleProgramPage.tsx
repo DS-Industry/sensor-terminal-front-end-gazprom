@@ -42,11 +42,10 @@ export default function SingleProgramPage() {
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-200">
-      <div className="w-full flex-shrink-0" style={{ height: '30vh', minHeight: '300px' }}>
+      <div className="w-full flex-shrink-0" style={{ height: '260px', minHeight: '260px' }}>
         <img 
           src={gazpromHeader} 
           alt="Header" 
-          className="w-full h-full object-cover"
         />
       </div>
 
