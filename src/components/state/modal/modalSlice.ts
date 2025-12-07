@@ -6,7 +6,7 @@ export interface ModalSlice {
   closeBackConfirmationModal: () => void;
 }
 
-export const createModalSlice: StoreSlice<ModalSlice> = (set, get) => ({
+export const createModalSlice: StoreSlice<ModalSlice> = (set) => ({
   isBackConfirmationModalOpen: false,
 
   openBackConfirmationModal: () => {

@@ -20,7 +20,7 @@ class Logger {
     return true;
   }
 
-  private formatMessage(level: LogLevel, message: string, ...args: any[]): string {
+  private formatMessage(level: LogLevel, message: string): string {
     const timestamp = new Date().toISOString();
     const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
     return `${prefix} ${message}`;
