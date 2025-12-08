@@ -13,6 +13,8 @@ import { logger } from "../util/logger";
 
 const MEDIA_CAMPAIGN_URL = import.meta.env.VITE_MEDIA_CAMPAIGN_URL || "";
 
+import gazpromHeader from "../assets/gazprom-step-2-header.png";
+
 type SuccessState = 'initial' | 'washing' | 'advance';
 
 export default function SuccessPaymentPage() {
@@ -168,22 +170,26 @@ export default function SuccessPaymentPage() {
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-100">
-      {attachemntUrl && (
-        <div className="w-full flex-shrink-0" style={{ height: '260px', minHeight: '260px' }}>
-          <MediaCampaign attachemntUrl={attachemntUrl} mediaStatus={mediaStatus} />
-        </div>
-      )}
+       <div className="w-full flex-shrink-0" style={{ height: '260px', minHeight: '260px' }}>
+        <img 
+          src={gazpromHeader} 
+          alt="Header" 
+          className="object-cover"
+        />
+      </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative overflow-x-visible overflow-y-hidden">
-        <div className="text-center mb-8 z-10">
-          <h1 className="text-white text-7xl font-bold mb-4 flex items-center justify-center gap-4">
-            {t(displayText)}
-            <span className="text-white text-6xl">→</span>
-          </h1>
+      <div className="flex-1 flex flex-col items-start justify-center bg-[#0045FF] relative overflow-x-visible overflow-y-hidden">
+        <div className="flex flex-col items-center gap-6 z-10 p-6">
+          <div className="bg-[#0038CC] rounded-3xl px-12 py-8">
+            <h1 className="text-white text-6xl font-bold flex items-center justify-center gap-3">
+              {t(displayText)}
+              <span className="text-white text-5xl">→</span>
+            </h1>
+          </div>
           
-          <div className="flex items-center justify-center gap-3 mt-6">
-            <div className="w-4 h-4 bg-green-400 rounded-full"></div>
-            <p className="text-white text-3xl font-semibold">
+          <div className="bg-[#0038CC] rounded-2xl px-8 py-4 flex items-center gap-3">
+            <div className="w-4 h-4 bg-green-500 rounded-full flex-shrink-0"></div>
+            <p className="text-white text-2xl font-semibold">
               {t("Оплата успешна!")}
             </p>
           </div>
