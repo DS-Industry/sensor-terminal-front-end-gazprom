@@ -11,7 +11,7 @@ enum PAYMENT {
   OPEN_READER = 'open-reader/',
   MOBILE_QR = 'mobile-qr',
   START = 'start',
-};
+}
 
 export async function createOrder(
   body: ICreateOrderRequest,

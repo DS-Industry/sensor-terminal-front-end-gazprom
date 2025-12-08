@@ -44,7 +44,7 @@ export default function SuccessPaymentPage() {
         logger.warn('[SuccessPaymentPage] Order status is PROCESSING but payment is still loading, delaying navigation');
       }
     }
-  }, [order?.status, navigate, handleFinish]);
+  }, [order?.status, navigate, handleFinish, isLoading]);
 
   useEffect(() => {
       if (state === 'advance' && (queuePosition === null || queuePosition === 0)) {

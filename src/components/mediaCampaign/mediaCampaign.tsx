@@ -43,7 +43,7 @@ export default function MediaCampaign(props: IMediaCampaign) {
     const { programUrl, baseUrl } = attachemntUrl;
     
     // Определяем какой URL использовать в приоритете
-    let mediaUrl = programUrl || baseUrl;
+    const mediaUrl = programUrl || baseUrl;
     
     // Если статус ошибки - используем запасное изображение
     if (mediaStatus === 'error') {

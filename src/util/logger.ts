@@ -20,25 +20,25 @@ class Logger {
     return `${prefix} ${message}`;
   }
 
-  debug(message: string, ...args: any[]): void {
+  debug(message: string, ...args: unknown[]): void {
     if (this.shouldLog('debug')) {
       console.debug(this.formatMessage('debug', message), ...args);
     }
   }
 
-  info(message: string, ...args: any[]): void {
+  info(message: string, ...args: unknown[]): void {
     if (this.shouldLog('info')) {
       console.info(this.formatMessage('info', message), ...args);
     }
   }
 
-  warn(message: string, ...args: any[]): void {
+  warn(message: string, ...args: unknown[]): void {
     if (this.shouldLog('warn')) {
       console.warn(this.formatMessage('warn', message), ...args);
     }
   }
 
-  error(message: string, error?: Error | unknown, ...args: any[]): void {
+  error(message: string, error?: Error | unknown, ...args: unknown[]): void {
     if (this.shouldLog('error')) {
       const errorDetails = error instanceof Error 
         ? { message: error.message, stack: error.stack }

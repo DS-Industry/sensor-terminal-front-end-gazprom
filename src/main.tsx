@@ -23,6 +23,7 @@ import { GlobalWebSocketManager } from "./components/globalWebSocketManager/Glob
 import { ModalProvider } from "./components/modalProvider/ModalProvider.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 
+// eslint-disable-next-line react-refresh/only-export-components
 function Root() {
   return (
     <>

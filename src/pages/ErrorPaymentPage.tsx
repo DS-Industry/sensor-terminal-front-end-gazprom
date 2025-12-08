@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import useStore from "../components/state/store";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import gazpromHeader from "../assets/gazprom-step-2-header.png";
 
 const IDLE_TIMEOUT = 5000;
@@ -15,9 +15,9 @@ export default function ErrorPaymentPage() {
   
   const isVariant2 = searchParams.get('variant') === '2' || errorCode === 1005;
 
-  const handleFinish = () => {
+  const handleFinish = useCallback(() => {
     navigate("/");
-  }
+  }, [navigate]);
 
   const clearIdleTimeout = () => {
     if (idleTimeoutRef.current) {
@@ -36,7 +36,7 @@ export default function ErrorPaymentPage() {
     return () => {
       clearIdleTimeout();
     };
-  }, []);
+  }, [handleFinish, setIsLoading]);
 
   const getErrorDisplayText = () => {
     switch (errorCode) {

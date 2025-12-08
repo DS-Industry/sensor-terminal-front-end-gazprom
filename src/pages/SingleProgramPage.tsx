@@ -6,7 +6,7 @@ import { Check } from "lucide-react";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 import { Icon, Text, Card } from "@gravity-ui/uikit";
 import useStore from "../components/state/store";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import gazpromHeader from "../assets/gazprom-step-2-header.png";
 
@@ -18,9 +18,9 @@ export default function SingleProgramPage() {
   const { selectedProgram } = useStore();
   const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleFinish = () => {
+  const handleFinish = useCallback(() => {
     navigate("/");
-  }
+  }, [navigate]);
 
   const clearIdleTimeout = () => {
     if (idleTimeoutRef.current) {
@@ -37,7 +37,7 @@ export default function SingleProgramPage() {
     return () => {
       clearIdleTimeout();
     };
-  }, []);
+  }, [handleFinish]);
 
 
   return (

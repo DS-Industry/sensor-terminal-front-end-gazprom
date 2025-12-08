@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import useStore from '../state/store';
-import { globalWebSocketManager } from '../../util/websocketManager';
+import { globalWebSocketManager, type WebSocketMessage } from '../../util/websocketManager';
 import { EOrderStatus } from '../state/order/orderSlice';
 import { getOrderById } from '../../api/services/payment';
 import { logger } from '../../util/logger';
@@ -11,7 +11,7 @@ const INTERVAL = 1000;
 export function GlobalWebSocketManager() {
   const { order, setOrder, setBankCheck, setNavigationTarget, setErrorCode } = useStore();
 
-  const setCheck = (id: string) => {
+  const setCheck = useCallback((id: string) => {
     let attempts = 0;
 
     const checkLoop = async () => {
@@ -39,25 +39,27 @@ export function GlobalWebSocketManager() {
     };
 
     checkLoop();
-  };
+  }, [setBankCheck]);
 
   useEffect(() => {
     logger.debug('Initializing global WebSocket manager...');
 
-    const handleStatusUpdate = (data: any) => {
+    const handleStatusUpdate = (data: WebSocketMessage) => {
       if (data.type === 'status_update' && data.order_id) {
         logger.debug(`Updating order status globally: ${data.status}`);
+
+        const orderStatus = data.status as EOrderStatus | undefined;
 
         setOrder({
           ...order,
           id: data.order_id,
-          status: data.status,
+          status: orderStatus,
           transactionId: data.transaction_id,
         });
 
       }
 
-      if (data.status === EOrderStatus.PAYED) {
+      if (data.status === EOrderStatus.PAYED && data.order_id) {
         setCheck(data.order_id);
       }
 
@@ -72,11 +74,17 @@ export function GlobalWebSocketManager() {
       }
     };
 
-    const handleError = (data: any) => {
+    interface WebSocketError extends WebSocketMessage {
+      code?: number;
+    }
+
+    const handleError = (data: WebSocketError) => {
       if (data.type === 'error') {
         logger.error('WebSocket error received', data);
 
-        setErrorCode(data.code);
+        if (data.code !== undefined) {
+          setErrorCode(data.code);
+        }
         setNavigationTarget('/error');
       }
     };
@@ -88,7 +96,7 @@ export function GlobalWebSocketManager() {
       removeStatusListener();
       removeErrorListener();
     };
-  }, []);
+  }, [order, setOrder, setCheck, setErrorCode, setNavigationTarget]);
 
   return null;
 }

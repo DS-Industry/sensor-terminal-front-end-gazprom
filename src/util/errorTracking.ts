@@ -4,14 +4,48 @@ interface ErrorTrackingConfig {
   enabled: boolean;
 }
 
+interface SentryInitConfig {
+  dsn?: string;
+  environment: string;
+  integrations: unknown[];
+  tracesSampleRate: number;
+  replaysSessionSampleRate: number;
+  replaysOnErrorSampleRate: number;
+}
+
+interface SentryExceptionOptions {
+  extra?: Record<string, unknown>;
+}
+
+interface SentryMessageOptions {
+  level: 'info' | 'warning' | 'error';
+}
+
+interface SentryUser {
+  id?: string;
+  email?: string;
+  [key: string]: unknown;
+}
+
+interface SentryBreadcrumb {
+  message: string;
+  category?: string;
+  level?: 'info' | 'warning' | 'error';
+}
+
+interface SentryReplayConfig {
+  maskAllText: boolean;
+  blockAllMedia: boolean;
+}
+
 type SentryModule = {
-  init: (config: any) => void;
-  captureException: (error: Error, options?: any) => void;
-  captureMessage: (message: string, options?: any) => void;
-  setUser: (user: any) => void;
-  addBreadcrumb: (breadcrumb: any) => void;
-  browserTracingIntegration: () => any;
-  replayIntegration: (config: any) => any;
+  init: (config: SentryInitConfig) => void;
+  captureException: (error: Error, options?: SentryExceptionOptions) => void;
+  captureMessage: (message: string, options?: SentryMessageOptions) => void;
+  setUser: (user: SentryUser) => void;
+  addBreadcrumb: (breadcrumb: SentryBreadcrumb) => void;
+  browserTracingIntegration: () => unknown;
+  replayIntegration: (config: SentryReplayConfig) => unknown;
 };
 
 class ErrorTracker {
@@ -34,10 +68,10 @@ class ErrorTracker {
 
     try {
       const loadModule = new Function('specifier', 'return import(specifier)');
-      const module = await loadModule('@sentry/react') as any;
+      const module = await loadModule('@sentry/react') as SentryModule;
       this.sentryModule = module;
       return module;
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -77,7 +111,7 @@ class ErrorTracker {
     }
   }
 
-  async captureException(error: Error, context?: Record<string, any>): Promise<void> {
+  async captureException(error: Error, context?: Record<string, unknown>): Promise<void> {
     if (!this.config.enabled) {
       console.error('Error (not tracked):', error, context);
       return;
@@ -108,7 +142,7 @@ class ErrorTracker {
     }
   }
 
-  async setUser(user: { id?: string; email?: string; [key: string]: any }): Promise<void> {
+  async setUser(user: SentryUser): Promise<void> {
     if (!this.config.enabled || !this.initialized) {
       return;
     }

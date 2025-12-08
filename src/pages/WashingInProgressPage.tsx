@@ -29,7 +29,7 @@ export default function WashingInProgressPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [setIsLoading]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

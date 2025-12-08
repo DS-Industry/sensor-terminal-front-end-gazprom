@@ -57,7 +57,7 @@ describe('usePaymentProcessing', () => {
       id: 'test-order-1',
       status: 'WAITING_PAYMENT',
       qr_code: null,
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof paymentService.createOrder>>);
 
     const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
@@ -80,7 +80,7 @@ describe('usePaymentProcessing', () => {
       id: 'test-order-1',
       status: 'WAITING_PAYMENT',
       qr_code: null,
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof paymentService.createOrder>>);
 
     await act(async () => {
       renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
@@ -111,7 +111,7 @@ describe('usePaymentProcessing', () => {
       id: 'test-order-1',
       status: 'WAITING_PAYMENT',
       qr_code: null,
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof paymentService.createOrder>>);
 
     const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
