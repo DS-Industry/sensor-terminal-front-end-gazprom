@@ -62,8 +62,13 @@ export function GlobalWebSocketManager() {
       }
 
       if (data.status === EOrderStatus.PROCESSING) {
-        logger.info('Order is processing, navigating to washing page');
-        setNavigationTarget('/washing');
+        const currentIsLoading = useStore.getState().isLoading;
+        if (!currentIsLoading) {
+          logger.info('Order is processing, navigating to washing page');
+          setNavigationTarget('/washing');
+        } else {
+          logger.warn('Order status is PROCESSING but payment is still loading, delaying navigation');
+        }
       }
     };
 

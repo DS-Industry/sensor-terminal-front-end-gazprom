@@ -60,8 +60,12 @@ export default function SingleProgramPage() {
 
               <div className="flex flex-row gap-6 justify-center items-start">
                 <div className="w-80 flex-shrink-0">
-                  <Card className="bg-white rounded-3xl shadow-xl overflow-hidden border-0 h-full">
-                    <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 p-6 pb-8 relative min-h-[280px]">
+                  <Card className="bg-white rounded-3xl shadow-xl overflow-hidden border-0 h-full"  style={{
+                      borderRadius: "20px",
+                      boxShadow: "0 4px 4px 0 rgba(0, 0, 0, 0.25)",
+                    }}
+                  >
+                    <div className=" bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 p-6 pb-8 relative min-h-[280px]">
                       
                       <div className="flex">
                         <div className="inline-flex items-center gap-2 bg-blue-400 rounded-full px-3 py-1.5 mb-5 shadow-sm">
@@ -88,7 +92,7 @@ export default function SingleProgramPage() {
                       </div>
                     </div>
 
-                    <div className="p-6 bg-white text-center">
+                    <div className="p-9 bg-white text-center">
                       <div className="mb-4">
                         <span className="text-6xl font-bold text-gray-900 tracking-tight">
                           {Number(selectedProgram.price)}

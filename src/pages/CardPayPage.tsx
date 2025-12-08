@@ -111,7 +111,7 @@ export default function CardPayPage() {
                 </div>
               )}
 
-            <div className="w-96 bg-gradient-to-br from-blue-500 to-blue-600 text-white flex flex-col">
+            <div className="w-96 bg-[#0967E1] text-white flex flex-col">
               <div className="py-3 px-6 h-full flex flex-col justify-start gap-6">
                 <div className="flex flex-col items-center">
                   <div className="text-white/80 text-[20px] font-medium">{t("Поддерживаемые карты")}</div>
@@ -126,14 +126,20 @@ export default function CardPayPage() {
                   </div>
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-3">
                   <div className="bg-white/10 p-4 rounded-2xl">
                     <div className="text-white/80 text-sm mb-2">{t("Программа")}</div>
                     <div className="text-white font-semibold text-lg">{t(`${selectedProgram?.name}`)}</div>
                   </div>
 
                   <div className="bg-white/10 p-6 rounded-2xl">
-                    <div className="text-white/80 text-sm mb-3">{paymentSuccess ? t("Оплачено") : t("К оплате")}</div>
+                    <div className="flex justify-center">
+
+                      <div className="text-white/80 text-sm mb-3 flex gap-2 items-center">
+                        <CreditCard />
+                        {paymentSuccess ? t("Оплачено") : t("К оплате")}
+                      </div>
+                    </div>
                     <div className="text-white font-bold text-5xl">
                       {selectedProgram?.price} {t("р.")}
                     </div>

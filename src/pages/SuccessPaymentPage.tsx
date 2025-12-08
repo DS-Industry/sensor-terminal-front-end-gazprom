@@ -18,7 +18,7 @@ export default function SuccessPaymentPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { setIsLoading, order, queuePosition } = useStore();
+  const { setIsLoading, order, queuePosition, isLoading } = useStore();
   
   const [displayText, setDisplayText] = useState(t("Можете проезжать в бокс!"));
   const [timeRemaining, setTimeRemaining] = useState(180); // 3 minutes in seconds
@@ -37,8 +37,12 @@ export default function SuccessPaymentPage() {
       return;
     }
     if (order?.status === EOrderStatus.PROCESSING) {
-      logger.info('[SuccessPaymentPage] Order is processing, navigating to washing page');
-      navigate('/washing', { replace: true });
+      if (!isLoading) {
+        logger.info('[SuccessPaymentPage] Order is processing, navigating to washing page');
+        navigate('/washing', { replace: true });
+      } else {
+        logger.warn('[SuccessPaymentPage] Order status is PROCESSING but payment is still loading, delaying navigation');
+      }
     }
   }, [order?.status, navigate, handleFinish]);
 
@@ -59,13 +63,21 @@ export default function SuccessPaymentPage() {
       }, 10000);
 
       const navigationTimer = setTimeout(() => {
-        logger.info('[SuccessPaymentPage] Auto-navigating to washing page after timeout');
-        navigate('/washing', { replace: true });
+        if (!isLoading) {
+          logger.info('[SuccessPaymentPage] Auto-navigating to washing page after timeout');
+          navigate('/washing', { replace: true });
+        } else {
+          logger.warn('[SuccessPaymentPage] Cannot navigate: payment is still loading');
+        }
       }, 12000);
 
       const safetyTimer = setTimeout(() => {
-        logger.warn('[SuccessPaymentPage] Safety timeout reached, forcing navigation to washing page');
-        navigate('/washing', { replace: true });
+        if (!isLoading) {
+          logger.warn('[SuccessPaymentPage] Safety timeout reached, forcing navigation to washing page');
+          navigate('/washing', { replace: true });
+        } else {
+          logger.error('[SuccessPaymentPage] Safety timeout reached but payment is still loading - possible API hang');
+        }
       }, 300000); 
 
       return () => {
@@ -74,7 +86,7 @@ export default function SuccessPaymentPage() {
         clearTimeout(safetyTimer);
       };
     }
-  }, [state, setIsLoading, t, navigate]);
+  }, [state, setIsLoading, t, navigate, isLoading]);
 
   useEffect(() => {
     if (state === 'advance' && order?.id) {

@@ -15,7 +15,7 @@ import gazpromHeader from "../assets/gazprom-step-2-header.png"
 export default function MainPage() {
   const { t } = useTranslation();
   const { programs } = usePrograms();
-  const { order, clearOrder, setInsertedAmount, setIsLoading } = useStore();
+  const { order, clearOrder, setInsertedAmount, setIsLoading, setErrorCode } = useStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,13 +27,19 @@ export default function MainPage() {
   useEffect(() => {
     if (order?.status === EOrderStatus.PAYED) {
       if (order.id) {
-        startRobot(order.id).catch((error) => {
-          logger.error('Error starting robot from MainPage', error);
-        });
-        navigate('/success');
+        startRobot(order.id)
+          .then(() => {
+            logger.info('Robot started successfully, navigating to success page');
+            navigate('/success');
+          })
+          .catch((error) => {
+            logger.error('Error starting robot from MainPage', error);
+            setErrorCode(1004);
+            navigate('/error');
+          });
       }
     }
-  }, [order, navigate])
+  }, [order, navigate, setErrorCode])
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-200">

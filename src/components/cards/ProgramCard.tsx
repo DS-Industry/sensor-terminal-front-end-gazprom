@@ -14,7 +14,10 @@ export default function ProgramCard(program: IProgram) {
   const { setOrderProgramId, setSelectedProgram } = useStore.getState();
 
   return (
-    <Card type="action" className="w-80 bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col border-0"
+    <Card type="action" className="w-80 bg-white rounded-[20px] shadow-xl overflow-hidden flex flex-col border-0" 
+      style={{
+        boxShadow: "0 4px 4px 0 rgba(0, 0, 0, 0.25)"
+      }}
       onClick={() => {
         logger.debug(`ProgramCard: Selected program ${program.id}`);
         setOrderProgramId(program.id);

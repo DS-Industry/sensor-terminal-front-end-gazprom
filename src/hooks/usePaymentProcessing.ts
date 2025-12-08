@@ -8,8 +8,6 @@ import { AxiosError } from 'axios';
 import { logger } from '../util/logger';
 import { PAYMENT_CONSTANTS } from '../constants/payment';
 
-// Note: setOrder is needed for simulateCardTap test function
-
 export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -106,13 +104,18 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       let errorMessage = t('Произошла ошибка при создании заказа');
       
       if (err instanceof AxiosError) {
-        const errorData = err.response?.data;
-        if (errorData?.error) {
-          errorMessage = errorData.error;
-        } else if (typeof errorData === 'string') {
-          errorMessage = errorData;
-        } else if (err.message) {
-          errorMessage = err.message;
+        if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+          errorMessage = t('Превышено время ожидания ответа от сервера. Пожалуйста, попробуйте снова.');
+          logger.error(`[${paymentMethod}] API request timed out`);
+        } else {
+          const errorData = err.response?.data;
+          if (errorData?.error) {
+            errorMessage = errorData.error;
+          } else if (typeof errorData === 'string') {
+            errorMessage = errorData;
+          } else if (err.message) {
+            errorMessage = err.message;
+          }
         }
       } else if (err instanceof Error) {
         errorMessage = err.message;
@@ -328,11 +331,9 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
           return;
         }
 
-        // Check if this is a test order (starts with 'test-order-')
         const isTestOrder = order.id.startsWith('test-order-');
         
         if (isTestOrder) {
-          // For test orders, skip API call and directly set success
           logger.debug(`[${paymentMethod}] Test order detected, skipping API call`);
           setQueueFull(false);
           setQueuePosition(0);
@@ -401,11 +402,9 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
 
   const isWashingInProgress = queuePosition !== null && queuePosition >= 1;
 
-  // Test function to simulate card tap success
   const simulateCardTap = useCallback(() => {
     logger.debug('[TEST] Simulating card tap success');
     
-    // Ensure order exists and has an ID, or create one
     if (!order || !order.id) {
       logger.warn('[TEST] No order found, creating test order');
       if (!selectedProgram) {
@@ -424,38 +423,31 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
         transactionId: 'test-transaction-' + Date.now(),
       };
       
-      // Set orderCreatedRef to true so the payment success flow triggers
       orderCreatedRef.current = true;
       
-      // Clear any errors and timers first
       setPaymentError(null);
       setQueueFull(false);
       setIsLoading(false);
       clearAllTimers();
       
-      // Update order in store - this will trigger the useEffect
       setOrder(testOrder);
       
       logger.debug('[TEST] Test order created, useEffect should trigger payment success');
       return;
     }
     
-    // If order exists, update its status to PAYED
     logger.debug('[TEST] Updating existing order to PAYED status', order.id);
     
-    // Ensure orderCreatedRef is true so the useEffect triggers
     if (!orderCreatedRef.current) {
       orderCreatedRef.current = true;
       logger.debug('[TEST] Set orderCreatedRef to true');
     }
     
-    // Clear any errors and timers
     setPaymentError(null);
     setQueueFull(false);
     setIsLoading(false);
     clearAllTimers();
     
-    // Update order status to PAYED - this will trigger the useEffect at line 322
     setOrder({
       ...order,
       status: EOrderStatus.PAYED,

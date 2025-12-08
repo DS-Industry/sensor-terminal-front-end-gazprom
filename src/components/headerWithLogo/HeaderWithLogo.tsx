@@ -1,5 +1,5 @@
 import { Card, Icon } from '@gravity-ui/uikit';
-import { ArrowLeft, Check } from "@gravity-ui/icons";
+import { ArrowLeft, Check, FileText } from "@gravity-ui/icons";
 import ClientLogo from "../logo/Logo";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from 'react-router-dom';
@@ -53,10 +53,11 @@ export default function HeaderWithLogo(props: IHeaderWithLogoProps) {
           {props.isMainPage
             ? <>
               <button
-                className="px-8 py-4 rounded-3xl text-white font-semibold text-medium transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg"
+                className="px-8 py-4 rounded-3xl text-white font-semibold text-medium transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg flex items-center gap-2"
                 onClick={() => navigate("/instruction")}
                 style={{ backgroundColor: "#0B68E1" }}
               >
+                <FileText />
                 {t("Инструкция")}
               </button>
             </>
