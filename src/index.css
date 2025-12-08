@@ -34,6 +34,29 @@
   }
 }
 
+
+@keyframes carDriveSuccess {
+    0% {
+        transform: translateX(-100%) translateY(0);
+        opacity: 0;
+    }
+    5% {
+        opacity: 1;
+    }
+    95% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(calc(100vw + 100%)) translateY(0);
+        opacity: 1;
+    }
+}
+
 .car-drive-animation {
   animation: carDrive 4s ease-in-out forwards;
+}
+
+
+.car-drive-animation-success {
+    animation: carDriveSuccess 4s ease-in-out forwards;
 }

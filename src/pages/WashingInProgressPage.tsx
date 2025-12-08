@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import useStore from "../components/state/store";
 import { Clock } from "@gravity-ui/icons";
 import { Icon } from "@gravity-ui/uikit";
+import BoxImage from "../assets/бокс.png";
+import CarImage from "../assets/car.png";
 
 import gazpromHeader from "../assets/gazprom-step-2-header.png";
 
@@ -53,8 +55,8 @@ export default function WashingInProgressPage() {
             />
         </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative overflow-hidden">
-        <div className="flex flex-col items-center justify-center max-w-4xl px-8 text-center">
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative overflow-x-visible overflow-y-hidden">
+        <div className="flex flex-col items-center justify-center max-w-4xl px-8 text-center z-10">
           <h1 className="text-white text-6xl font-bold mb-6">
             {t("Идёт мойка...")}
           </h1>
@@ -70,13 +72,6 @@ export default function WashingInProgressPage() {
             {t("Оплатить заранее")}
           </button>
 
-          <div className="flex items-center gap-3 text-white text-xl">
-            <Icon data={Clock} size={24} className="text-white" />
-            <span>
-              {t("Осталось времени")}: {formatTime(timeRemaining)}
-            </span>
-          </div>
-
           <div className="mt-8 flex gap-4">
             <button
               onClick={() => navigate('/success?state=advance')}
@@ -84,6 +79,23 @@ export default function WashingInProgressPage() {
             >
               🧪 Test Advance Payment
             </button>
+          </div>
+        </div>
+
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-3 text-white text-xl">
+          <Icon data={Clock} size={24} className="text-white" />
+          <span>
+            {t("Осталось времени")}: {formatTime(timeRemaining)}
+          </span>
+        </div>
+
+        <div className="relative w-full h-[400px] flex items-end justify-end pr-0 overflow-x-visible overflow-y-hidden">
+          <div className="absolute -bottom-8 left-0 z-20 car-drive-animation-success">
+            <img
+              src={CarImage}
+              alt="Car"
+              className="w-auto h-[600px] md:h-[600px] object-contain"
+            />
           </div>
         </div>
       </div>
