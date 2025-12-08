@@ -57,9 +57,11 @@ export default function WashingInProgressPage() {
 
       <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative overflow-x-visible overflow-y-hidden">
         <div className="flex flex-col items-center justify-center max-w-4xl px-8 text-center z-10">
-          <h1 className="text-white text-6xl font-bold mb-6">
-            {t("Идёт мойка...")}
-          </h1>
+            <div className="bg-[#89BAFB4D] rounded-2xl py-4 px-10 flex items-center gap-3 mb-6 mt-3">
+                <h1 className="text-white text-6xl font-bold flex items-center">
+                    {t("Идёт мойка...")}
+                </h1>
+            </div>
 
           <p className="text-white text-2xl mb-8 max-w-2xl">
             {t("Вы можете оплатить мойку заранее, пока моется другой автомобиль")}
@@ -67,7 +69,8 @@ export default function WashingInProgressPage() {
 
           <button
             onClick={handlePayInAdvance}
-            className="px-16 py-6 rounded-3xl text-[#0B68E1] bg-white font-semibold text-2xl transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg mb-8"
+            className="px-16 py-4 text-[#0B68E1] bg-white font-semibold text-2xl transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg mb-8"
+            style={{borderRadius: "30px"}}
           >
             {t("Оплатить заранее")}
           </button>
