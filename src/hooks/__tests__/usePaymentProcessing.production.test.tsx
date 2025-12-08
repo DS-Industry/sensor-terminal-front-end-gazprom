@@ -72,30 +72,41 @@ vi.mock('../../util/websocketManager', () => ({
   globalWebSocketManager: mockWebSocketManager,
 }));
 
-// Mock the store
-const mockStore = {
-  order: null,
-  selectedProgram: { id: 1, name: 'Test Program', price: '100' },
-  isLoading: false,
-  setIsLoading: vi.fn(),
-  setInsertedAmount: vi.fn(),
-  clearOrder: vi.fn(),
-  setOrder: vi.fn((orderData: any) => {
-    if (orderData) {
-      mockStore.order = {
-        ...mockStore.order,
-        ...orderData,
-        createdAt: orderData.createdAt || mockStore.order?.createdAt || new Date().toISOString(),
-      };
-    }
-  }),
-  setQueuePosition: vi.fn(),
-  setQueueNumber: vi.fn(),
-  getState: vi.fn(() => mockStore),
-};
+// Mock the store - use hoisted to make it available in mock factory
+const { mockStore, mockUseStore } = vi.hoisted(() => {
+  const store = {
+    order: null as any,
+    selectedProgram: { id: 1, name: 'Test Program', price: '100' },
+    isLoading: false,
+    isOrderLoading: false,
+    setIsLoading: vi.fn(),
+    setInsertedAmount: vi.fn(),
+    clearOrder: vi.fn(),
+    setOrder: vi.fn((orderData?: any) => {
+      if (orderData) {
+        store.order = {
+          ...store.order,
+          ...orderData,
+          createdAt: orderData.createdAt || store.order?.createdAt || new Date().toISOString(),
+        };
+      } else {
+        store.order = null;
+      }
+    }),
+    setQueuePosition: vi.fn(),
+    setQueueNumber: vi.fn(),
+    getState: vi.fn(() => store),
+  };
+  
+  const useStore = vi.fn(() => store) as any;
+  useStore.getState = vi.fn(() => store);
+  
+  return { mockStore: store, mockUseStore: useStore };
+});
 
+// Mock Zustand store hook
 vi.mock('../../components/state/store', () => ({
-  default: vi.fn(() => mockStore),
+  default: mockUseStore,
 }));
 
 // Mock react-router-dom
@@ -111,11 +122,20 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+// Helper to flush promises without running all timers (avoids infinite loops)
+const flushPromises = async () => {
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+};
+
 describe('usePaymentProcessing - Production Flow Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockStore.order = null;
     mockStore.isLoading = false;
+    mockStore.isOrderLoading = false;
     mockWebSocketListeners.clear();
     vi.useFakeTimers();
   });
@@ -134,20 +154,19 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       // Step 1: Order creation on mount
       mockCreateOrder.mockResolvedValue({ qr_code: null } as any);
 
-      const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { result, rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
-      // Verify order creation was called
+      // Verify order creation was called - use runAllTimersAsync to flush promises
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalledWith({
-            program_id: 1,
-            payment_type: EPaymentMethod.CARD,
-          });
-        });
+        await flushPromises();
+      });
+      
+      expect(mockCreateOrder).toHaveBeenCalledWith({
+        program_id: 1,
+        payment_type: EPaymentMethod.CARD,
       });
 
       // Step 2: Simulate WebSocket message with order ID and WAITING_PAYMENT status
-      // First, manually set the order in store to simulate WebSocket update
       await act(async () => {
         mockStore.setOrder({
           id: 'order-123',
@@ -162,6 +181,8 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
           status: EOrderStatus.WAITING_PAYMENT,
           transaction_id: 'tx-123',
         });
+        rerender(); // Force re-render to pick up store change
+        await flushPromises();
       });
 
       // Verify order was set in store
@@ -183,20 +204,27 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
 
       // Advance time to trigger polling
       await act(async () => {
-        vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        await waitFor(() => {
-          expect(mockGetOrderById).toHaveBeenCalledWith('order-123');
-        });
+        vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL);
+        await flushPromises();
       });
+
+      expect(mockGetOrderById).toHaveBeenCalledWith('order-123');
 
       // Step 4: Simulate card tap - backend updates order via WebSocket
       await act(async () => {
+        mockStore.setOrder({
+          id: 'order-123',
+          status: EOrderStatus.PAYED,
+          transactionId: 'tx-123',
+        });
         simulateWebSocketMessage({
           type: 'status_update',
           order_id: 'order-123',
           status: EOrderStatus.PAYED,
           transaction_id: 'tx-123',
         });
+        rerender();
+        await flushPromises();
       });
 
       // Step 5: Polling detects payment - mock getOrderById to return PAYED status
@@ -214,9 +242,7 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       // Advance time to trigger next poll
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        await waitFor(() => {
-          expect(result.current.paymentSuccess).toBe(true);
-        }, { timeout: 3000 });
+        await flushPromises();
       });
 
       // Step 6: Verify payment success
@@ -233,17 +259,11 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
 
       await act(async () => {
         result.current.handleStartRobot();
-        await waitFor(() => {
-          expect(mockStartRobot).toHaveBeenCalledWith('order-123');
-        });
+        await flushPromises();
       });
 
-      // Verify navigation to success page
-      await act(async () => {
-        await waitFor(() => {
-          expect(mockNavigate).toHaveBeenCalledWith('/success');
-        });
-      });
+      expect(mockStartRobot).toHaveBeenCalledWith('order-123');
+      expect(mockNavigate).toHaveBeenCalledWith('/success');
     });
 
     it('should handle card tap detection via polling (backend updates amount_sum)', async () => {
@@ -252,22 +272,28 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
 
       mockCreateOrder.mockResolvedValue({ qr_code: null } as any);
 
-      const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { result, rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       // Order creation
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+      
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       // WebSocket: Order ID received
       await act(async () => {
+        mockStore.setOrder({
+          id: 'order-456',
+          status: EOrderStatus.WAITING_PAYMENT,
+        });
         simulateWebSocketMessage({
           type: 'status_update',
           order_id: 'order-456',
           status: EOrderStatus.WAITING_PAYMENT,
         });
+        rerender();
+        await flushPromises();
       });
 
       // Polling starts - initially no payment
@@ -280,11 +306,10 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
 
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        await waitFor(() => {
-          expect(mockGetOrderById).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
 
+      expect(mockGetOrderById).toHaveBeenCalled();
       expect(result.current.paymentSuccess).toBe(false);
 
       // Backend detects card tap and updates amount_sum
@@ -298,9 +323,7 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       // Next poll detects payment
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        await waitFor(() => {
-          expect(result.current.paymentSuccess).toBe(true);
-        }, { timeout: 3000 });
+        await flushPromises();
       });
 
       expect(result.current.paymentSuccess).toBe(true);
@@ -315,12 +338,12 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalledWith({
-            program_id: 1,
-            payment_type: EPaymentMethod.CARD,
-          });
-        });
+        await flushPromises();
+      });
+
+      expect(mockCreateOrder).toHaveBeenCalledWith({
+        program_id: 1,
+        payment_type: EPaymentMethod.CARD,
       });
     });
 
@@ -335,11 +358,10 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(result.current.paymentError).toBeTruthy();
-        }, { timeout: 2000 });
+        await flushPromises();
       });
 
+      expect(result.current.paymentError).toBeTruthy();
       expect(result.current.paymentError).toBe('Server error');
     });
 
@@ -350,21 +372,18 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalledTimes(1);
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalledTimes(1);
 
       // Try to retry - should reset flag and allow retry
       await act(async () => {
         result.current.handleRetry();
+        await flushPromises();
       });
 
-      await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalledTimes(2);
-        });
-      });
+      expect(mockCreateOrder).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -384,10 +403,10 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       const { result, rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       // Simulate WebSocket update by updating store and re-rendering
       await act(async () => {
@@ -397,18 +416,16 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
           createdAt: new Date().toISOString(),
         });
         rerender(); // Force re-render to pick up store change
+        await flushPromises();
       });
 
       // Polling should start
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
+        await flushPromises();
       });
 
-      await act(async () => {
-        await waitFor(() => {
-          expect(mockGetOrderById).toHaveBeenCalled();
-        }, { timeout: 1000 });
-      });
+      expect(mockGetOrderById).toHaveBeenCalled();
     });
 
     it('should detect payment when order status changes to PAYED (simulating WebSocket)', async () => {
@@ -426,10 +443,10 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       const { result, rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       // Set order with WAITING_PAYMENT first
       await act(async () => {
@@ -439,11 +456,13 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
           createdAt: new Date().toISOString(),
         });
         rerender();
+        await flushPromises();
       });
 
       // Advance time to let polling start
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
+        await flushPromises();
       });
 
       // Simulate WebSocket PAYED status update
@@ -453,20 +472,12 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
           status: EOrderStatus.PAYED,
         });
         rerender();
+        await flushPromises();
       });
 
       // Payment should be verified
-      await act(async () => {
-        await waitFor(() => {
-          expect(mockGetOrderById).toHaveBeenCalled();
-        }, { timeout: 1000 });
-      });
-
-      await act(async () => {
-        await waitFor(() => {
-          expect(result.current.paymentSuccess).toBe(true);
-        }, { timeout: 2000 });
-      });
+      expect(mockGetOrderById).toHaveBeenCalled();
+      expect(result.current.paymentSuccess).toBe(true);
     });
   });
 
@@ -483,13 +494,13 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
         queue_position: 0,
       } as any);
 
-      renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       // Set order with WAITING_PAYMENT status
       await act(async () => {
@@ -497,23 +508,25 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
           id: 'order-polling',
           status: EOrderStatus.WAITING_PAYMENT,
         });
+        rerender();
+        await flushPromises();
       });
 
       // Polling should start
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        await waitFor(() => {
-          expect(mockGetOrderById).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockGetOrderById).toHaveBeenCalled();
 
       // Should continue polling
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        await waitFor(() => {
-          expect(mockGetOrderById).toHaveBeenCalledTimes(2);
-        });
+        await flushPromises();
       });
+
+      expect(mockGetOrderById).toHaveBeenCalledTimes(2);
     });
 
     it('should poll at correct interval (1 second)', async () => {
@@ -528,36 +541,38 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
         queue_position: 0,
       } as any);
 
-      renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       await act(async () => {
         mockStore.setOrder({
           id: 'order-interval',
           status: EOrderStatus.WAITING_PAYMENT,
         });
+        rerender();
+        await flushPromises();
       });
 
       // Advance 1 second - should poll once
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL);
-        await waitFor(() => {
-          expect(mockGetOrderById).toHaveBeenCalledTimes(1);
-        });
+        await flushPromises();
       });
+
+      expect(mockGetOrderById).toHaveBeenCalledTimes(1);
 
       // Advance another second - should poll again
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL);
-        await waitFor(() => {
-          expect(mockGetOrderById).toHaveBeenCalledTimes(2);
-        });
+        await flushPromises();
       });
+
+      expect(mockGetOrderById).toHaveBeenCalledTimes(2);
     });
 
     it('should stop polling when payment succeeds', async () => {
@@ -572,34 +587,37 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
         queue_position: 0,
       } as any);
 
-      const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { result, rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       await act(async () => {
         mockStore.setOrder({
           id: 'order-stop',
           status: EOrderStatus.WAITING_PAYMENT,
         });
+        rerender();
+        await flushPromises();
       });
 
       // Poll detects payment
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        await waitFor(() => {
-          expect(result.current.paymentSuccess).toBe(true);
-        });
+        await flushPromises();
       });
+
+      expect(result.current.paymentSuccess).toBe(true);
 
       const callCountBefore = mockGetOrderById.mock.calls.length;
 
       // Advance time - polling should have stopped
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL * 3);
+        await flushPromises();
       });
 
       // Should not have polled more
@@ -620,27 +638,29 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
         queue_position: 0,
       } as any);
 
-      const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { result, rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       await act(async () => {
         mockStore.setOrder({
           id: 'order-payment',
           status: EOrderStatus.WAITING_PAYMENT,
         });
+        rerender();
+        await flushPromises();
       });
 
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        await waitFor(() => {
-          expect(result.current.paymentSuccess).toBe(true);
-        }, { timeout: 3000 });
+        await flushPromises();
       });
+
+      expect(result.current.paymentSuccess).toBe(true);
     });
 
     it('should set processing state when amount is sufficient but status not PAYED yet', async () => {
@@ -655,28 +675,29 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
         queue_position: 0,
       } as any);
 
-      const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { result, rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       await act(async () => {
         mockStore.setOrder({
           id: 'order-processing',
           status: EOrderStatus.WAITING_PAYMENT,
         });
+        rerender();
+        await flushPromises();
       });
 
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        await waitFor(() => {
-          expect(result.current.isPaymentProcessing).toBe(true);
-        });
+        await flushPromises();
       });
 
+      expect(result.current.isPaymentProcessing).toBe(true);
       expect(result.current.paymentSuccess).toBe(false);
     });
 
@@ -692,28 +713,29 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
         queue_position: 0,
       } as any);
 
-      const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { result, rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       await act(async () => {
         mockStore.setOrder({
           id: 'order-insufficient',
           status: EOrderStatus.WAITING_PAYMENT,
         });
+        rerender();
+        await flushPromises();
       });
 
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        await waitFor(() => {
-          expect(mockGetOrderById).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
 
+      expect(mockGetOrderById).toHaveBeenCalled();
       expect(result.current.paymentSuccess).toBe(false);
       expect(result.current.isPaymentProcessing).toBe(false);
     });
@@ -727,29 +749,30 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       mockCreateOrder.mockResolvedValue({ qr_code: null } as any);
       mockCancelOrder.mockResolvedValue();
 
-      renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       await act(async () => {
         mockStore.setOrder({
           id: 'order-timeout',
           status: EOrderStatus.WAITING_PAYMENT,
         });
+        rerender();
+        await flushPromises();
       });
 
       // Advance past timeout
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.DEPOSIT_TIME + 1000);
-        await waitFor(() => {
-          expect(mockCancelOrder).toHaveBeenCalledWith('order-timeout');
-        });
+        await flushPromises();
       });
 
+      expect(mockCancelOrder).toHaveBeenCalledWith('order-timeout');
       expect(mockNavigate).toHaveBeenCalledWith('/');
     });
 
@@ -766,32 +789,35 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
         queue_position: 0,
       } as any);
 
-      const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { result, rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       await act(async () => {
         mockStore.setOrder({
           id: 'order-no-timeout',
           status: EOrderStatus.WAITING_PAYMENT,
         });
+        rerender();
+        await flushPromises();
       });
 
       // Payment succeeds before timeout
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        await waitFor(() => {
-          expect(result.current.paymentSuccess).toBe(true);
-        });
+        await flushPromises();
       });
+
+      expect(result.current.paymentSuccess).toBe(true);
 
       // Advance past timeout - should not cancel
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.DEPOSIT_TIME);
+        await flushPromises();
       });
 
       expect(mockCancelOrder).not.toHaveBeenCalled();
@@ -813,26 +839,26 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       } as any);
       mockCancelOrder.mockResolvedValue();
 
-      const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { result, rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       await act(async () => {
         mockStore.setOrder({
           id: 'order-queue-full',
           status: EOrderStatus.WAITING_PAYMENT,
         });
+        rerender();
+        await flushPromises();
       });
 
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        await waitFor(() => {
-          expect(result.current.queueFull).toBe(true);
-        }, { timeout: 3000 });
+        await flushPromises();
       });
 
       expect(result.current.queueFull).toBe(true);
@@ -853,28 +879,30 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
         queue_number: 5,
       } as any);
 
-      const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { result, rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       await act(async () => {
         mockStore.setOrder({
           id: 'order-queue',
           status: EOrderStatus.WAITING_PAYMENT,
         });
+        rerender();
+        await flushPromises();
       });
 
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        await waitFor(() => {
-          expect(result.current.queuePosition).toBe(1);
-          expect(result.current.queueNumber).toBe(5);
-        });
+        await flushPromises();
       });
+
+      expect(result.current.queuePosition).toBe(1);
+      expect(result.current.queueNumber).toBe(5);
     });
   });
 
@@ -885,55 +913,58 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       const mockStartRobot = vi.mocked(paymentService.startRobot);
 
       mockCreateOrder.mockResolvedValue({ qr_code: null } as any);
-      mockGetOrderById.mockResolvedValue({
+      // First mock for payment detection
+      mockGetOrderById.mockResolvedValueOnce({
         id: 1,
         amount_sum: '100',
         status: EOrderStatus.PAYED,
         queue_position: 0,
       } as any);
-      mockStartRobot.mockResolvedValue();
+      // Second mock for robot start verification
       mockGetOrderById.mockResolvedValueOnce({
         id: 1,
         status: EOrderStatus.PROCESSING,
       } as any);
+      mockStartRobot.mockResolvedValue();
 
-      const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { result, rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       await act(async () => {
         mockStore.setOrder({
           id: 'order-robot',
           status: EOrderStatus.WAITING_PAYMENT,
         });
+        rerender();
+        await flushPromises();
       });
 
-      // Payment succeeds
+      // Payment succeeds - polling detects it
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        await waitFor(() => {
-          expect(result.current.paymentSuccess).toBe(true);
-        });
+        await flushPromises();
       });
+
+      // Wait for payment verification to complete
+      await act(async () => {
+        await flushPromises();
+      });
+
+      expect(result.current.paymentSuccess).toBe(true);
 
       // Start robot
       await act(async () => {
         result.current.handleStartRobot();
-        await waitFor(() => {
-          expect(mockStartRobot).toHaveBeenCalledWith('order-robot');
-        });
+        await flushPromises();
       });
 
-      // Verify navigation
-      await act(async () => {
-        await waitFor(() => {
-          expect(mockNavigate).toHaveBeenCalledWith('/success');
-        });
-      });
+      expect(mockStartRobot).toHaveBeenCalledWith('order-robot');
+      expect(mockNavigate).toHaveBeenCalledWith('/success');
     });
 
     it('should prevent robot start if payment not confirmed', async () => {
@@ -948,7 +979,13 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        result.current.handleStartRobot();
+        await flushPromises();
+      });
+
+      await act(async () => {
+        if (result.current) {
+          result.current.handleStartRobot();
+        }
       });
 
       expect(mockStartRobot).not.toHaveBeenCalled();
@@ -967,43 +1004,50 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
         queue_position: 0,
       } as any);
 
-      const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { result, rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       await act(async () => {
         mockStore.setOrder({
           id: 'order-countdown',
           status: EOrderStatus.WAITING_PAYMENT,
         });
+        rerender();
+        await flushPromises();
       });
 
-      // Payment succeeds
+      // Payment succeeds - polling detects it
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        await waitFor(() => {
-          expect(result.current.paymentSuccess).toBe(true);
-        });
+        await flushPromises();
       });
 
-      // Countdown should start
+      // Wait for payment verification
       await act(async () => {
-        await waitFor(() => {
-          expect(result.current.timeUntilRobotStart).toBeGreaterThan(0);
-        });
+        await flushPromises();
       });
+
+      expect(result.current.paymentSuccess).toBe(true);
+
+      // Countdown should start after payment success
+      await act(async () => {
+        await flushPromises();
+      });
+
+      expect(result.current.timeUntilRobotStart).toBeGreaterThan(0);
 
       // Advance time - countdown should decrease
       await act(async () => {
         vi.advanceTimersByTime(1000);
-        await waitFor(() => {
-          expect(result.current.timeUntilRobotStart).toBeLessThan(PAYMENT_CONSTANTS.START_ROBOT_INTERVAL / 1000);
-        });
+        await flushPromises();
       });
+
+      expect(result.current.timeUntilRobotStart).toBeLessThan(PAYMENT_CONSTANTS.START_ROBOT_INTERVAL / 1000);
     });
   });
 
@@ -1018,10 +1062,10 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(result.current.paymentError).toBeTruthy();
-        }, { timeout: 2000 });
+        await flushPromises();
       });
+
+      expect(result.current.paymentError).toBeTruthy();
     });
 
     it('should handle API errors during payment check', async () => {
@@ -1031,26 +1075,29 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       mockCreateOrder.mockResolvedValue({ qr_code: null } as any);
       mockGetOrderById.mockRejectedValue(new Error('API Error'));
 
-      renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       await act(async () => {
         mockStore.setOrder({
           id: 'order-api-error',
           status: EOrderStatus.WAITING_PAYMENT,
         });
+        rerender();
+        await flushPromises();
       });
 
       // Should handle error gracefully
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL + 100);
-        // Should not crash
+        await flushPromises();
       });
+      // Should not crash
     });
 
     it('should allow retry after error', async () => {
@@ -1061,18 +1108,22 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
 
       const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
+      // Wait for error to be set
       await act(async () => {
-        await waitFor(() => {
-          expect(result.current.paymentError).toBeTruthy();
-        });
+        await flushPromises();
+        // Give error handler time to process
+        vi.advanceTimersByTime(10);
+        await flushPromises();
       });
+
+      expect(result.current.paymentError).toBeTruthy();
 
       await act(async () => {
         result.current.handleRetry();
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalledTimes(2);
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -1091,12 +1142,17 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       const { result } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        result.current.handleBack();
-        await waitFor(() => {
-          expect(mockCancelOrder).toHaveBeenCalledWith('order-back');
-        });
+        await flushPromises();
       });
 
+      await act(async () => {
+        if (result.current) {
+          result.current.handleBack();
+          await flushPromises();
+        }
+      });
+
+      expect(mockCancelOrder).toHaveBeenCalledWith('order-back');
       expect(mockNavigate).toHaveBeenCalledWith(-1);
     });
 
@@ -1104,19 +1160,21 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       const mockCreateOrder = vi.mocked(paymentService.createOrder);
       mockCreateOrder.mockResolvedValue({ qr_code: null } as any);
 
-      const { unmount } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
+      const { unmount, rerender } = renderHook(() => usePaymentProcessing(EPaymentMethod.CARD));
 
       await act(async () => {
-        await waitFor(() => {
-          expect(mockCreateOrder).toHaveBeenCalled();
-        });
+        await flushPromises();
       });
+
+      expect(mockCreateOrder).toHaveBeenCalled();
 
       await act(async () => {
         mockStore.setOrder({
           id: 'order-cleanup',
           status: EOrderStatus.WAITING_PAYMENT,
         });
+        rerender();
+        await flushPromises();
       });
 
       // Unmount should cleanup
@@ -1125,6 +1183,7 @@ describe('usePaymentProcessing - Production Flow Tests', () => {
       // Advance time - should not cause issues
       await act(async () => {
         vi.advanceTimersByTime(PAYMENT_CONSTANTS.PAYMENT_INTERVAL * 2);
+        await flushPromises();
       });
     });
   });

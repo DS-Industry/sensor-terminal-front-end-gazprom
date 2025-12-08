@@ -35,6 +35,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   const isPollingRef = useRef(false);
   const orderIdRef = useRef<string | undefined>(undefined);
   const checkPaymentStatusRef = useRef<() => Promise<void>>();
+  const handleStartRobotRef = useRef<() => Promise<void>>();
 
   const clearAllTimers = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -245,7 +246,9 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
 
     countdownTimeoutRef.current = setTimeout(() => {
       logger.info(`[${paymentMethod}] Automatic robot start triggered`);
-      handleStartRobot();
+      if (handleStartRobotRef.current) {
+        handleStartRobotRef.current();
+      }
     }, PAYMENT_CONSTANTS.START_ROBOT_INTERVAL);
 
     countdownIntervalRef.current = setInterval(() => {
@@ -331,6 +334,10 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       setIsLoading(false);
     }
   }, [order, paymentMethod, paymentSuccess, clearAllTimers, navigate, setIsLoading, t]);
+
+  useEffect(() => {
+    handleStartRobotRef.current = handleStartRobot;
+  }, [handleStartRobot]);
 
   useEffect(() => {
     logger.debug(`[${paymentMethod}] Component mounted, creating order`);
