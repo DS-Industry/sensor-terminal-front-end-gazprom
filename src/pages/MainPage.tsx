@@ -37,11 +37,11 @@ export default function MainPage() {
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-200">
-      <div className="w-full flex-shrink-0" style={{ height: '260px', minHeight: '260px' }}>
+      <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-80">
         <img 
           src={gazpromHeader} 
           alt="Header" 
-          className="object-cover"
+           className="w-full h-full object-cover"
         />
       </div>
       
