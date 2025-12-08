@@ -5,13 +5,10 @@ import useStore from "../components/state/store";
 import { EOrderStatus } from "../components/state/order/orderSlice";
 import BoxImage from "../assets/бокс.png";
 import CarImage from "../assets/car.png";
-import MediaCampaign from "../components/mediaCampaign/mediaCampaign";
-import { useMediaCampaign } from "../hooks/useMediaCampaign";
 import { Clock } from "@gravity-ui/icons";
 import { Icon } from "@gravity-ui/uikit";
 import { logger } from "../util/logger";
 
-const MEDIA_CAMPAIGN_URL = import.meta.env.VITE_MEDIA_CAMPAIGN_URL || "";
 
 import gazpromHeader from "../assets/gazprom-step-2-header.png";
 
@@ -22,7 +19,6 @@ export default function SuccessPaymentPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { setIsLoading, order, queuePosition } = useStore();
-  const { attachemntUrl, mediaStatus } = useMediaCampaign(MEDIA_CAMPAIGN_URL);
   
   const [displayText, setDisplayText] = useState(t("Можете проезжать в бокс!"));
   const [timeRemaining, setTimeRemaining] = useState(180); // 3 minutes in seconds
@@ -137,11 +133,12 @@ export default function SuccessPaymentPage() {
   if (state === 'advance') {
     return (
       <div className="flex flex-col min-h-screen w-screen bg-gray-100">
-        {attachemntUrl && (
-          <div className="w-full flex-shrink-0" style={{ height: '260px', minHeight: '260px' }}>
-            <MediaCampaign attachemntUrl={attachemntUrl} mediaStatus={mediaStatus} />
-          </div>
-        )}
+       <div className="w-full flex-shrink-0" style={{ height: '260px', minHeight: '260px' }}>
+        <img 
+          src={gazpromHeader} 
+          alt="Header" 
+        />
+      </div>
 
         <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative overflow-hidden">
           <div className="flex flex-col items-center justify-center max-w-4xl px-8 text-center">
