@@ -84,18 +84,6 @@ export default function WashingInProgressPage() {
             </span>
           </div>
 
-          <div className="absolute bottom-0 left-0 z-10 mt-8">
-            <img
-              src={CarImage}
-              alt="Car"
-              className="w-auto h-48 object-contain opacity-80"
-              style={{
-                clipPath: 'inset(0 70% 0 0)',
-                transform: 'translateX(20%)'
-              }}
-            />
-          </div>
-
           <div className="mt-8 flex gap-4">
             <button
               onClick={() => navigate('/success?state=advance')}

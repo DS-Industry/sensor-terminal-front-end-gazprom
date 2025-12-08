@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import useStore from "../components/state/store";
@@ -30,16 +30,21 @@ export default function SuccessPaymentPage() {
   const state: SuccessState = (searchParams.get('state') as SuccessState) || 
     (queuePosition !== null && queuePosition >= 1 ? 'advance' : 'initial');
 
-  const handleFinish = () => {
+  const handleFinish = useCallback(() => {
     navigate("/");
-  }
+  }, [navigate]);
 
 
   useEffect(() => {
     if (order?.status === EOrderStatus.COMPLETED) {
       handleFinish();
+      return;
     }
-  }, [order, navigate]);
+    if (order?.status === EOrderStatus.PROCESSING) {
+      logger.info('[SuccessPaymentPage] Order is processing, navigating to washing page');
+      navigate('/washing', { replace: true });
+    }
+  }, [order?.status, navigate, handleFinish]);
 
   useEffect(() => {
       if (state === 'advance' && (queuePosition === null || queuePosition === 0)) {
@@ -57,11 +62,23 @@ export default function SuccessPaymentPage() {
         setDisplayText(t("Идёт мойка..."));
       }, 10000);
 
+      const navigationTimer = setTimeout(() => {
+        logger.info('[SuccessPaymentPage] Auto-navigating to washing page after timeout');
+        navigate('/washing', { replace: true });
+      }, 12000);
+
+      const safetyTimer = setTimeout(() => {
+        logger.warn('[SuccessPaymentPage] Safety timeout reached, forcing navigation to washing page');
+        navigate('/washing', { replace: true });
+      }, 300000); 
+
       return () => {
         clearTimeout(textTimer);
+        clearTimeout(navigationTimer);
+        clearTimeout(safetyTimer);
       };
     }
-  }, [state, setIsLoading, t]);
+  }, [state, setIsLoading, t, navigate]);
 
   useEffect(() => {
     if (state === 'advance' && order?.id) {

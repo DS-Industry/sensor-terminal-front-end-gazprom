@@ -60,6 +60,11 @@ export function GlobalWebSocketManager() {
       if (data.status === EOrderStatus.PAYED) {
         setCheck(data.order_id);
       }
+
+      if (data.status === EOrderStatus.PROCESSING) {
+        logger.info('Order is processing, navigating to washing page');
+        setNavigationTarget('/washing');
+      }
     };
 
     const handleError = (data: any) => {
