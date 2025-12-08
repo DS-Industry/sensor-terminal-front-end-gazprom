@@ -10,7 +10,7 @@ import gazpromHeader from "../assets/gazprom-step-2-header.png";
 export default function WashingInProgressPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { setIsLoading, selectedProgram } = useStore();
+  const { setIsLoading } = useStore();
   
   const [timeRemaining, setTimeRemaining] = useState(180);
 
@@ -40,12 +40,7 @@ export default function WashingInProgressPage() {
     clearOrder();
     setIsLoading(false);
     setInsertedAmount(0);
-    
-    if (selectedProgram) {
-      navigate(`/programs/${selectedProgram.id}/bankCard`);
-    } else {
-      navigate("/");
-    }
+    navigate("/");
   };
 
   return (
