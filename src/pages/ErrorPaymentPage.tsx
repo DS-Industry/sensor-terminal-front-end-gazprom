@@ -2,18 +2,15 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import useStore from "../components/state/store";
 import { useEffect, useRef } from "react";
-import MediaCampaign from "../components/mediaCampaign/mediaCampaign";
-import { useMediaCampaign } from "../hooks/useMediaCampaign";
+import gazpromHeader from "../assets/gazprom-step-2-header.png";
 
 const IDLE_TIMEOUT = 5000;
-const MEDIA_CAMPAIGN_URL = import.meta.env.VITE_MEDIA_CAMPAIGN_URL || "";
 
 export default function ErrorPaymentPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { errorCode, setIsLoading } = useStore();
-  const { attachemntUrl, mediaStatus } = useMediaCampaign(MEDIA_CAMPAIGN_URL);
   const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const isVariant2 = searchParams.get('variant') === '2' || errorCode === 1005;
@@ -58,13 +55,14 @@ export default function ErrorPaymentPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen w-screen bg-gray-100">
-      {attachemntUrl && (
-        <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-80">
-          <MediaCampaign attachemntUrl={attachemntUrl} mediaStatus={mediaStatus} />
-        </div>
-      )}
-
+    <div className="flex flex-col min-h-screen w-screen bg-gray-100 bg-[#0045FF]">
+        <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-62">
+        <img 
+          src={gazpromHeader} 
+          alt="Header" 
+          className="w-full h-full object-cover"
+        />
+      </div>
       <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative">
         <div className="flex flex-col items-center justify-center max-w-4xl px-8">
           <div className="mb-8">

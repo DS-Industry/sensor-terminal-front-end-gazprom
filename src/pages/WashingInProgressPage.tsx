@@ -44,8 +44,8 @@ export default function WashingInProgressPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen w-screen bg-gray-100">
-        <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-80">
+    <div className="flex flex-col min-h-screen w-screen bg-gray-100 bg-[#0045FF]">
+        <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-62">
             <img 
             src={gazpromHeader} 
             alt="Header" 

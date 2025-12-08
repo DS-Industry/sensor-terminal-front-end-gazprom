@@ -42,7 +42,7 @@ export default function SingleProgramPage() {
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-200">
-      <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-80">
+      <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-62">
         <img 
           src={gazpromHeader} 
           alt="Header" 

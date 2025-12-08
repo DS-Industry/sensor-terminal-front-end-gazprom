@@ -13,7 +13,7 @@ export default function InstructionLayout({
   
   return (
     <main className=" w-screen min-h-screen bg-white">
-      <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-80">
+      <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-62">
         <img 
           src={gazpromHeader} 
           alt="Header" 
