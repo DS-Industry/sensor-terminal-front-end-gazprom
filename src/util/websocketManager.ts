@@ -1,6 +1,7 @@
 import { logger } from './logger';
+import { env } from '../config/env';
 
-const WS_BASE_URL = import.meta.env.VITE_API_BASE_WS_URL || "";
+const WS_BASE_URL = env.VITE_API_BASE_WS_URL;
 
 type WebSocketEvent = 'status_update' | 'mobile_payment' | 'device_status' | 'error' | 'card_reader';
 

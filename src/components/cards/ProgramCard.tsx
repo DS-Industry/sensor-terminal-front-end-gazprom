@@ -24,6 +24,17 @@ export default function ProgramCard(program: IProgram) {
         setSelectedProgram(program);
         navigate(`/programs/${program.id}`)
       }}
+      role="button"
+      aria-label={t(`Выбрать программу ${program.name}`)}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setOrderProgramId(program.id);
+          setSelectedProgram(program);
+          navigate(`/programs/${program.id}`)
+        }
+      }}
     >
       <div className="flex-shrink-0 h-96 p-4 relative flex flex-col bg-gradient-to-br from-blue-500 to-blue-600">
         <div className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 self-start bg-white/20 backdrop-blur-sm border border-white/10">

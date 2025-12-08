@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@gravity-ui/uikit';
 import { ArrowLeft } from '@gravity-ui/icons';
 import useStore from '../state/store';
-import { logger } from '../../util/logger';
 
 export function BackConfirmationModal() {
   const { t } = useTranslation();
@@ -12,10 +11,8 @@ export function BackConfirmationModal() {
     isBackConfirmationModalOpen,
     closeBackConfirmationModal,
     backConfirmationCallback,
-    setBackConfirmationCallback,
   } = useStore();
   
-  // Store callback in ref to ensure we always have the latest value
   const callbackRef = useRef(backConfirmationCallback);
   
   useEffect(() => {
@@ -78,7 +75,6 @@ export function BackConfirmationModal() {
           </div>
         </div>
         
-        {/* Buttons */}
         <div className="flex justify-center gap-12">
           <button
             className="px-18 py-9 rounded-3xl text-white font-bold text-3xl transition-all duration-300 hover:opacity-90 flex items-center gap-3"

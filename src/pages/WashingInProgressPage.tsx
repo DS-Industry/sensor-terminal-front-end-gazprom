@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import useStore from "../components/state/store";
 import { Clock } from "@gravity-ui/icons";
 import { Icon } from "@gravity-ui/uikit";
-import BoxImage from "../assets/бокс.png";
 import CarImage from "../assets/car.png";
 
 import gazpromHeader from "../assets/gazprom-step-2-header.png";
@@ -71,18 +70,21 @@ export default function WashingInProgressPage() {
             onClick={handlePayInAdvance}
             className="px-16 py-4 text-[#0B68E1] bg-white font-semibold text-2xl transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg mb-8"
             style={{borderRadius: "30px"}}
+            aria-label={t("Оплатить заранее")}
           >
             {t("Оплатить заранее")}
           </button>
 
-          <div className="mt-8 flex gap-4">
-            <button
-              onClick={() => navigate('/success?state=advance')}
-              className="px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm opacity-70 hover:opacity-100"
-            >
-              🧪 Test Advance Payment
-            </button>
-          </div>
+          {import.meta.env.DEV && (
+            <div className="mt-8 flex gap-4">
+              <button
+                onClick={() => navigate('/success?state=advance')}
+                className="px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm opacity-70 hover:opacity-100"
+              >
+                🧪 Test Advance Payment
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-3 text-white text-xl">

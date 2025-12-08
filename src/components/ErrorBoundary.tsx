@@ -11,10 +11,6 @@ interface State {
   error: Error | null;
 }
 
-/**
- * Error Boundary component to catch React component errors
- * Prevents the entire app from crashing when a component throws an error
- */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -35,6 +31,15 @@ export class ErrorBoundary extends Component<Props, State> {
     logger.error('ErrorBoundary caught an error', error, {
       componentStack: errorInfo.componentStack,
     });
+
+    if (!import.meta.env.DEV) {
+      import('../util/errorTracking').then(({ errorTracker }) => {
+        errorTracker.captureException(error, {
+          componentStack: errorInfo.componentStack,
+          errorBoundary: true,
+        }).catch(() => {});
+      });
+    }
   }
 
   handleReset = (): void => {

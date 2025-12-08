@@ -67,6 +67,7 @@ export default function CardPayPage() {
                         <button
                           onClick={handleRetry}
                           className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-semibold text-lg hover:bg-blue-700 transition-all duration-300 hover:scale-105 shadow-lg"
+                          aria-label={t("Повторить")}
                         >
                           {t("Повторить")}
                         </button>
@@ -74,6 +75,7 @@ export default function CardPayPage() {
                       <button
                         onClick={handleBack}
                         className="px-8 py-4 bg-gray-600 text-white rounded-2xl font-semibold text-lg hover:bg-gray-700 transition-all duration-300 hover:scale-105 shadow-lg"
+                        aria-label={t("Назад")}
                       >
                         {t("Назад")}
                       </button>
@@ -100,13 +102,15 @@ export default function CardPayPage() {
                     <div className="text-gray-600 text-lg">
                       {t("Дождитесь подтверждения оплаты")}
                     </div>
-                    <button
-                      onClick={simulateCardTap}
-                      className="mt-6 px-6 py-3 bg-green-500 text-white rounded-xl font-semibold text-sm hover:bg-green-600 transition-all duration-300 shadow-lg opacity-70 hover:opacity-100"
-                      title="Test: Simulate card tap"
-                    >
-                      🧪 TEST: Simulate Card Tap
-                    </button>
+                    {import.meta.env.DEV && simulateCardTap && (
+                      <button
+                        onClick={simulateCardTap}
+                        className="mt-6 px-6 py-3 bg-green-500 text-white rounded-xl font-semibold text-sm hover:bg-green-600 transition-all duration-300 shadow-lg opacity-70 hover:opacity-100"
+                        title="Test: Simulate card tap"
+                      >
+                        🧪 TEST: Simulate Card Tap
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

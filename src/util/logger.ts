@@ -1,8 +1,3 @@
-/**
- * Logger utility for application-wide logging
- * Provides environment-aware logging with different log levels
- */
-
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 class Logger {
@@ -13,7 +8,6 @@ class Logger {
   }
 
   private shouldLog(level: LogLevel): boolean {
-    // In production, only log errors and warnings
     if (!this.isDevelopment) {
       return level === 'error' || level === 'warn';
     }
@@ -51,8 +45,14 @@ class Logger {
         : error;
       console.error(this.formatMessage('error', message), errorDetails, ...args);
       
-      // In production, you might want to send errors to an error tracking service
-      // Example: Sentry.captureException(error);
+      if (!this.isDevelopment && error instanceof Error) {
+        import('./errorTracking').then(({ errorTracker }) => {
+          errorTracker.captureException(error, {
+            message,
+            ...args,
+          }).catch(() => {});
+        });
+      }
     }
   }
 }

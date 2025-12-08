@@ -84,24 +84,27 @@ export default function ErrorPaymentPage() {
           <button
             className="px-16 py-6 rounded-3xl text-[#0B68E1] bg-white font-semibold text-2xl transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg"
             onClick={handleFinish}
+            aria-label={t("Закрыть")}
           >
             {t("Закрыть")}
           </button>
 
-          <div className="mt-8 flex gap-4">
-            <button
-              onClick={() => navigate('/error?variant=1')}
-              className="px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm opacity-70 hover:opacity-100"
-            >
-              🧪 Test Variant 1
-            </button>
-            <button
-              onClick={() => navigate('/error?variant=2')}
-              className="px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm opacity-70 hover:opacity-100"
-            >
-              🧪 Test Variant 2
-            </button>
-          </div>
+          {import.meta.env.DEV && (
+            <div className="mt-8 flex gap-4">
+              <button
+                onClick={() => navigate('/error?variant=1')}
+                className="px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm opacity-70 hover:opacity-100"
+              >
+                🧪 Test Variant 1
+              </button>
+              <button
+                onClick={() => navigate('/error?variant=2')}
+                className="px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm opacity-70 hover:opacity-100"
+              >
+                🧪 Test Variant 2
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

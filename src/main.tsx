@@ -4,6 +4,12 @@ import MainPage from "./pages/MainPage.tsx";
 import "./index.css";
 import "./styles/styles.css";
 import "./i18n/index.ts";
+import "./config/env";
+import { errorTracker } from "./util/errorTracking";
+
+if (!import.meta.env.DEV) {
+  errorTracker.initialize().catch(console.error);
+}
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import { ThemeProvider } from "@gravity-ui/uikit";
 import SingleProgramPage from "./pages/SingleProgramPage.tsx";

@@ -470,7 +470,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     isWashingInProgress,
     qrCode,
     paymentError,
-    simulateCardTap,
+    ...(import.meta.env.DEV && { simulateCardTap }),
     queueFull
   };
 };
