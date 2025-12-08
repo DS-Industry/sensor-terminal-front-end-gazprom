@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import useStore from '../components/state/store';
 import { cancelOrder, createOrder, getOrderById, startRobot } from '../api/services/payment';
 import { EOrderStatus, EPaymentMethod } from '../components/state/order/orderSlice';
-import { AxiosError } from 'axios';
 import { logger } from '../util/logger';
 import { PAYMENT_CONSTANTS } from '../constants/payment';
 
@@ -15,8 +14,6 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     order,
     selectedProgram,
     setIsLoading,
-    setInsertedAmount,
-    clearOrder,
     setOrder,
     setQueuePosition: setGlobalQueuePosition,
     setQueueNumber: setGlobalQueueNumber
@@ -27,57 +24,42 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   const [timeUntilRobotStart, setTimeUntilRobotStart] = useState(0);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
   const [queueNumber, setQueueNumber] = useState<number | null>(null);
-  const [qrCode, setQrCode] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [queueFull, setQueueFull] = useState(false);
 
-  const orderCreatedRef = useRef(false);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const depositTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const checkOrderAmountSumIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const idleTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const countdownInterval = useRef<ReturnType<typeof setInterval> | null>(null);
-  const countdownStartedRef = useRef(false);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const orderCreatedRef = useRef(false);
+  const isPollingRef = useRef(false);
+  const orderIdRef = useRef<string | undefined>(undefined);
+  const checkPaymentStatusRef = useRef<() => Promise<void>>();
 
-  const clearPaymentTimers = useCallback(() => {
+  const clearAllTimers = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
     if (depositTimeoutRef.current) {
       clearTimeout(depositTimeoutRef.current);
       depositTimeoutRef.current = null;
     }
-    if (checkOrderAmountSumIntervalRef.current) {
-      clearInterval(checkOrderAmountSumIntervalRef.current);
-      checkOrderAmountSumIntervalRef.current = null;
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
     }
-  }, []);
-
-  const clearCountdown = useCallback(() => {
-    countdownStartedRef.current = false;
-    if (idleTimeout.current) {
-      clearTimeout(idleTimeout.current);
-      idleTimeout.current = null;
+    if (countdownTimeoutRef.current) {
+      clearTimeout(countdownTimeoutRef.current);
+      countdownTimeoutRef.current = null;
     }
-    if (countdownInterval.current) {
-      clearInterval(countdownInterval.current);
-      countdownInterval.current = null;
-    }
+    isPollingRef.current = false;
     setTimeUntilRobotStart(0);
   }, []);
 
-  const clearAllTimers = useCallback(() => {
-    clearPaymentTimers();
-    clearCountdown();
-  }, [clearPaymentTimers, clearCountdown]);
-
-  const createOrderAsync = useCallback(async (ucn?: string) => {
+  const createOrderAsync = useCallback(async () => {
     if (!selectedProgram || orderCreatedRef.current) {
-      logger.warn(`[${paymentMethod}] Failed to create order: missing program or order already created`);
-      return;
-    }
-
-    if (queuePosition !== null && queuePosition >= PAYMENT_CONSTANTS.MAX_QUEUE_POSITION) {
-      logger.info(`[${paymentMethod}] Queue is full, queuePosition: ${queuePosition}`);
-      setQueueFull(true);
-      setPaymentError(t('Очередь заполнена. Пожалуйста, подождите.'));
-      setIsLoading(false);
+      logger.warn(`[${paymentMethod}] Cannot create order: missing program or already created`);
       return;
     }
 
@@ -87,83 +69,76 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
 
     try {
       setIsLoading(true);
-      const response = await createOrder({
+      logger.debug(`[${paymentMethod}] Creating order for program: ${selectedProgram.id}`);
+      
+      await createOrder({
         program_id: selectedProgram.id,
         payment_type: paymentMethod,
-        ucn: ucn,
       });
-      logger.debug(`[${paymentMethod}] Order created ${ucn ? 'with UCN' : 'without UCN'}`);
       
-      if (response.qr_code) {
-        logger.debug(`[${paymentMethod}] Received QR code from createOrder response`);
-        setQrCode(response.qr_code);
-      }
-    } catch (err) {
+      logger.info(`[${paymentMethod}] Order creation API called successfully, waiting for order ID from WebSocket`);
+      setIsLoading(false);
+    } catch (err: any) {
       logger.error(`[${paymentMethod}] Error creating order`, err);
       setIsLoading(false);
+      orderCreatedRef.current = false;
       
       let errorMessage = t('Произошла ошибка при создании заказа');
-      
-      if (err instanceof AxiosError) {
-        if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-          errorMessage = t('Превышено время ожидания ответа от сервера. Пожалуйста, попробуйте снова.');
-          logger.error(`[${paymentMethod}] API request timed out`);
-        } else {
-          const errorData = err.response?.data;
-          if (errorData?.error) {
-            errorMessage = errorData.error;
-          } else if (typeof errorData === 'string') {
-            errorMessage = errorData;
-          } else if (err.message) {
-            errorMessage = err.message;
-          }
-        }
-      } else if (err instanceof Error) {
+      if (err?.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err?.message) {
         errorMessage = err.message;
       }
       
       setPaymentError(errorMessage);
-      setIsPaymentProcessing(false);
-      orderCreatedRef.current = false;
     }
-  }, [selectedProgram, paymentMethod, queuePosition, setIsLoading, t]);
+  }, [selectedProgram, paymentMethod, setIsLoading, t]);
 
-  const checkPaymentAsync = useCallback(async () => {
+  const checkPaymentStatus = useCallback(async () => {
+    const currentOrderId = orderIdRef.current || order?.id;
+    if (!currentOrderId || isPollingRef.current) {
+      return;
+    }
+
+    isPollingRef.current = true;
+
     try {
-      if (!order?.id) {
-        return;
+      logger.debug(`[${paymentMethod}] Polling order status, orderId: ${currentOrderId}`);
+      const orderDetails = await getOrderById(currentOrderId);
+      
+      const currentOrder = useStore.getState().order;
+      
+      if (currentOrder && currentOrder.status !== orderDetails.status) {
+        setOrder({
+          id: currentOrderId,
+          status: orderDetails.status,
+          programId: selectedProgram?.id,
+          paymentMethod: paymentMethod,
+          createdAt: currentOrder.createdAt,
+        });
       }
-
-      logger.debug(`[${paymentMethod}] Checking order status, orderId: ${order.id}`);
-      const orderDetails = await getOrderById(order.id);
-      logger.debug(`[${paymentMethod}] Received order details`);
 
       if (orderDetails.queue_position !== undefined) {
         const newQueuePosition = orderDetails.queue_position;
-        const previousQueuePosition = queuePosition;
         setQueuePosition(newQueuePosition);
         setGlobalQueuePosition(newQueuePosition);
         
         if (newQueuePosition >= PAYMENT_CONSTANTS.MAX_QUEUE_POSITION) {
-          logger.info(`[${paymentMethod}] Queue is full! queuePosition: ${newQueuePosition}`);
+          logger.info(`[${paymentMethod}] Queue is full, queuePosition: ${newQueuePosition}`);
           setQueueFull(true);
           setPaymentError(t('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.'));
+          clearAllTimers();
           
-          if (order?.id && order?.status !== EOrderStatus.PAYED) {
-            try {
-              await cancelOrder(order.id);
-              logger.info(`[${paymentMethod}] Cancelled order due to full queue`);
-              orderCreatedRef.current = false;
-            } catch (cancelErr) {
-              logger.error(`[${paymentMethod}] Error cancelling order`, cancelErr);
-            }
+          try {
+            await cancelOrder(currentOrderId);
+            logger.info(`[${paymentMethod}] Cancelled order due to full queue`);
+            orderCreatedRef.current = false;
+          } catch (cancelErr) {
+            logger.error(`[${paymentMethod}] Error cancelling order`, cancelErr);
           }
+          return;
         } else {
           setQueueFull(false);
-          
-          if (previousQueuePosition !== null && previousQueuePosition >= 1 && (newQueuePosition === 0 || newQueuePosition === null)) {
-            logger.info(`[${paymentMethod}] Washing completed, queue cleared`);
-          }
         }
       }
 
@@ -172,50 +147,120 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
         setGlobalQueueNumber(orderDetails.queue_number);
       }
 
-      if (orderDetails.amount_sum) {
-        const amountSum = Number(orderDetails.amount_sum);
-        logger.debug(`[${paymentMethod}] Amount inserted: ${amountSum}`);
+      const amountSum = orderDetails.amount_sum ? Number(orderDetails.amount_sum) : 0;
+      const expectedAmount = selectedProgram ? Number(selectedProgram.price) : 0;
 
-        if (amountSum > 0 && depositTimeoutRef.current) {
-          clearTimeout(depositTimeoutRef.current);
-          depositTimeoutRef.current = null;
-        }
+      logger.debug(`[${paymentMethod}] Payment check - amountSum: ${amountSum}, expected: ${expectedAmount}, status: ${orderDetails.status}`);
 
-        if (orderDetails.status === EOrderStatus.PAYED && amountSum >= Number(selectedProgram?.price)) {
-          logger.info(`[${paymentMethod}] Payment confirmed via API - status: PAYED, amount: ${amountSum}`);
-          
-          if (orderDetails.queue_position !== undefined && orderDetails.queue_position >= PAYMENT_CONSTANTS.MAX_QUEUE_POSITION) {
-            logger.info(`[${paymentMethod}] Queue is full when receiving payment! queuePosition: ${orderDetails.queue_position}`);
-            setQueueFull(true);
-            setPaymentError(t('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.'));
-            setIsLoading(false);
-            
-            try {
-              await cancelOrder(order.id);
-              logger.info(`[${paymentMethod}] Cancelled order due to full queue`);
-              orderCreatedRef.current = false;
-              return;
-            } catch (cancelErr) {
-              logger.error(`[${paymentMethod}] Error cancelling order`, cancelErr);
-            }
-          } else {
-            clearAllTimers();
-            setPaymentError(null);
-            setPaymentSuccess(true);
-          }
-        } else if (amountSum >= Number(selectedProgram?.price) && orderDetails.status !== EOrderStatus.PAYED) {
-          logger.debug(`[${paymentMethod}] Amount sufficient (${amountSum}) but order status is ${orderDetails.status}, waiting for PAYED confirmation`);
-          setIsPaymentProcessing(true);
-          setIsLoading(false);
-        } else {
-          setIsPaymentProcessing(false);
-        }
+      if (orderDetails.status === EOrderStatus.PAYED && amountSum >= expectedAmount) {
+        logger.info(`[${paymentMethod}] Payment confirmed! Status: PAYED, Amount: ${amountSum}`);
+        clearAllTimers();
+        setPaymentError(null);
+        setPaymentSuccess(true);
+        setIsPaymentProcessing(false);
+        return;
       }
-    } catch (e) {
-      logger.error(`[${paymentMethod}] Error checking payment status`, e);
+
+      if (amountSum >= expectedAmount && orderDetails.status !== EOrderStatus.PAYED) {
+        logger.debug(`[${paymentMethod}] Payment amount sufficient but status not PAYED yet, processing...`);
+        setIsPaymentProcessing(true);
+        setIsLoading(false);
+        return;
+      }
+
       setIsPaymentProcessing(false);
+      setIsLoading(false);
+
+    } catch (err) {
+      logger.error(`[${paymentMethod}] Error checking payment status`, err);
+      setIsPaymentProcessing(false);
+      setIsLoading(false);
+    } finally {
+      isPollingRef.current = false;
     }
-  }, [order, paymentMethod, queuePosition, selectedProgram, setIsLoading, setGlobalQueuePosition, setGlobalQueueNumber, clearAllTimers, t]);
+  }, [
+    order?.id,
+    selectedProgram?.id,
+    selectedProgram?.price,
+    paymentMethod,
+    setOrder,
+    setGlobalQueuePosition,
+    setGlobalQueueNumber,
+    clearAllTimers,
+    setIsLoading,
+    t
+  ]);
+
+  useEffect(() => {
+    checkPaymentStatusRef.current = checkPaymentStatus;
+  }, [checkPaymentStatus]);
+
+  const startPolling = useCallback(() => {
+    const currentOrderId = orderIdRef.current || order?.id;
+    if (!currentOrderId) {
+      logger.debug(`[${paymentMethod}] Cannot start polling: order ID not available yet`);
+      return;
+    }
+
+    if (pollingIntervalRef.current) {
+      logger.debug(`[${paymentMethod}] Polling already started, skipping`);
+      return;
+    }
+
+    logger.info(`[${paymentMethod}] Starting payment polling immediately for order: ${currentOrderId}`);
+    
+    pollingIntervalRef.current = setInterval(() => {
+      if (checkPaymentStatusRef.current) {
+        checkPaymentStatusRef.current();
+      }
+    }, PAYMENT_CONSTANTS.PAYMENT_INTERVAL);
+
+    depositTimeoutRef.current = setTimeout(async () => {
+      logger.info(`[${paymentMethod}] Payment timeout reached, cancelling order`);
+      clearAllTimers();
+      try {
+        const orderId = orderIdRef.current || currentOrderId;
+        if (orderId) {
+          await cancelOrder(orderId);
+          navigate("/");
+        }
+      } catch (e) {
+        logger.error(`[${paymentMethod}] Error cancelling order on timeout`, e);
+      }
+    }, PAYMENT_CONSTANTS.DEPOSIT_TIME);
+
+    if (checkPaymentStatusRef.current) {
+      checkPaymentStatusRef.current();
+    }
+  }, [order?.id, paymentMethod, clearAllTimers, navigate]);
+
+  const startCountdown = useCallback(() => {
+    if (countdownTimeoutRef.current) {
+      return;
+    }
+
+    logger.debug(`[${paymentMethod}] Starting automatic robot start countdown`);
+    const initialTime = PAYMENT_CONSTANTS.START_ROBOT_INTERVAL / 1000;
+    setTimeUntilRobotStart(initialTime);
+
+    countdownTimeoutRef.current = setTimeout(() => {
+      logger.info(`[${paymentMethod}] Automatic robot start triggered`);
+      handleStartRobot();
+    }, PAYMENT_CONSTANTS.START_ROBOT_INTERVAL);
+
+    countdownIntervalRef.current = setInterval(() => {
+      setTimeUntilRobotStart(prev => {
+        if (prev <= 1) {
+          if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, [paymentMethod]);
 
   const handleBack = useCallback(async () => {
     clearAllTimers();
@@ -223,7 +268,6 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     setPaymentSuccess(false);
     setIsPaymentProcessing(false);
     setPaymentError(null);
-    clearCountdown();
     orderCreatedRef.current = false;
     
     if (order?.id) {
@@ -236,7 +280,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     }
 
     navigate(-1);
-  }, [clearAllTimers, setIsLoading, clearCountdown, order, paymentMethod, navigate]);
+  }, [clearAllTimers, setIsLoading, order, paymentMethod, navigate]);
 
   const handleRetry = useCallback(() => {
     setPaymentError(null);
@@ -268,16 +312,16 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
         const orderDetails = await getOrderById(order.id);
         if (orderDetails.status === EOrderStatus.PROCESSING) {
           logger.info(`[${paymentMethod}] Order status confirmed as PROCESSING, navigating to success page`);
-          clearCountdown();
+          clearAllTimers();
           setIsLoading(false);
           navigate('/success');
         } else {
-          logger.warn(`[${paymentMethod}] Order status is ${orderDetails.status}, not PROCESSING. Waiting for status update...`);
+          logger.warn(`[${paymentMethod}] Order status is ${orderDetails.status}, not PROCESSING`);
           setIsLoading(false);
         }
       } catch (verifyError) {
         logger.error(`[${paymentMethod}] Error verifying order status after robot start`, verifyError);
-        clearCountdown();
+        clearAllTimers();
         setIsLoading(false);
         navigate('/success');
       }
@@ -286,56 +330,10 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       setPaymentError(t('Ошибка запуска робота. Пожалуйста, попробуйте снова.'));
       setIsLoading(false);
     }
-  }, [order, paymentMethod, paymentSuccess, clearCountdown, navigate, setIsLoading, t]);
-
-  const handlePayInAdvance = useCallback(() => {
-    logger.info(`[${paymentMethod}] Pay in advance - starting new process`);
-    clearAllTimers();
-    clearOrder();
-    setPaymentSuccess(false);
-    setIsPaymentProcessing(false);
-    setQueuePosition(null);
-    setQueueNumber(null);
-    setInsertedAmount(0);
-    setIsLoading(false);
-    orderCreatedRef.current = false;
-    navigate("/");
-  }, [clearAllTimers, clearOrder, setIsLoading, setInsertedAmount, navigate, paymentMethod]);
-
-  const startCountdown = useCallback(() => {
-    if (countdownStartedRef.current) {
-      logger.debug(`[${paymentMethod}] Countdown already started, skipping`);
-      return;
-    }
-
-    logger.debug(`[${paymentMethod}] Starting automatic start countdown`);
-    countdownStartedRef.current = true;
-    
-    const initialTime = PAYMENT_CONSTANTS.START_ROBOT_INTERVAL / 1000;
-    setTimeUntilRobotStart(initialTime);
-
-    idleTimeout.current = setTimeout(() => {
-      logger.info(`[${paymentMethod}] Automatic robot start triggered`);
-      handleStartRobot();
-    }, PAYMENT_CONSTANTS.START_ROBOT_INTERVAL);
-
-    countdownInterval.current = setInterval(() => {
-      setTimeUntilRobotStart(prev => {
-        if (prev <= 1) {
-          logger.debug(`[${paymentMethod}] Countdown completed`);
-          if (countdownInterval.current) {
-            clearInterval(countdownInterval.current);
-            countdownInterval.current = null;
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, [paymentMethod, handleStartRobot]);
+  }, [order, paymentMethod, paymentSuccess, clearAllTimers, navigate, setIsLoading, t]);
 
   useEffect(() => {
-    logger.debug(`[${paymentMethod}] Creating order`);
+    logger.debug(`[${paymentMethod}] Component mounted, creating order`);
     createOrderAsync();
     
     return () => {
@@ -344,57 +342,41 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   }, [createOrderAsync, clearAllTimers, paymentMethod]);
 
   useEffect(() => {
-    if (order?.status === EOrderStatus.WAITING_PAYMENT) {
-      setIsLoading(false);
+    if (order?.id) {
+      orderIdRef.current = order.id;
+    }
+  }, [order?.id]);
 
-      depositTimeoutRef.current = setTimeout(async () => {
-        try {
-          if (order.id) {
-            logger.info(`[${paymentMethod}] Order timeout, cancelling order`);
-            await cancelOrder(order.id);
-            navigate("/");
-          }
-        } catch (e) {
-          logger.error(`[${paymentMethod}] Error cancelling order on timeout`, e);
-        }
-      }, PAYMENT_CONSTANTS.DEPOSIT_TIME);
-
-      checkOrderAmountSumIntervalRef.current = setInterval(checkPaymentAsync, PAYMENT_CONSTANTS.PAYMENT_INTERVAL);
+  useEffect(() => {
+    if (order?.status === EOrderStatus.WAITING_PAYMENT && orderCreatedRef.current && !pollingIntervalRef.current) {
+      logger.info(`[${paymentMethod}] Order status is WAITING_PAYMENT, starting order-detail polling: ${order.id}`);
+      orderIdRef.current = order.id;
+      startPolling();
     }
 
     return () => {
-      clearPaymentTimers();
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      if (depositTimeoutRef.current) {
+        clearTimeout(depositTimeoutRef.current);
+        depositTimeoutRef.current = null;
+      }
     };
-  }, [order, paymentMethod, navigate, checkPaymentAsync, clearPaymentTimers, setIsLoading]);
+  }, [order?.status, order?.id, orderCreatedRef.current, paymentMethod, startPolling]);
 
   useEffect(() => {
     if (order?.status === EOrderStatus.PAYED && !paymentSuccess && orderCreatedRef.current) {
-      logger.info(`[${paymentMethod}] Order status changed to PAYED`);
+      logger.info(`[${paymentMethod}] Order status changed to PAYED, setting payment success`);
       
-      const checkQueueAfterPayment = async () => {
-        if (!order?.id) {
-          return;
-        }
-
-        const isTestOrder = order.id.startsWith('test-order-');
+      const verifyPayment = async () => {
+        if (!order.id) return;
         
-        if (isTestOrder) {
-          logger.debug(`[${paymentMethod}] Test order detected, but still verifying via API`);
-        }
-
         try {
           const orderDetails = await getOrderById(order.id);
-          
-          if (orderDetails.status !== EOrderStatus.PAYED) {
-            logger.debug(`[${paymentMethod}] Order status from API is ${orderDetails.status}, not PAYED yet. Waiting for payment confirmation.`);
-            setIsPaymentProcessing(true);
-            setIsLoading(false);
-            return;
-          }
-          
-          setIsPaymentProcessing(false);
-          
-          logger.info(`[${paymentMethod}] Payment confirmed via API - status: PAYED`);
+          const amountSum = orderDetails.amount_sum ? Number(orderDetails.amount_sum) : 0;
+          const expectedAmount = selectedProgram ? Number(selectedProgram.price) : 0;
           
           if (orderDetails.queue_position !== undefined) {
             const newQueuePosition = orderDetails.queue_position;
@@ -411,103 +393,67 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
                 await cancelOrder(order.id);
                 logger.info(`[${paymentMethod}] Cancelled order due to full queue`);
                 orderCreatedRef.current = false;
-                setGlobalQueuePosition(null);
                 return;
               } catch (cancelErr) {
                 logger.error(`[${paymentMethod}] Error cancelling order`, cancelErr);
               }
-          } else {
-            setQueueFull(false);
-            clearAllTimers();
-            setPaymentError(null);
-            setIsPaymentProcessing(false);
-            setPaymentSuccess(true);
+            } else {
+              setQueueFull(false);
+            }
           }
-        } else {
-          setGlobalQueuePosition(null);
-          clearAllTimers();
-          setPaymentError(null);
-          setIsPaymentProcessing(false);
-          setPaymentSuccess(true);
-        }
           
           if (orderDetails.queue_number !== undefined) {
             setQueueNumber(orderDetails.queue_number);
             setGlobalQueueNumber(orderDetails.queue_number);
           }
+          
+          if (orderDetails.status === EOrderStatus.PAYED && amountSum >= expectedAmount) {
+            clearAllTimers();
+            setPaymentError(null);
+            setPaymentSuccess(true);
+            setIsPaymentProcessing(false);
+            setIsLoading(false);
+          } else {
+            setIsPaymentProcessing(true);
+            setIsLoading(false);
+          }
         } catch (err) {
-          logger.error(`[${paymentMethod}] Error checking queue after payment`, err);
-          setPaymentError(t('Ошибка при проверке статуса оплаты. Пожалуйста, попробуйте снова.'));
+          logger.error(`[${paymentMethod}] Error verifying payment`, err);
+          setIsPaymentProcessing(false);
           setIsLoading(false);
         }
       };
       
-      checkQueueAfterPayment();
+      verifyPayment();
     }
-  }, [order?.status, order?.id, paymentSuccess, paymentMethod, setIsLoading, setGlobalQueuePosition, setGlobalQueueNumber, clearAllTimers, t]);
+  }, [order?.status, order?.id, paymentSuccess, orderCreatedRef.current, paymentMethod, selectedProgram, setOrder, setGlobalQueuePosition, setGlobalQueueNumber, clearAllTimers, setIsLoading, t]);
 
   useEffect(() => {
-    if (paymentSuccess && !countdownStartedRef.current) {
-      logger.debug(`[${paymentMethod}] Payment successful, starting countdown`);
+    if (paymentSuccess && !countdownTimeoutRef.current) {
       startCountdown();
     }
-  }, [paymentSuccess, paymentMethod, startCountdown]);
-
-  const isWashingInProgress = queuePosition !== null && queuePosition >= 1;
+  }, [paymentSuccess, startCountdown]);
 
   const simulateCardTap = useCallback(() => {
-    logger.debug('[TEST] Simulating card tap success');
+    logger.debug('[TEST] Simulating card tap - updating order status');
     
     if (!order || !order.id) {
-      logger.warn('[TEST] No order found, creating test order');
-      if (!selectedProgram) {
-        logger.error('[TEST] Cannot create test order: no selected program');
-        setPaymentError('No program selected. Please select a program first.');
-        return;
-      }
-      
-      const testOrderId = 'test-order-' + Date.now();
-      const testOrder = {
-        id: testOrderId,
-        programId: selectedProgram.id,
-        status: EOrderStatus.PAYED,
-        paymentMethod: paymentMethod,
-        createdAt: new Date().toISOString(),
-        transactionId: 'test-transaction-' + Date.now(),
-      };
-      
-      orderCreatedRef.current = true;
-      
-      setPaymentError(null);
-      setQueueFull(false);
-      setIsLoading(false);
-      clearAllTimers();
-      
-      setOrder(testOrder);
-      
-      logger.debug('[TEST] Test order created, useEffect should trigger payment success');
+      logger.warn('[TEST] No order found, cannot simulate card tap');
+      setPaymentError('No order found. Order should be created on mount.');
       return;
     }
     
-    logger.debug('[TEST] Updating existing order to PAYED status', order.id);
-    
-    if (!orderCreatedRef.current) {
-      orderCreatedRef.current = true;
-      logger.debug('[TEST] Set orderCreatedRef to true');
-    }
-    
+    logger.info('[TEST] Simulating card tap - updating order to PAYED status');
     setPaymentError(null);
     setQueueFull(false);
-    setIsLoading(false);
-    clearAllTimers();
     
     setOrder({
       ...order,
       status: EOrderStatus.PAYED,
     });
     
-    logger.debug('[TEST] Order status updated to PAYED, useEffect should trigger payment success');
-  }, [order, selectedProgram, paymentMethod, setOrder, clearAllTimers, setIsLoading]);
+    logger.info('[TEST] Order status updated to PAYED, payment success should trigger');
+  }, [order, setOrder]);
 
   return {
     handleBack,
@@ -516,13 +462,10 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     paymentSuccess,
     isPaymentProcessing,
     handleStartRobot,
-    handlePayInAdvance,
     handleRetry,
     timeUntilRobotStart,
     queuePosition,
     queueNumber,
-    isWashingInProgress,
-    qrCode,
     paymentError,
     ...(import.meta.env.DEV && { simulateCardTap }),
     queueFull

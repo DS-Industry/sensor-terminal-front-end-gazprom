@@ -1,15 +1,58 @@
-import { afterEach } from 'vitest';
+/**
+ * Vitest test setup file
+ * Configures testing environment and global mocks
+ */
+
+import { afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
+// Cleanup after each test
 afterEach(() => {
   cleanup();
 });
 
-import.meta.env.VITE_API_BASE_URL = 'http://localhost:8000';
-import.meta.env.VITE_API_BASE_WS_URL = 'ws://localhost:8000';
-import.meta.env.VITE_S3_URL = 'http://localhost:9000';
-import.meta.env.VITE_ATTACHMENT_BASE_URL = 'http://localhost:9000/attachments';
-import.meta.env.VITE_REFRESH_INTERVAL = '3600000';
-import.meta.env.DEV = true;
+// Mock window.matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
 
+// Mock IntersectionObserver
+global.IntersectionObserver = class IntersectionObserver {
+  constructor() {}
+  disconnect() {}
+  observe() {}
+  takeRecords() {
+    return [];
+  }
+  unobserve() {}
+} as any;
+
+// Suppress console errors in tests (optional)
+const originalError = console.error;
+beforeAll(() => {
+  console.error = (...args: any[]) => {
+    if (
+      typeof args[0] === 'string' &&
+      (args[0].includes('Warning: ReactDOM.render') ||
+       args[0].includes('Warning: validateDOMNesting'))
+    ) {
+      return;
+    }
+    originalError.call(console, ...args);
+  };
+});
+
+afterAll(() => {
+  console.error = originalError;
+});
