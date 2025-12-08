@@ -21,7 +21,7 @@ export default function SuccessPaymentPage() {
   const { setIsLoading, order, queuePosition, isLoading } = useStore();
   
   const [displayText, setDisplayText] = useState(t("Можете проезжать в бокс!"));
-  const [timeRemaining, setTimeRemaining] = useState(180); // 3 minutes in seconds
+  const [timeRemaining, setTimeRemaining] = useState(180);
   
   const state: SuccessState = (searchParams.get('state') as SuccessState) || 
     (queuePosition !== null && queuePosition >= 1 ? 'advance' : 'initial');
@@ -49,7 +49,7 @@ export default function SuccessPaymentPage() {
   useEffect(() => {
       if (state === 'advance' && (queuePosition === null || queuePosition === 0)) {
         logger.info('[SuccessPaymentPage] Queue cleared, transitioning to "Проезжайте в бокс" screen');
-      navigate('/success', { replace: true });
+        navigate('/success', { replace: true });
     }
   }, [queuePosition, state, navigate]);
 
@@ -207,15 +207,15 @@ export default function SuccessPaymentPage() {
 
       <div className="flex-1 flex flex-col items-start justify-center bg-[#0045FF] relative overflow-x-visible overflow-y-hidden">
         <div className="flex flex-col items-center gap-6 z-10 p-6">
-          <div className="bg-[#0038CC] rounded-3xl px-12 py-8">
+          <div className="bg-[#89BAFB4D] rounded-3xl px-12 py-8">
             <h1 className="text-white text-6xl font-bold flex items-center justify-center gap-3">
               {t(displayText)}
-              <span className="text-white text-5xl">→</span>
+              <span className="text-white text-5xl"></span>
             </h1>
           </div>
           
-          <div className="bg-[#0038CC] rounded-2xl px-8 py-4 flex items-center gap-3">
-            <div className="w-4 h-4 bg-green-500 rounded-full flex-shrink-0"></div>
+          <div className="bg-[#89BAFB4D] rounded-2xl px-8 py-4 flex items-center gap-3">
+            <div className="w-4 h-4 bg-[#15FF00] rounded-full flex-shrink-0"></div>
             <p className="text-white text-2xl font-semibold">
               {t("Оплата успешна!")}
             </p>
@@ -223,19 +223,20 @@ export default function SuccessPaymentPage() {
         </div>
 
         <div className="relative w-full h-[600px] flex items-end justify-end pr-0 overflow-x-visible overflow-y-hidden">
-          <div className="absolute -bottom-8 left-0 z-20 car-drive-animation">
+          <div className="absolute -bottom-35 left-0 z-20 car-drive-animation">
             <img
               src={CarImage}
               alt="Car"
-              className="w-auto h-[600px] md:h-[600px] object-contain"
+              className="w-auto h-[800px] md:h-[800px] object-contain"
             />
           </div>
 
-          <div className="relative z-999 h-full flex items-start justify-end">
+          <div className="relative z-99 w-full min-h-[900px] flex items-end justify-end pr-0 overflow-x-visible overflow-y-hidden">
+
             <img
               src={BoxImage}
               alt="Car wash box"
-              className="h-full max-h-[800px]"
+              className="h-full max-h-[900px]"
             />
           </div>
         </div>
