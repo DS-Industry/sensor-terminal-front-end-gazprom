@@ -23,6 +23,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   } = useStore();
 
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [timeUntilRobotStart, setTimeUntilRobotStart] = useState(0);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
   const [queueNumber, setQueueNumber] = useState<number | null>(null);
@@ -122,6 +123,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       }
       
       setPaymentError(errorMessage);
+      setIsPaymentProcessing(false);
       orderCreatedRef.current = false;
     }
   }, [selectedProgram, paymentMethod, queuePosition, setIsLoading, t]);
@@ -179,8 +181,8 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
           depositTimeoutRef.current = null;
         }
 
-        if (amountSum >= Number(selectedProgram?.price)) {
-          logger.info(`[${paymentMethod}] Full amount received`);
+        if (orderDetails.status === EOrderStatus.PAYED && amountSum >= Number(selectedProgram?.price)) {
+          logger.info(`[${paymentMethod}] Payment confirmed via API - status: PAYED, amount: ${amountSum}`);
           
           if (orderDetails.queue_position !== undefined && orderDetails.queue_position >= PAYMENT_CONSTANTS.MAX_QUEUE_POSITION) {
             logger.info(`[${paymentMethod}] Queue is full when receiving payment! queuePosition: ${orderDetails.queue_position}`);
@@ -198,12 +200,20 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
             }
           } else {
             clearAllTimers();
+            setPaymentError(null);
             setPaymentSuccess(true);
           }
+        } else if (amountSum >= Number(selectedProgram?.price) && orderDetails.status !== EOrderStatus.PAYED) {
+          logger.debug(`[${paymentMethod}] Amount sufficient (${amountSum}) but order status is ${orderDetails.status}, waiting for PAYED confirmation`);
+          setIsPaymentProcessing(true);
+          setIsLoading(false);
+        } else {
+          setIsPaymentProcessing(false);
         }
       }
     } catch (e) {
       logger.error(`[${paymentMethod}] Error checking payment status`, e);
+      setIsPaymentProcessing(false);
     }
   }, [order, paymentMethod, queuePosition, selectedProgram, setIsLoading, setGlobalQueuePosition, setGlobalQueueNumber, clearAllTimers, t]);
 
@@ -211,6 +221,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     clearAllTimers();
     setIsLoading(false);
     setPaymentSuccess(false);
+    setIsPaymentProcessing(false);
     setPaymentError(null);
     clearCountdown();
     orderCreatedRef.current = false;
@@ -229,26 +240,60 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
 
   const handleRetry = useCallback(() => {
     setPaymentError(null);
+    setIsPaymentProcessing(false);
     orderCreatedRef.current = false;
     createOrderAsync();
   }, [createOrderAsync]);
 
-  const handleStartRobot = useCallback(() => {
-    if (order?.id) {
-      logger.info(`[${paymentMethod}] Starting robot for order: ${order.id}`);
-      startRobot(order.id).catch((error) => {
-        logger.error(`[${paymentMethod}] Error starting robot`, error);
-      });
-      clearCountdown();
-      navigate('/success');
+  const handleStartRobot = useCallback(async () => {
+    if (!order?.id) {
+      logger.warn(`[${paymentMethod}] Cannot start robot: no order ID`);
+      return;
     }
-  }, [order, paymentMethod, clearCountdown, navigate]);
+
+    if (!paymentSuccess) {
+      logger.warn(`[${paymentMethod}] Cannot start robot: payment not confirmed`);
+      setPaymentError(t('Оплата не подтверждена. Пожалуйста, дождитесь подтверждения.'));
+      return;
+    }
+
+    try {
+      logger.info(`[${paymentMethod}] Starting robot for order: ${order.id}`);
+      setIsLoading(true);
+      
+      await startRobot(order.id);
+      logger.info(`[${paymentMethod}] Robot start API call successful`);
+      
+      try {
+        const orderDetails = await getOrderById(order.id);
+        if (orderDetails.status === EOrderStatus.PROCESSING) {
+          logger.info(`[${paymentMethod}] Order status confirmed as PROCESSING, navigating to success page`);
+          clearCountdown();
+          setIsLoading(false);
+          navigate('/success');
+        } else {
+          logger.warn(`[${paymentMethod}] Order status is ${orderDetails.status}, not PROCESSING. Waiting for status update...`);
+          setIsLoading(false);
+        }
+      } catch (verifyError) {
+        logger.error(`[${paymentMethod}] Error verifying order status after robot start`, verifyError);
+        clearCountdown();
+        setIsLoading(false);
+        navigate('/success');
+      }
+    } catch (error) {
+      logger.error(`[${paymentMethod}] Error starting robot`, error);
+      setPaymentError(t('Ошибка запуска робота. Пожалуйста, попробуйте снова.'));
+      setIsLoading(false);
+    }
+  }, [order, paymentMethod, paymentSuccess, clearCountdown, navigate, setIsLoading, t]);
 
   const handlePayInAdvance = useCallback(() => {
     logger.info(`[${paymentMethod}] Pay in advance - starting new process`);
     clearAllTimers();
     clearOrder();
     setPaymentSuccess(false);
+    setIsPaymentProcessing(false);
     setQueuePosition(null);
     setQueueNumber(null);
     setInsertedAmount(0);
@@ -334,18 +379,22 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
         const isTestOrder = order.id.startsWith('test-order-');
         
         if (isTestOrder) {
-          logger.debug(`[${paymentMethod}] Test order detected, skipping API call`);
-          setQueueFull(false);
-          setQueuePosition(0);
-          setGlobalQueuePosition(0);
-          clearAllTimers();
-          setPaymentSuccess(true);
-          setIsLoading(false);
-          return;
+          logger.debug(`[${paymentMethod}] Test order detected, but still verifying via API`);
         }
 
         try {
           const orderDetails = await getOrderById(order.id);
+          
+          if (orderDetails.status !== EOrderStatus.PAYED) {
+            logger.debug(`[${paymentMethod}] Order status from API is ${orderDetails.status}, not PAYED yet. Waiting for payment confirmation.`);
+            setIsPaymentProcessing(true);
+            setIsLoading(false);
+            return;
+          }
+          
+          setIsPaymentProcessing(false);
+          
+          logger.info(`[${paymentMethod}] Payment confirmed via API - status: PAYED`);
           
           if (orderDetails.queue_position !== undefined) {
             const newQueuePosition = orderDetails.queue_position;
@@ -367,16 +416,20 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
               } catch (cancelErr) {
                 logger.error(`[${paymentMethod}] Error cancelling order`, cancelErr);
               }
-            } else {
-              setQueueFull(false);
-              clearAllTimers();
-              setPaymentSuccess(true);
-            }
           } else {
-            setGlobalQueuePosition(null);
+            setQueueFull(false);
             clearAllTimers();
+            setPaymentError(null);
+            setIsPaymentProcessing(false);
             setPaymentSuccess(true);
           }
+        } else {
+          setGlobalQueuePosition(null);
+          clearAllTimers();
+          setPaymentError(null);
+          setIsPaymentProcessing(false);
+          setPaymentSuccess(true);
+        }
           
           if (orderDetails.queue_number !== undefined) {
             setQueueNumber(orderDetails.queue_number);
@@ -384,8 +437,8 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
           }
         } catch (err) {
           logger.error(`[${paymentMethod}] Error checking queue after payment`, err);
-          clearAllTimers();
-          setPaymentSuccess(true);
+          setPaymentError(t('Ошибка при проверке статуса оплаты. Пожалуйста, попробуйте снова.'));
+          setIsLoading(false);
         }
       };
       
@@ -461,6 +514,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     selectedProgram,
     order,
     paymentSuccess,
+    isPaymentProcessing,
     handleStartRobot,
     handlePayInAdvance,
     handleRetry,

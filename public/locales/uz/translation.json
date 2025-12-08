@@ -108,5 +108,9 @@
   "Вы действительно хотите вернуться назад?": "Haqiqatan ham orqaga qaytmoqchimisiz?",
   "Внесённые средства будут утрачены!": "Kiritilgan mablag'lar yo'qoladi!",
   "Да, вернуться": "Ha, qaytish",
-  "Отменить": "Bekor qilish"
+  "Отменить": "Bekor qilish",
+  "Обработка оплаты...": "To'lov qayta ishlanmoqda...",
+  "Обработка...": "Qayta ishlanmoqda...",
+  "Пожалуйста, подождите подтверждения оплаты": "Iltimos, to'lov tasdiqlanishini kuting",
+  "Ошибка при проверке статуса оплаты. Пожалуйста, попробуйте снова.": "To'lov holatini tekshirishda xatolik. Iltimos, qayta urinib ko'ring."
 }

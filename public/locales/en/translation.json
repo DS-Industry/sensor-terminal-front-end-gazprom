@@ -131,5 +131,9 @@
   "Вы действительно хотите вернуться назад?": "Do you really want to go back?",
   "Внесённые средства будут утрачены!": "Deposited funds will be lost!",
   "Да, вернуться": "Yes, go back",
-  "Отменить": "Cancel"
+  "Отменить": "Cancel",
+  "Обработка оплаты...": "Processing payment...",
+  "Обработка...": "Processing...",
+  "Пожалуйста, подождите подтверждения оплаты": "Please wait for payment confirmation",
+  "Ошибка при проверке статуса оплаты. Пожалуйста, попробуйте снова.": "Error checking payment status. Please try again."
 }

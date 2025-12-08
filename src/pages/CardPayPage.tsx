@@ -5,6 +5,7 @@ import { FaApplePay, FaGooglePay } from "react-icons/fa6";
 import { RiMastercardLine, RiVisaLine } from "react-icons/ri";
 import { useTranslation } from "react-i18next";
 import { CreditCard } from "@gravity-ui/icons";
+import { Spin } from "@gravity-ui/uikit";
 import PaymentTitleSection from "../components/paymentTitleSection/PaymentTitleSection";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 import { EPaymentMethod } from "../components/state/order/orderSlice";
@@ -19,6 +20,7 @@ export default function CardPayPage() {
     selectedProgram, 
     handleBack, 
     paymentSuccess,
+    isPaymentProcessing,
     handleStartRobot,
     handleRetry,
     timeUntilRobotStart,
@@ -48,9 +50,21 @@ export default function CardPayPage() {
 
           <div className="flex-1 flex justify-end">
 
-            {paymentSuccess
+            {paymentSuccess && !paymentError && !queueFull
               ? <SuccessPayment />
-              : paymentError || queueFull ? (
+              : isPaymentProcessing ? (
+                <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+                  <div className="flex flex-col items-center">
+                    <Spin size="xl" />
+                    <p className="text-gray-800 text-3xl font-semibold mt-8 mb-4">
+                      {t("Обработка оплаты...")}
+                    </p>
+                    <p className="text-gray-600 text-xl font-medium">
+                      {t("Пожалуйста, подождите подтверждения оплаты")}
+                    </p>
+                  </div>
+                </div>
+              ) : paymentError || queueFull ? (
                 <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-red-50 to-red-100 px-8">
                   <div className="text-center max-w-2xl">
                     <div className="text-red-600 text-4xl font-bold mb-6">
@@ -141,7 +155,11 @@ export default function CardPayPage() {
 
                       <div className="text-white/80 text-sm mb-3 flex gap-2 items-center">
                         <CreditCard />
-                        {paymentSuccess ? t("Оплачено") : t("К оплате")}
+                        {paymentSuccess && !paymentError && !queueFull 
+                          ? t("Оплачено") 
+                          : isPaymentProcessing 
+                          ? t("Обработка...") 
+                          : t("К оплате")}
                       </div>
                     </div>
                     <div className="text-white font-bold text-5xl">
@@ -149,12 +167,13 @@ export default function CardPayPage() {
                     </div>
                   </div>
 
-                  {paymentSuccess
+                  {paymentSuccess && !paymentError && !queueFull
                     ? (
                       <div className="flex flex-col items-center">
                         <button
-                          className="w-full px-8 py-4 rounded-3xl text-blue-600 font-semibold text-medium transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg z-50 mb-2"
+                          className="w-full px-8 py-4 rounded-3xl text-blue-600 font-semibold text-medium transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg z-50 mb-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           onClick={handleStartRobot}
+                          disabled={!paymentSuccess || !!paymentError || queueFull}
                           style={{ backgroundColor: "white" }}
                           aria-label={t("Запустить")}
                         >
@@ -169,7 +188,16 @@ export default function CardPayPage() {
                         )}
                       </div>
                     )
-                    : (
+                    : isPaymentProcessing ? (
+                      <div className="inline-flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
+                        <div className="text-white">
+                          <Spin size="s" />
+                        </div>
+                        <div className="text-white/90 text-sm font-medium">
+                          {t("Обработка оплаты...")}
+                        </div>
+                      </div>
+                    ) : (
                       <div className="inline-flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
                         <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
                         <div className="text-white/90 text-sm font-medium">
