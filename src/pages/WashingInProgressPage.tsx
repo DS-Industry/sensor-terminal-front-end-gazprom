@@ -67,7 +67,8 @@ export default function WashingInProgressPage() {
   };
 
   // Show pay in advance button only if queue position or number is null
-  const shouldShowPayInAdvance = queuePosition === null || queueNumber === null;
+  // TODO: ...
+  const shouldShowPayInAdvance = true
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-100 bg-[#0045FF]">
