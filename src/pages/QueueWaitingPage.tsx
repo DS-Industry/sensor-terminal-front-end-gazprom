@@ -132,7 +132,7 @@ export default function QueueWaitingPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen w-screen bg-gray-100 bg-[#0045FF]">
+    <div className="flex flex-col min-h-screen w-screen bg-[#0045FF]">
       <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-62">
         <img 
           src={gazpromHeader} 
@@ -165,7 +165,7 @@ export default function QueueWaitingPage() {
           </div>
         </div>
 
-        <div className="relative w-full h-[400px] flex items-end justify-end pr-0 overflow-x-visible overflow-y-hidden">
+        <div className="relative w-full h-[400px] flex items-end justify-end pr-0 overflow-hidden">
           <div className="absolute -bottom-8 left-0 z-20 car-drive-animation-success">
             <img
               src={CarImage}
