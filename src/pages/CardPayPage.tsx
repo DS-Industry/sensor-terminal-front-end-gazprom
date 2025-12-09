@@ -12,6 +12,7 @@ import { EPaymentMethod } from "../components/state/order/orderSlice";
 import { usePaymentProcessing } from "../hooks/usePaymentProcessing";
 import SuccessPayment from "../components/successPayment/SuccessPayment";
 import gazpromHeader from "../assets/gazprom-step-2-header.png"
+import { useEffect, useState } from "react";
 
 export default function CardPayPage() {
   const { t } = useTranslation();
@@ -26,8 +27,28 @@ export default function CardPayPage() {
     timeUntilRobotStart,
     paymentError,
     simulateCardTap,
-    queueFull
+    queueFull,
+    bankCheck
   } = usePaymentProcessing(EPaymentMethod.CARD);
+
+  // Track if receipt is ready (with timeout similar to SuccessPayment)
+  const [isReceiptReady, setIsReceiptReady] = useState(false);
+
+  useEffect(() => {
+    // If receipt already exists, it's ready
+    if (bankCheck) {
+      setIsReceiptReady(true);
+    } else if (paymentSuccess) {
+      // If payment is successful but no receipt yet, wait up to 10 seconds
+      const timeout = setTimeout(() => {
+        setIsReceiptReady(true); // Allow starting even if receipt doesn't arrive
+      }, 10000);
+
+      return () => clearTimeout(timeout);
+    } else {
+      setIsReceiptReady(false);
+    }
+  }, [bankCheck, paymentSuccess]);
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-100">
@@ -170,10 +191,16 @@ export default function CardPayPage() {
                   {paymentSuccess && !paymentError && !queueFull
                     ? (
                       <div className="flex flex-col items-center">
+                        {!isReceiptReady && (
+                          <div className="text-white/80 text-sm mb-2 flex items-center gap-2">
+                            <Spin size="xs" />
+                            {t("Формирование чека...")}
+                          </div>
+                        )}
                         <button
                           className="w-full px-8 py-4 rounded-3xl text-blue-600 font-semibold text-medium transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg z-50 mb-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           onClick={handleStartRobot}
-                          disabled={!paymentSuccess || !!paymentError || queueFull}
+                          disabled={!paymentSuccess || !!paymentError || queueFull || !isReceiptReady}
                           style={{ backgroundColor: "white" }}
                           aria-label={t("Запустить")}
                         >

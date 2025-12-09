@@ -36,6 +36,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   const orderIdRef = useRef<string | undefined>(undefined);
   const checkPaymentStatusRef = useRef<() => Promise<void>>();
   const handleStartRobotRef = useRef<() => Promise<void>>();
+  const createOrderAbortControllerRef = useRef<AbortController | null>(null);
 
   const clearAllTimers = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -54,6 +55,10 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       clearTimeout(countdownTimeoutRef.current);
       countdownTimeoutRef.current = null;
     }
+    if (createOrderAbortControllerRef.current) {
+      createOrderAbortControllerRef.current.abort();
+      createOrderAbortControllerRef.current = null;
+    }
     isPollingRef.current = false;
     setTimeUntilRobotStart(0);
   }, []);
@@ -63,6 +68,15 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       logger.warn(`[${paymentMethod}] Cannot create order: missing program or already created`);
       return;
     }
+
+    // Abort any existing createOrder request
+    if (createOrderAbortControllerRef.current) {
+      createOrderAbortControllerRef.current.abort();
+    }
+
+    // Create new AbortController for this request
+    createOrderAbortControllerRef.current = new AbortController();
+    const abortSignal = createOrderAbortControllerRef.current.signal;
 
     orderCreatedRef.current = true;
     setPaymentError(null);
@@ -75,11 +89,18 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       await createOrder({
         program_id: selectedProgram.id,
         payment_type: paymentMethod,
-      });
+      }, abortSignal);
       
       logger.info(`[${paymentMethod}] Order creation API called successfully, waiting for order ID from WebSocket`);
       setIsLoading(false);
     } catch (err: any) {
+      // Don't show error if request was aborted (order completed)
+      if (err?.name === 'AbortError' || abortSignal.aborted) {
+        logger.info(`[${paymentMethod}] Order creation aborted (order likely completed)`);
+        setIsLoading(false);
+        return;
+      }
+
       logger.error(`[${paymentMethod}] Error creating order`, err);
       setIsLoading(false);
       orderCreatedRef.current = false;
@@ -117,6 +138,13 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
           paymentMethod: paymentMethod,
           createdAt: currentOrder.createdAt,
         });
+      }
+
+      // Stop polling if order is completed or processing
+      if (orderDetails.status === EOrderStatus.COMPLETED || orderDetails.status === EOrderStatus.PROCESSING) {
+        logger.info(`[${paymentMethod}] Order status is ${orderDetails.status}, stopping polling`);
+        clearAllTimers();
+        return;
       }
 
       if (orderDetails.queue_position !== undefined) {
@@ -374,6 +402,17 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   }, [order?.status, order?.id, orderCreatedRef.current, paymentMethod, startPolling]);
 
   useEffect(() => {
+    // Abort createOrder request if order is completed or processing
+    if (order?.status === EOrderStatus.COMPLETED || order?.status === EOrderStatus.PROCESSING) {
+      if (createOrderAbortControllerRef.current) {
+        logger.info(`[${paymentMethod}] Order status is ${order.status}, aborting createOrder request`);
+        createOrderAbortControllerRef.current.abort();
+        createOrderAbortControllerRef.current = null;
+      }
+    }
+  }, [order?.status, paymentMethod]);
+
+  useEffect(() => {
     if (order?.status === EOrderStatus.PAYED && !paymentSuccess && orderCreatedRef.current) {
       logger.info(`[${paymentMethod}] Order status changed to PAYED, setting payment success`);
       
@@ -462,6 +501,8 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     logger.info('[TEST] Order status updated to PAYED, payment success should trigger');
   }, [order, setOrder]);
 
+  const { bankCheck } = useStore();
+
   return {
     handleBack,
     selectedProgram,
@@ -474,6 +515,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     queuePosition,
     queueNumber,
     paymentError,
+    bankCheck,
     ...(import.meta.env.DEV && { simulateCardTap }),
     queueFull
   };

@@ -15,9 +15,12 @@ enum PAYMENT {
 
 export async function createOrder(
   body: ICreateOrderRequest,
+  signal?: AbortSignal
 ): Promise<ICreateOrderResponse> {  
   logger.debug('Creating order', body);
-  const response = await axiosInstance.post<ICreateOrderResponse>(PAYMENT.PAY, body);
+  const response = await axiosInstance.post<ICreateOrderResponse>(PAYMENT.PAY, body, {
+    signal
+  });
   return response.data;
 }
 
