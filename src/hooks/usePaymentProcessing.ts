@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useStore from '../components/state/store';
-import { cancelOrder, createOrder, getOrderById, startRobot } from '../api/services/payment';
+import { cancelOrder, createOrder, getOrderById } from '../api/services/payment';
 import { EOrderStatus, EPaymentMethod } from '../components/state/order/orderSlice';
 import { logger } from '../util/logger';
 import { PAYMENT_CONSTANTS } from '../constants/payment';
@@ -322,66 +322,43 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
 
   const handleStartRobot = useCallback(async () => {
     if (!order?.id) {
-      logger.warn(`[${paymentMethod}] Cannot start robot: no order ID`);
+      logger.warn(`[${paymentMethod}] Cannot navigate: no order ID`);
       return;
     }
 
     if (!paymentSuccess) {
-      logger.warn(`[${paymentMethod}] Cannot start robot: payment not confirmed`);
+      logger.warn(`[${paymentMethod}] Cannot navigate: payment not confirmed`);
       setPaymentError(t('Оплата не подтверждена. Пожалуйста, дождитесь подтверждения.'));
       return;
     }
 
     try {
-      logger.info(`[${paymentMethod}] Starting robot for order: ${order.id}`);
+      logger.info(`[${paymentMethod}] Payment confirmed, checking queue position for navigation`);
       setIsLoading(true);
       
-      await startRobot(order.id);
-      logger.info(`[${paymentMethod}] Robot start API call successful`);
+      const orderDetails = await getOrderById(order.id);
       
-      try {
-        const orderDetails = await getOrderById(order.id);
-        if (orderDetails.status === EOrderStatus.PROCESSING) {
-          logger.info(`[${paymentMethod}] Order status confirmed as PROCESSING`);
-          
-          // Check if user is in queue
-          const currentQueuePosition = orderDetails.queue_position ?? queuePosition;
-          const currentQueueNumber = orderDetails.queue_number ?? queueNumber;
-          
-          // If queue position or number is null, show success page first, then redirect to washing
-          // If user is already in queue, go directly to washing page
+      const currentQueuePosition = orderDetails.queue_position ?? queuePosition;
+      const currentQueueNumber = orderDetails.queue_number ?? queueNumber;
+      
+      logger.info(`[${paymentMethod}] Queue position: ${currentQueuePosition}, queue number: ${currentQueueNumber}`);
 
-          console.log({
-            currentQueuePosition,
-            currentQueueNumber,
-          })
-
-          if (currentQueuePosition === null || currentQueueNumber === null) {
-            logger.info(`[${paymentMethod}] Queue position/number is null, navigating to success page first`);
-            clearAllTimers();
-            setIsLoading(false);
-            navigate('/success');
-          } else {
-            logger.info(`[${paymentMethod}] User is in queue (position: ${currentQueuePosition}, number: ${currentQueueNumber}), navigating directly to washing page`);
-            clearAllTimers();
-            setIsLoading(false);
-            navigate('/washing');
-          }
-        } else {
-          logger.warn(`[${paymentMethod}] Order status is ${orderDetails.status}, not PROCESSING`);
-          setIsLoading(false);
-        }
-      } catch (verifyError) {
-        logger.error(`[${paymentMethod}] Error verifying order status after robot start`, verifyError);
+      if (currentQueuePosition !== null && currentQueuePosition !== 0) {
+        logger.info(`[${paymentMethod}] User is in queue (position: ${currentQueuePosition}), navigating to queue waiting page`);
         clearAllTimers();
         setIsLoading(false);
-        // Default to success page if verification fails
+        navigate('/queue-waiting');
+      } else {
+        logger.info(`[${paymentMethod}] Queue position is null or 0, navigating to success page (robot will start there)`);
+        clearAllTimers();
+        setIsLoading(false);
         navigate('/success');
       }
     } catch (error) {
-      logger.error(`[${paymentMethod}] Error starting robot`, error);
-      setPaymentError(t('Ошибка запуска робота. Пожалуйста, попробуйте снова.'));
+      logger.error(`[${paymentMethod}] Error checking order status`, error);
+      clearAllTimers();
       setIsLoading(false);
+      navigate('/success');
     }
   }, [order, paymentMethod, paymentSuccess, queuePosition, queueNumber, clearAllTimers, navigate, setIsLoading, t]);
 

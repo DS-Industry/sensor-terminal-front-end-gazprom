@@ -46,31 +46,31 @@ export function GlobalWebSocketManager() {
 
     const handleStatusUpdate = (data: WebSocketMessage) => {
       if (data.type === 'status_update' && data.order_id) {
-        logger.debug(`Updating order status globally: ${data.status}`);
+        const currentOrder = useStore.getState().order;
+        
+        if (!currentOrder?.id || currentOrder.id === data.order_id) {
+          logger.debug(`Updating order status globally: ${data.status} for order ${data.order_id}`);
+          console.log(`Updating order status globally: ${data.status}`)
 
-        const orderStatus = data.status as EOrderStatus | undefined;
+          const orderStatus = data.status as EOrderStatus | undefined;
 
-        setOrder({
-          ...order,
-          id: data.order_id,
-          status: orderStatus,
-          transactionId: data.transaction_id,
-        });
+          setOrder({
+            ...order,
+            id: data.order_id,
+            status: orderStatus,
+            transactionId: data.transaction_id,
+          });
 
+          if (orderStatus === EOrderStatus.COMPLETED) {
+            setNavigationTarget('/');
+          }
+        } else {
+          logger.debug(`Ignoring status update for different order: ${data.order_id} (current order: ${currentOrder.id})`);
+        }
       }
 
       if (data.status === EOrderStatus.PAYED && data.order_id) {
         setCheck(data.order_id);
-      }
-
-      if (data.status === EOrderStatus.PROCESSING) {
-        const currentIsLoading = useStore.getState().isLoading;
-        if (!currentIsLoading) {
-          logger.info('Order is processing, navigating to washing page');
-          setNavigationTarget('/washing');
-        } else {
-          logger.warn('Order status is PROCESSING but payment is still loading, delaying navigation');
-        }
       }
     };
 

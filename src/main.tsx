@@ -18,6 +18,7 @@ import CardPayPage from "./pages/CardPayPage.tsx";
 import SuccessPaymentPage from "./pages/SuccessPaymentPage.tsx";
 import ErrorPaymentPage from "./pages/ErrorPaymentPage.tsx";
 import WashingInProgressPage from "./pages/WashingInProgressPage.tsx";
+import QueueWaitingPage from "./pages/QueueWaitingPage.tsx";
 import { NavigationHandler } from "./components/navigationHandler/NavigationHandler.tsx";
 import { GlobalWebSocketManager } from "./components/globalWebSocketManager/GlobalWebSocketManager.tsx";
 import { ModalProvider } from "./components/modalProvider/ModalProvider.tsx";
@@ -67,6 +68,10 @@ const router = createBrowserRouter([
       {
         path: "/washing",
         element: <WashingInProgressPage />,
+      },
+      {
+        path: "/queue-waiting",
+        element: <QueueWaitingPage />,
       },
     ],
   },

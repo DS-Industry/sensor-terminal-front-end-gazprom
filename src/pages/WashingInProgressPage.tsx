@@ -107,10 +107,10 @@ export default function WashingInProgressPage() {
           {import.meta.env.DEV && (
             <div className="mt-8 flex gap-4">
               <button
-                onClick={() => navigate('/success?state=advance')}
+                onClick={() => navigate('/success')}
                 className="px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm opacity-70 hover:opacity-100"
               >
-                🧪 Test Advance Payment
+                🧪 Test Success Page
               </button>
             </div>
           )}
