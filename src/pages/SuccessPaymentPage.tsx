@@ -38,8 +38,13 @@ export default function SuccessPaymentPage() {
     }
     if (order?.status === EOrderStatus.PROCESSING) {
       if (!isLoading) {
-        logger.info('[SuccessPaymentPage] Order is processing, navigating to washing page');
-        navigate('/washing', { replace: true });
+        logger.info('[SuccessPaymentPage] Order is processing, will navigate to washing page after 20 seconds');
+        const navigationTimer = setTimeout(() => {
+          logger.info('[SuccessPaymentPage] Navigating to washing page after delay');
+          navigate('/washing', { replace: true });
+        }, 15000); 
+
+        return () => clearTimeout(navigationTimer);
       } else {
         logger.warn('[SuccessPaymentPage] Order status is PROCESSING but payment is still loading, delaying navigation');
       }
@@ -66,7 +71,7 @@ export default function SuccessPaymentPage() {
       const navigationTimer = setTimeout(() => {
         logger.info('[SuccessPaymentPage] Redirecting to washing page after success display');
         navigate('/washing', { replace: true });
-      }, 12000);
+      }, 15000);
 
       const safetyTimer = setTimeout(() => {
         if (order?.status === EOrderStatus.PROCESSING && !isLoading) {

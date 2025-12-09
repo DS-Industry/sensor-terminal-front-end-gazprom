@@ -350,6 +350,12 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
           
           // If queue position or number is null, show success page first, then redirect to washing
           // If user is already in queue, go directly to washing page
+
+          console.log({
+            currentQueuePosition,
+            currentQueueNumber,
+          })
+
           if (currentQueuePosition === null || currentQueueNumber === null) {
             logger.info(`[${paymentMethod}] Queue position/number is null, navigating to success page first`);
             clearAllTimers();
