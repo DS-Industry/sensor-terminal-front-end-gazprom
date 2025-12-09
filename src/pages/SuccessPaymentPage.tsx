@@ -62,13 +62,10 @@ export default function SuccessPaymentPage() {
         setDisplayText(t("Идёт мойка..."));
       }, 10000);
 
+      // Redirect to washing page after showing success
       const navigationTimer = setTimeout(() => {
-        if (order?.status === EOrderStatus.PROCESSING && !isLoading) {
-          logger.info('[SuccessPaymentPage] Order is PROCESSING, navigating to washing page');
-          navigate('/washing', { replace: true });
-        } else {
-          logger.debug('[SuccessPaymentPage] Order not yet PROCESSING, waiting for status update');
-        }
+        logger.info('[SuccessPaymentPage] Redirecting to washing page after success display');
+        navigate('/washing', { replace: true });
       }, 12000);
 
       const safetyTimer = setTimeout(() => {
@@ -76,7 +73,8 @@ export default function SuccessPaymentPage() {
           logger.warn('[SuccessPaymentPage] Safety timeout reached, order is PROCESSING, navigating to washing page');
           navigate('/washing', { replace: true });
         } else if (!isLoading) {
-          logger.error('[SuccessPaymentPage] Safety timeout reached but order is not PROCESSING - possible API issue');
+          logger.warn('[SuccessPaymentPage] Safety timeout reached, navigating to washing page anyway');
+          navigate('/washing', { replace: true });
         } else {
           logger.error('[SuccessPaymentPage] Safety timeout reached but payment is still loading - possible API hang');
         }

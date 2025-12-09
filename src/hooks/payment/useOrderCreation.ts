@@ -45,7 +45,7 @@ export function useOrderCreation({
 
       if (
         currentQueuePosition !== null &&
-        currentQueuePosition >= PAYMENT_CONSTANTS.MAX_QUEUE_POSITION
+        currentQueuePosition > PAYMENT_CONSTANTS.MAX_QUEUE_POSITION
       ) {
         logger.info(`[${paymentMethod}] Queue is full, queuePosition: ${currentQueuePosition}`);
         onError(t('Очередь заполнена. Пожалуйста, подождите.'));

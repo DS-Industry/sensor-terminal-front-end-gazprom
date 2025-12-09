@@ -1,22 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import useStore from "../components/state/store";
 import { Clock } from "@gravity-ui/icons";
 import { Icon } from "@gravity-ui/uikit";
 import CarImage from "../assets/car.png";
+import { logger } from "../util/logger";
 
 import gazpromHeader from "../assets/gazprom-step-2-header.png";
 
 export default function WashingInProgressPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { setIsLoading } = useStore();
+  const { setIsLoading, queuePosition, queueNumber } = useStore();
   
   const [timeRemaining, setTimeRemaining] = useState(180);
+  const countdownHandledRef = useRef(false);
 
   useEffect(() => {
     setIsLoading(false);
+    countdownHandledRef.current = false;
 
     const interval = setInterval(() => {
       setTimeRemaining((prev) => {
@@ -31,6 +34,25 @@ export default function WashingInProgressPage() {
     return () => clearInterval(interval);
   }, [setIsLoading]);
 
+  // When countdown finishes, check if someone is in queue
+  useEffect(() => {
+    if (timeRemaining === 0 && !countdownHandledRef.current) {
+      countdownHandledRef.current = true;
+      
+      // If someone is in queue (queuePosition >= 1), show success page then redirect to washing
+      if (queuePosition !== null && queuePosition >= 1) {
+        logger.info('[WashingInProgressPage] Waiting finished, someone is in queue, navigating to success page');
+        navigate('/success', { replace: true });
+        
+        // Then redirect to washing page after showing success
+        setTimeout(() => {
+          logger.info('[WashingInProgressPage] Redirecting back to washing page after success');
+          navigate('/washing', { replace: true });
+        }, 12000);
+      }
+    }
+  }, [timeRemaining, queuePosition, navigate]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     return `${mins} ${t("мин.")}`;
@@ -43,6 +65,9 @@ export default function WashingInProgressPage() {
     setInsertedAmount(0);
     navigate("/");
   };
+
+  // Show pay in advance button only if queue position or number is null
+  const shouldShowPayInAdvance = queuePosition === null || queueNumber === null;
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-100 bg-[#0045FF]">
@@ -62,18 +87,22 @@ export default function WashingInProgressPage() {
                 </h1>
             </div>
 
-          <p className="text-white text-2xl mb-8 max-w-2xl">
-            {t("Вы можете оплатить мойку заранее, пока моется другой автомобиль")}
-          </p>
+          {shouldShowPayInAdvance && (
+            <>
+              <p className="text-white text-2xl mb-8 max-w-2xl">
+                {t("Вы можете оплатить мойку заранее, пока моется другой автомобиль")}
+              </p>
 
-          <button
-            onClick={handlePayInAdvance}
-            className="px-16 py-4 text-[#0B68E1] bg-white font-semibold text-2xl transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg mb-8"
-            style={{borderRadius: "30px"}}
-            aria-label={t("Оплатить заранее")}
-          >
-            {t("Оплатить заранее")}
-          </button>
+              <button
+                onClick={handlePayInAdvance}
+                className="px-16 py-4 text-[#0B68E1] bg-white font-semibold text-2xl transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg mb-8"
+                style={{borderRadius: "30px"}}
+                aria-label={t("Оплатить заранее")}
+              >
+                {t("Оплатить заранее")}
+              </button>
+            </>
+          )}
 
           {import.meta.env.DEV && (
             <div className="mt-8 flex gap-4">

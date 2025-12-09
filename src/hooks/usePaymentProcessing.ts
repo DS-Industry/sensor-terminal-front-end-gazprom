@@ -152,7 +152,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
         setQueuePosition(newQueuePosition);
         setGlobalQueuePosition(newQueuePosition);
         
-        if (newQueuePosition >= PAYMENT_CONSTANTS.MAX_QUEUE_POSITION) {
+        if (newQueuePosition > PAYMENT_CONSTANTS.MAX_QUEUE_POSITION) {
           logger.info(`[${paymentMethod}] Queue is full, queuePosition: ${newQueuePosition}`);
           setQueueFull(true);
           setPaymentError(t('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.'));
@@ -342,10 +342,25 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       try {
         const orderDetails = await getOrderById(order.id);
         if (orderDetails.status === EOrderStatus.PROCESSING) {
-          logger.info(`[${paymentMethod}] Order status confirmed as PROCESSING, navigating to success page`);
-          clearAllTimers();
-          setIsLoading(false);
-          navigate('/success');
+          logger.info(`[${paymentMethod}] Order status confirmed as PROCESSING`);
+          
+          // Check if user is in queue
+          const currentQueuePosition = orderDetails.queue_position ?? queuePosition;
+          const currentQueueNumber = orderDetails.queue_number ?? queueNumber;
+          
+          // If queue position or number is null, show success page first, then redirect to washing
+          // If user is already in queue, go directly to washing page
+          if (currentQueuePosition === null || currentQueueNumber === null) {
+            logger.info(`[${paymentMethod}] Queue position/number is null, navigating to success page first`);
+            clearAllTimers();
+            setIsLoading(false);
+            navigate('/success');
+          } else {
+            logger.info(`[${paymentMethod}] User is in queue (position: ${currentQueuePosition}, number: ${currentQueueNumber}), navigating directly to washing page`);
+            clearAllTimers();
+            setIsLoading(false);
+            navigate('/washing');
+          }
         } else {
           logger.warn(`[${paymentMethod}] Order status is ${orderDetails.status}, not PROCESSING`);
           setIsLoading(false);
@@ -354,6 +369,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
         logger.error(`[${paymentMethod}] Error verifying order status after robot start`, verifyError);
         clearAllTimers();
         setIsLoading(false);
+        // Default to success page if verification fails
         navigate('/success');
       }
     } catch (error) {
@@ -361,7 +377,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       setPaymentError(t('Ошибка запуска робота. Пожалуйста, попробуйте снова.'));
       setIsLoading(false);
     }
-  }, [order, paymentMethod, paymentSuccess, clearAllTimers, navigate, setIsLoading, t]);
+  }, [order, paymentMethod, paymentSuccess, queuePosition, queueNumber, clearAllTimers, navigate, setIsLoading, t]);
 
   useEffect(() => {
     handleStartRobotRef.current = handleStartRobot;
@@ -429,7 +445,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
             setQueuePosition(newQueuePosition);
             setGlobalQueuePosition(newQueuePosition);
             
-            if (newQueuePosition >= PAYMENT_CONSTANTS.MAX_QUEUE_POSITION) {
+            if (newQueuePosition > PAYMENT_CONSTANTS.MAX_QUEUE_POSITION) {
               logger.info(`[${paymentMethod}] Queue is full after payment! queuePosition: ${newQueuePosition}`);
               setQueueFull(true);
               setPaymentError(t('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.'));
