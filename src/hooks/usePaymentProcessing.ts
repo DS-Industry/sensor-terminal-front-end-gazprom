@@ -36,6 +36,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   const orderIdRef = useRef<string | undefined>(undefined);
   const checkPaymentStatusRef = useRef<() => Promise<void>>();
   const handleStartRobotRef = useRef<() => Promise<void>>();
+  const startCountdownRef = useRef<() => void>();
   const createOrderAbortControllerRef = useRef<AbortController | null>(null);
 
   const clearAllTimers = useCallback(() => {
@@ -187,6 +188,11 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
         setPaymentError(null);
         setPaymentSuccess(true);
         setIsPaymentProcessing(false);
+        // Start countdown immediately after payment success
+        if (!countdownTimeoutRef.current && startCountdownRef.current) {
+          logger.info(`[${paymentMethod}] Starting countdown immediately after payment confirmation`);
+          startCountdownRef.current();
+        }
         return;
       }
 
@@ -367,6 +373,10 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   }, [handleStartRobot]);
 
   useEffect(() => {
+    startCountdownRef.current = startCountdown;
+  }, [startCountdown]);
+
+  useEffect(() => {
     logger.debug(`[${paymentMethod}] Component mounted, creating order`);
     createOrderAsync();
     
@@ -458,6 +468,11 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
             setPaymentSuccess(true);
             setIsPaymentProcessing(false);
             setIsLoading(false);
+            // Start countdown immediately after payment success
+            if (!countdownTimeoutRef.current && startCountdownRef.current) {
+              logger.info(`[${paymentMethod}] Starting countdown immediately after payment verification`);
+              startCountdownRef.current();
+            }
           } else {
             setIsPaymentProcessing(true);
             setIsLoading(false);
@@ -474,10 +489,20 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   }, [order?.status, order?.id, paymentSuccess, orderCreatedRef.current, paymentMethod, selectedProgram, setOrder, setGlobalQueuePosition, setGlobalQueueNumber, clearAllTimers, setIsLoading, t]);
 
   useEffect(() => {
-    if (paymentSuccess && !countdownTimeoutRef.current) {
-      startCountdown();
+    if (paymentSuccess) {
+      // Small delay to ensure state updates are processed
+      const timeoutId = setTimeout(() => {
+        if (!countdownTimeoutRef.current && startCountdownRef.current) {
+          logger.info(`[${paymentMethod}] Payment success detected in useEffect, starting auto-launch countdown`);
+          startCountdownRef.current();
+        } else {
+          logger.debug(`[${paymentMethod}] Countdown already started or ref not available, skipping`);
+        }
+      }, 0);
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [paymentSuccess, startCountdown]);
+  }, [paymentSuccess, paymentMethod]);
 
   const simulateCardTap = useCallback(() => {
     logger.debug('[TEST] Simulating card tap - updating order status');
