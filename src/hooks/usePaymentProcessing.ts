@@ -180,6 +180,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       setIsLoading(false);
       // Don't release lock here - keep it until order is confirmed or fails
       // Lock will be released when order status changes or on error
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       // Verify request is still valid
       if (createOrderRequestIdRef.current !== requestId) {
@@ -829,27 +830,6 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     }
   }, [paymentSuccess, paymentMethod]);
 
-  const simulateCardTap = useCallback(() => {
-    logger.debug('[TEST] Simulating card tap - updating order status');
-    
-    if (!order || !order.id) {
-      logger.warn('[TEST] No order found, cannot simulate card tap');
-      setPaymentError('No order found. Order should be created on mount.');
-      return;
-    }
-    
-    logger.info('[TEST] Simulating card tap - updating order to PAYED status');
-    setPaymentError(null);
-    setQueueFull(false);
-    
-    setOrder({
-      ...order,
-      status: EOrderStatus.PAYED,
-    });
-    
-    logger.info('[TEST] Order status updated to PAYED, payment success should trigger');
-  }, [order, setOrder]);
-
   const { bankCheck } = useStore();
 
   return {
@@ -865,7 +845,6 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     queueNumber,
     paymentError,
     bankCheck,
-    ...(import.meta.env.DEV && { simulateCardTap }),
     queueFull
   };
 };

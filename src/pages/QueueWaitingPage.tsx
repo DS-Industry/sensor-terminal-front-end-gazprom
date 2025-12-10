@@ -3,8 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import useStore from "../components/state/store";
 import { EOrderStatus } from "../components/state/order/orderSlice";
-import { Clock } from "@gravity-ui/icons";
-import { Icon } from "@gravity-ui/uikit";
 import CarImage from "../assets/car.webp";
 import { logger } from "../util/logger";
 import { globalWebSocketManager, type WebSocketMessage } from "../util/websocketManager";
@@ -16,7 +14,7 @@ export default function QueueWaitingPage() {
   const navigate = useNavigate();
   const { setIsLoading, order, queuePosition } = useStore();
   
-  const [timeRemaining, setTimeRemaining] = useState(180);
+  const [, setTimeRemaining] = useState(180);
 
   useEffect(() => {
     setIsLoading(false);
@@ -144,10 +142,6 @@ export default function QueueWaitingPage() {
     }
   }, [queuePosition, navigate]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    return `${mins} ${t("мин.")}`;
-  };
 
   return (
     <div className="flex flex-col h-[1024px] w-[1280px] bg-[#0045FF] overflow-hidden">

@@ -25,6 +25,7 @@ import { GlobalWebSocketManager } from "./components/globalWebSocketManager/Glob
 import { ModalProvider } from "./components/modalProvider/ModalProvider.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import { PaymentGuard } from "./components/guards/PaymentGuard.tsx";
+import { AppHealthMonitor } from "./components/appHealth/AppHealthMonitor.tsx";
 
 // eslint-disable-next-line react-refresh/only-export-components
 function Root() {
@@ -33,6 +34,7 @@ function Root() {
       <ModalProvider />
       <GlobalWebSocketManager />
       <NavigationHandler />
+      <AppHealthMonitor />
       <Outlet />
     </>
   );

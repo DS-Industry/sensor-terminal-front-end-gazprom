@@ -14,7 +14,6 @@ export default function ErrorPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { 
-    errorCode, 
     setIsLoading, 
     order, 
     clearOrder, 

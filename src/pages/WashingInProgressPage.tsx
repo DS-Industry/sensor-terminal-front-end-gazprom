@@ -2,8 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import useStore from "../components/state/store";
-import { Clock } from "@gravity-ui/icons";
-import { Icon } from "@gravity-ui/uikit";
 import CarImage from "../assets/car.webp";
 import { logger } from "../util/logger";
 import { globalWebSocketManager, type WebSocketMessage } from "../util/websocketManager";
@@ -101,10 +99,6 @@ export default function WashingInProgressPage() {
     };
   }, [timeRemaining, queuePosition, navigate]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    return `${mins} ${t("мин.")}`;
-  };
 
   const handlePayInAdvance = () => {
     const { clearOrder, setIsLoading, setInsertedAmount } = useStore.getState();
@@ -115,7 +109,6 @@ export default function WashingInProgressPage() {
   };
 
   // Show pay in advance button only if queue position or number is null
-  // TODO: ...
   const shouldShowPayInAdvance = true
 
   return (

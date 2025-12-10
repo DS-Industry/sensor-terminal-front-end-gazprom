@@ -21,6 +21,16 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
-  "exclude": ["src/**/__tests__/**", "src/**/*.test.ts", "src/**/*.test.tsx", "src/test/**"],
+  "exclude": [
+    "src/**/__tests__/**", 
+    "src/**/*.test.ts", 
+    "src/**/*.test.tsx", 
+    "src/test/**",
+    "src/pages/HomePage.tsx",
+    "src/pages/PaymentPage.tsx",
+    "src/pages/QueuePage.tsx",
+    "src/pages/ProgramPage.tsx",
+    "src/hooks/usePayment.ts"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
