@@ -174,13 +174,6 @@ export default function QueueWaitingPage() {
           <p className="text-white text-xl mb-8 max-w-2xl">
             {t("После окончания мойки наступит Ваша очередь, Вы сможете проехать в бокс!")}
           </p>
-
-          <div className="flex items-center gap-3 text-white text-xl mb-8">
-            <Icon data={Clock} size={24} className="text-white" />
-            <span>
-              {t("Осталось времени")}: {formatTime(timeRemaining)}
-            </span>
-          </div>
         </div>
 
         <div className="relative w-full h-[400px] flex items-end justify-end pr-0 overflow-hidden">

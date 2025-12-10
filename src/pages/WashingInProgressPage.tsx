@@ -154,13 +154,6 @@ export default function WashingInProgressPage() {
           )}
         </div>
 
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-3 text-white text-xl">
-          <Icon data={Clock} size={24} className="text-white" />
-          <span>
-            {t("Осталось времени")}: {formatTime(timeRemaining)}
-          </span>
-        </div>
-
         <div className="relative w-full h-[400px] flex items-end justify-end pr-0 overflow-hidden">
           <div className="absolute -bottom-8 left-0 z-20 car-drive-animation-success">
             <img
