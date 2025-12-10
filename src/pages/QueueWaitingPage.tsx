@@ -160,14 +160,14 @@ export default function QueueWaitingPage() {
       </div>
       <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>
         <div className="flex flex-col items-center justify-center max-w-4xl px-8 text-center z-10">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-4 h-4 bg-green-400 rounded-full"></div>
-            <p className="text-white text-3xl font-semibold">
+          <div className="flex items-center justify-center gap-3 mb-6 bg-[#89BAFB4D] rounded-2xl  text-center justify-center py-3 px-4">
+            <div className="w-4 h-4 bg-[#15FF00] rounded-full"></div>
+            <p className="text-white text-3xl font-semibold ">
               {t("Оплата успешна!")}
             </p>
           </div>
 
-          <h1 className="text-white text-5xl font-bold mb-6">
+          <h1 className="text-white text-5xl font-bold mb-6 p-3 bg-[#89BAFB4D] rounded-2xl w-[727px] text-center justify-center">
             {t("Ожидайте окончания мойки...")}
           </h1>
 
