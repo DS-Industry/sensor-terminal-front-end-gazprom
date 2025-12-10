@@ -217,7 +217,7 @@ export default function SuccessPaymentPage() {
           </div> : null}
         </div>
 
-        <div className="relative w-full h-[600px] flex items-end justify-end pr-0 overflow-x-visible overflow-y-hidden">
+        <div className="relative w-full h-[600px] flex items-end justify-end pr-0 overflow-hidden">
           <div className="absolute -bottom-45 left-0 z-20 car-drive-animation">
             <img
               src={CarImage}
@@ -226,12 +226,12 @@ export default function SuccessPaymentPage() {
             />
           </div>
 
-          <div className="relative z-99 w-full -bottom-30 min-h-[900px] flex items-end justify-end pr-0 overflow-x-visible overflow-y-hidden">
+          <div className="relative z-99 w-full -bottom-30 flex items-end justify-end pr-0 overflow-hidden">
 
             <img
               src={BoxImage}
               alt="Car wash box"
-              className="h-full max-h-[900px]"
+              className="h-full max-h-[900px] object-contain"
             />
           </div>
         </div>

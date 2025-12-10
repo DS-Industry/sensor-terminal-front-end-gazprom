@@ -119,7 +119,7 @@ export default function WashingInProgressPage() {
   const shouldShowPayInAdvance = true
 
   return (
-    <div className="flex flex-col h-[1024px] w-[1280px] bg-gray-100 bg-[#0045FF] overflow-hidden">
+    <div className="flex flex-col h-[1024px] w-[1280px] bg-[#0045FF] overflow-hidden">
         <div className="w-full flex-shrink-0 h-64">
             <img 
             src={gazpromHeader} 
@@ -161,7 +161,7 @@ export default function WashingInProgressPage() {
           </span>
         </div>
 
-        <div className="relative w-full h-[400px] flex items-end justify-end pr-0 overflow-x-visible overflow-y-hidden">
+        <div className="relative w-full h-[400px] flex items-end justify-end pr-0 overflow-hidden">
           <div className="absolute -bottom-8 left-0 z-20 car-drive-animation-success">
             <img
               src={CarImage}
