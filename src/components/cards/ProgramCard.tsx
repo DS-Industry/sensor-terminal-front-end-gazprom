@@ -39,7 +39,7 @@ export default function ProgramCard(program: IProgram) {
       <div 
         className="flex-shrink-0 h-96 p-4 relative flex flex-col overflow-hidden"
         style={{
-          background: 'linear-gradient(to right, #47BDF0, #D632EC)'
+          background: 'linear-gradient(to right, #0967E1, #D632EC)'
         }}
       >
         {/* Animated blurred shapes */}
@@ -69,7 +69,7 @@ export default function ProgramCard(program: IProgram) {
         />
         
         <div className="relative z-10">
-          <div className="shadow-[0_4px_4px_0_rgba(0,0,0,0.25)] inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 self-start bg-white/20 backdrop-blur-sm border border-white/10">
+          <div className="shadow-[0_4px_4px_0_rgba(0,0,0,0.25)] inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 self-start bg-[#5292FF]">
             <Clock className="w-4 h-4 text-white" />
             <span className="text-sm font-medium text-white">{program.duration} мин.</span>
           </div>

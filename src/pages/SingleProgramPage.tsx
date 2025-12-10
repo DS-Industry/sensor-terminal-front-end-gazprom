@@ -65,30 +65,62 @@ export default function SingleProgramPage() {
                       boxShadow: "0 4px 4px 0 rgba(0, 0, 0, 0.25)",
                     }}
                   >
-                    <div className=" bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 p-6 pb-8 relative min-h-[280px]">
+                    <div 
+                      className="p-6 pb-8 relative min-h-[280px] overflow-hidden"
+                      style={{
+                        background: 'linear-gradient(to right, #0967E1, #D632EC)'
+                      }}
+                    >
+                      {/* Animated blurred shapes */}
+                      <div 
+                        className="absolute rounded-full opacity-70 blur-3xl animated-blob-1"
+                        style={{
+                          background: '#D632EC',
+                          width: '320px',
+                          height: '320px',
+                          top: '5%',
+                          left: '50%',
+                          animation: 'blobMove1 6s ease-in-out infinite',
+                          willChange: 'transform',
+                        }}
+                      />
+                      <div 
+                        className="absolute rounded-full opacity-70 blur-3xl animated-blob-2"
+                        style={{
+                          background: '#47BDF0',
+                          width: '360px',
+                          height: '360px',
+                          bottom: '5%',
+                          left: '5%',
+                          animation: 'blobMove2 8s ease-in-out infinite',
+                          willChange: 'transform',
+                        }}
+                      />
                       
-                      <div className="flex">
-                        <div className="inline-flex items-center gap-2 bg-blue-400 rounded-full px-3 py-1.5 mb-5 shadow-sm">
-                          <Icon data={Clock} size={18} className="text-white" />
-                          <Text className="text-white font-semibold text-sm">
-                            {selectedProgram.duration} {t("мин.")}
-                          </Text>
-                        </div>
-                      </div>
-
-                      <h2 className="text-3xl font-bold mb-5 text-white leading-tight">
-                        {t(`${selectedProgram.name}`)}
-                      </h2>
-
-                      <div className="space-y-2.5 mt-4">
-                        {selectedProgram.functions && selectedProgram.functions.split(", ").map((service, index) => (
-                          <div key={index} className="flex items-center gap-2.5">
-                            <Check size={18} className="text-white flex-shrink-0 stroke-[3]" />
-                            <Text className="text-white font-medium text-sm leading-relaxed">
-                              {t(`${service}`)}
+                      <div className="relative z-10">
+                        <div className="flex">
+                        <div className="shadow-[0_4px_4px_0_rgba(0,0,0,0.25)] inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 self-start bg-[#5292FF]">
+                            <Icon data={Clock} size={18} className="text-white" />
+                            <Text className="text-white font-semibold text-sm">
+                              {selectedProgram.duration} {t("мин.")}
                             </Text>
                           </div>
-                        ))}
+                        </div>
+
+                        <h2 className="text-3xl font-bold mb-5 text-white leading-tight text-center">
+                          {t(`${selectedProgram.name}`)}
+                        </h2>
+
+                        <div className="space-y-2.5 mt-4">
+                          {selectedProgram.functions && selectedProgram.functions.split(", ").map((service, index) => (
+                            <div key={index} className="flex items-center gap-2.5">
+                              <Check size={18} className="text-white flex-shrink-0 stroke-[3]" />
+                              <Text className="text-white font-medium text-sm leading-relaxed">
+                                {t(`${service}`)}
+                              </Text>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
