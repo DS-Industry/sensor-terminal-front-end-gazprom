@@ -71,7 +71,6 @@ export default function SingleProgramPage() {
                         background: 'linear-gradient(to right, #0967E1, #D632EC)'
                       }}
                     >
-                      {/* Animated blurred shapes */}
                       <div 
                         className="absolute rounded-full opacity-70 blur-3xl animated-blob-1"
                         style={{

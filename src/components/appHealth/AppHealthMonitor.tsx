@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { logger } from '../../util/logger';
 import { getRefreshInterval } from '../../config/env';
-import { navigationLock } from '../../util/navigationLock';
 import useStore from '../state/store';
+import { navigateToMain } from '../../utils/navigation';
 import { EOrderStatus } from '../state/order/orderSlice';
 
 export function AppHealthMonitor() {
@@ -83,7 +83,7 @@ export function AppHealthMonitor() {
 
     if (location.pathname !== '/') {
       logger.info(`[AppHealth] Navigating to home page for soft reset`);
-      navigationLock.navigateWithLock(navigate, '/', 'AppHealthMonitor: periodic soft reset');
+      navigateToMain(navigate);
     } else {
       logger.debug(`[AppHealth] Already on home page, skipping navigation`);
     }

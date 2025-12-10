@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import useStore from "../components/state/store";
-import { EOrderStatus } from "../components/state/order/orderSlice";
 import CarImage from "../assets/car.webp";
+import { navigateToPaymentSuccess } from "../utils/navigation";
+import { useNavigate } from "react-router-dom";
 import { logger } from "../util/logger";
-import { globalWebSocketManager, type WebSocketMessage } from "../util/websocketManager";
-import { getOrderById } from "../api/services/payment";
 import gazpromHeader from "../assets/gazprom-step-2-header.webp";
+import { useQueueManagement } from "../hooks/payment/useQueueManagement";
 
 export default function QueueWaitingPage() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
-  const { setIsLoading, order, queuePosition } = useStore();
+  const { setIsLoading, queuePosition, order } = useStore();
+  
+  useQueueManagement({
+    orderId: order?.id,
+    navigate,
+  });
   
   const [, setTimeRemaining] = useState(180);
 
@@ -20,51 +22,6 @@ export default function QueueWaitingPage() {
     setIsLoading(false);
   }, [setIsLoading]);
 
-  useEffect(() => {
-    const handleStatusUpdate = async (data: WebSocketMessage) => {
-      if (data.type === 'status_update' && data.status === EOrderStatus.COMPLETED) {
-        logger.info('[QueueWaitingPage] Received COMPLETED status update', { orderId: data.order_id });
-        
-        if (order?.id && data.order_id !== order.id) {
-          try {
-            const userOrderDetails = await getOrderById(order.id);
-            
-            logger.debug('[QueueWaitingPage] User order details after another order completed', {
-              completedOrderId: data.order_id,
-              userOrderId: order.id,
-              queuePosition: userOrderDetails.queue_position,
-              status: userOrderDetails.status,
-              currentUserQueuePosition: queuePosition
-            });
-
-            const { setOrder: setGlobalOrder, setQueuePosition: setGlobalQueuePosition } = useStore.getState();
-            setGlobalOrder({
-              id: userOrderDetails.id.toString(),
-              status: userOrderDetails.status,
-              transactionId: userOrderDetails.transaction_id,
-              paymentMethod: userOrderDetails.payment_type,
-              createdAt: new Date().toISOString(),
-            });
-            
-            if (userOrderDetails.queue_position !== undefined) {
-              setGlobalQueuePosition(userOrderDetails.queue_position);
-            }
-
-            logger.info('[QueueWaitingPage] Another order completed, order state updated. Redirecting to success page');
-            navigate('/success', { replace: true });
-          } catch (error) {
-            logger.error('[QueueWaitingPage] Error checking user order details after completion', error);
-          }
-        }
-      }
-    };
-
-    const removeStatusListener = globalWebSocketManager.addListener('status_update', handleStatusUpdate);
-
-    return () => {
-      removeStatusListener();
-    };
-  }, [navigate, order?.id, queuePosition]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -81,64 +38,11 @@ export default function QueueWaitingPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!order?.id) return;
-
-    const orderId = order.id;
-    let isMounted = true;
-    
-    const checkQueueStatus = async () => {
-      if (!isMounted) return;
-      
-      try {
-        const orderDetails = await getOrderById(orderId);
-        
-        if (!isMounted) return;
-        
-        const { setOrder: setGlobalOrder, setQueuePosition: setGlobalQueuePosition } = useStore.getState();
-        setGlobalOrder({
-          id: orderDetails.id.toString(),
-          status: orderDetails.status,
-          transactionId: orderDetails.transaction_id,
-          paymentMethod: orderDetails.payment_type,
-          createdAt: new Date().toISOString(),
-        });
-        
-        if (orderDetails.queue_position !== undefined) {
-          setGlobalQueuePosition(orderDetails.queue_position);
-          
-          if (orderDetails.queue_position === 0 || orderDetails.queue_position === null) {
-            logger.info('[QueueWaitingPage] Queue position updated to 0 or null, order state updated. Redirecting to success page');
-            if (isMounted) {
-              navigate('/success', { replace: true });
-            }
-          }
-        }
-      } catch (error) {
-        if (isMounted) {
-          logger.error('[QueueWaitingPage] Error checking queue status', error);
-        }
-      }
-    };
-
-    checkQueueStatus();
-    
-    const interval = setInterval(() => {
-      if (isMounted) {
-        checkQueueStatus();
-      }
-    }, 2000);
-
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, [order?.id, navigate]);
 
   useEffect(() => {
     if (queuePosition === null || queuePosition === 0) {
       logger.info('[QueueWaitingPage] Queue position changed to 0 or null, redirecting to success page');
-      navigate('/success', { replace: true });
+      navigateToPaymentSuccess(navigate);
     }
   }, [queuePosition, navigate]);
 
@@ -157,16 +61,16 @@ export default function QueueWaitingPage() {
           <div className="flex items-center justify-center gap-3 mb-6 bg-[#89BAFB4D] rounded-2xl  text-center justify-center py-3 px-4">
             <div className="w-4 h-4 bg-[#15FF00] rounded-full"></div>
             <p className="text-white text-3xl font-semibold ">
-              {t("Оплата успешна!")}
+              Оплата успешна!
             </p>
           </div>
 
           <h1 className="text-white text-5xl font-bold mb-6 p-3 bg-[#89BAFB4D] rounded-2xl w-[727px] text-center justify-center">
-            {t("Ожидайте окончания мойки...")}
+            Ожидайте окончания мойки...
           </h1>
 
           <p className="text-white text-xl mb-8 max-w-2xl">
-            {t("После окончания мойки наступит Ваша очередь, Вы сможете проехать в бокс!")}
+            После окончания мойки наступит Ваша очередь, Вы сможете проехать в бокс!
           </p>
         </div>
 

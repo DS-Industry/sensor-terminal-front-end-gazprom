@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import useStore from "../components/state/store";
@@ -6,8 +6,7 @@ import CarImage from "../assets/car.webp";
 import { logger } from "../util/logger";
 import { globalWebSocketManager, type WebSocketMessage } from "../util/websocketManager";
 import { EOrderStatus } from "../components/state/order/orderSlice";
-import { navigationLock } from "../util/navigationLock";
-
+import { navigateToMain } from "../utils/navigation";
 import gazpromHeader from "../assets/gazprom-step-2-header.webp";
 
 export default function WashingInProgressPage() {
@@ -16,19 +15,14 @@ export default function WashingInProgressPage() {
   const { setIsLoading, queuePosition } = useStore();
   
   const [timeRemaining, setTimeRemaining] = useState(180);
-  const countdownHandledRef = useRef(false);
-  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const orderCompletedRef = useRef(false);
+  const { order } = useStore();
 
-  // Listen for COMPLETED status from WebSocket
   useEffect(() => {
     const handleStatusUpdate = (data: WebSocketMessage) => {
       if (data.type === 'status_update' && data.status === EOrderStatus.COMPLETED) {
         logger.info('[WashingInProgressPage] Received COMPLETED status update, navigating home', { orderId: data.order_id });
-        orderCompletedRef.current = true;
-        
-        // Navigate home immediately when order is completed
-        navigationLock.navigateWithLock(navigate, '/', 'WashingInProgressPage: order completed');
+        console.log("status update: ", data)
+        navigateToMain(navigate);
       }
     };
 
@@ -39,20 +33,15 @@ export default function WashingInProgressPage() {
     };
   }, [navigate]);
 
-  // Also listen to order status from store as fallback
   useEffect(() => {
-    const currentOrder = useStore.getState().order;
-    if (currentOrder?.status === EOrderStatus.COMPLETED && !orderCompletedRef.current) {
+    if (order?.status === EOrderStatus.COMPLETED) {
       logger.info('[WashingInProgressPage] Order status is COMPLETED in store, navigating home');
-      orderCompletedRef.current = true;
-      navigationLock.navigateWithLock(navigate, '/', 'WashingInProgressPage: order completed from store');
+      navigateToMain(navigate);
     }
-  }, [navigate]);
+  }, [order?.status, navigate]);
 
   useEffect(() => {
     setIsLoading(false);
-    countdownHandledRef.current = false;
-    orderCompletedRef.current = false;
 
     const interval = setInterval(() => {
       setTimeRemaining((prev) => {
@@ -67,48 +56,20 @@ export default function WashingInProgressPage() {
     return () => clearInterval(interval);
   }, [setIsLoading]);
 
-  // When countdown finishes, check if someone is in queue
-  useEffect(() => {
-    if (timeRemaining === 0 && !countdownHandledRef.current) {
-      countdownHandledRef.current = true;
-      
-      // If someone is in queue (queuePosition >= 1), show success page then redirect to washing
-      if (queuePosition !== null && queuePosition >= 1) {
-        logger.info('[WashingInProgressPage] Waiting finished, someone is in queue, navigating to success page');
-        navigate('/success', { replace: true });
-        
-        // Clear any existing timeout
-        if (navigationTimeoutRef.current) {
-          clearTimeout(navigationTimeoutRef.current);
-        }
-        
-        // Then redirect to washing page after showing success
-        navigationTimeoutRef.current = setTimeout(() => {
-          logger.info('[WashingInProgressPage] Redirecting back to washing page after success');
-          navigate('/washing', { replace: true });
-          navigationTimeoutRef.current = null;
-        }, 12000);
-      }
-    }
-    
-    return () => {
-      if (navigationTimeoutRef.current) {
-        clearTimeout(navigationTimeoutRef.current);
-        navigationTimeoutRef.current = null;
-      }
-    };
-  }, [timeRemaining, queuePosition, navigate]);
-
 
   const handlePayInAdvance = () => {
-    const { clearOrder, setIsLoading, setInsertedAmount } = useStore.getState();
+    const { clearOrder, setIsLoading, setInsertedAmount, resetPayment, setSelectedProgram, setBankCheck, setQueuePosition, setQueueNumber } = useStore.getState();
     clearOrder();
     setIsLoading(false);
     setInsertedAmount(0);
+    resetPayment();
+    setSelectedProgram(null);
+    setBankCheck(""); 
+    setQueuePosition(null); 
+    setQueueNumber(null); 
     navigate("/");
   };
 
-  // Show pay in advance button only if queue position or number is null
   const shouldShowPayInAdvance = true
 
   return (

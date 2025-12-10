@@ -44,15 +44,6 @@ class Logger {
         ? { message: error.message, stack: error.stack }
         : error;
       console.error(this.formatMessage('error', message), errorDetails, ...args);
-      
-      if (!this.isDevelopment && error instanceof Error) {
-        import('./errorTracking').then(({ errorTracker }) => {
-          errorTracker.captureException(error, {
-            message,
-            ...args,
-          }).catch(() => {});
-        });
-      }
     }
   }
 }

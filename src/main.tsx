@@ -5,11 +5,7 @@ import "./index.css";
 import "./styles/styles.css";
 import "./i18n/index.ts";
 import "./config/env";
-import { errorTracker } from "./util/errorTracking";
 
-if (!import.meta.env.DEV) {
-  errorTracker.initialize().catch(console.error);
-}
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import { ThemeProvider } from "@gravity-ui/uikit";
 import SingleProgramPage from "./pages/SingleProgramPage.tsx";
@@ -20,20 +16,19 @@ import ErrorPage from "./pages/ErrorPage.tsx";
 import ErrorPaymentPage from "./pages/ErrorPaymentPage.tsx";
 import WashingInProgressPage from "./pages/WashingInProgressPage.tsx";
 import QueueWaitingPage from "./pages/QueueWaitingPage.tsx";
-import { NavigationHandler } from "./components/navigationHandler/NavigationHandler.tsx";
-import { GlobalWebSocketManager } from "./components/globalWebSocketManager/GlobalWebSocketManager.tsx";
+import { WebSocketService } from "./services/websocketService.ts";
 import { ModalProvider } from "./components/modalProvider/ModalProvider.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import { PaymentGuard } from "./components/guards/PaymentGuard.tsx";
 import { AppHealthMonitor } from "./components/appHealth/AppHealthMonitor.tsx";
+
+WebSocketService.initialize();
 
 // eslint-disable-next-line react-refresh/only-export-components
 function Root() {
   return (
     <>
       <ModalProvider />
-      <GlobalWebSocketManager />
-      <NavigationHandler />
       <AppHealthMonitor />
       <Outlet />
     </>

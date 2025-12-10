@@ -5,8 +5,8 @@ import { useEffect, useRef, useCallback } from "react";
 import gazpromHeader from "../assets/gazprom-step-2-header.webp";
 import errorImage from "../assets/error.webp";
 import { cancelOrder } from "../api/services/payment";
-import { navigationLock } from "../util/navigationLock";
 import { logger } from "../util/logger";
+import { navigateToMain } from "../utils/navigation";
 
 const IDLE_TIMEOUT = 5000;
 
@@ -28,13 +28,11 @@ export default function ErrorPage() {
   const handleFinish = useCallback(async () => {
     logger.info('[ErrorPage] Handling close - cleaning up everything');
     
-    // Clear idle timeout
     if (idleTimeoutRef.current) {
       clearTimeout(idleTimeoutRef.current);
       idleTimeoutRef.current = null;
     }
     
-    // Cancel order if it exists
     if (order?.id) {
       try {
         await cancelOrder(order.id);
@@ -44,7 +42,6 @@ export default function ErrorPage() {
       }
     }
 
-    // Clear all global store state
     clearOrder();
     setSelectedProgram(null);
     setBankCheck("");
@@ -53,9 +50,8 @@ export default function ErrorPage() {
     setQueueNumber(null);
     setIsLoading(false);
     
-    // Navigate to main page
     logger.info('[ErrorPage] Navigating to main page after cleanup');
-    navigationLock.navigateWithLock(navigate, "/", 'ErrorPage: close button - full cleanup');
+    navigateToMain(navigate);
   }, [
     navigate, 
     order, 
@@ -97,7 +93,6 @@ export default function ErrorPage() {
         />
       </div>
       <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>
-        {/* Error message box */}
         <div className="flex flex-col items-center justify-center z-10 mb-8">
           <div className="bg-[#89BAFB4D] rounded-2xl px-12 py-8 mb-6">
             <h1 className="text-white text-6xl font-bold text-center">
@@ -105,12 +100,10 @@ export default function ErrorPage() {
             </h1>
           </div>
 
-          {/* Instruction text */}
           <p className="text-white text-2xl mb-8 text-center max-w-4xl px-8">
             {t("Проверьте баланс карты или обратитесь к оператору")}
           </p>
 
-          {/* Close button - oval/rounded */}
           <button
             className="px-16 py-6 rounded-full text-[#0B68E1] bg-white font-semibold text-2xl transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg"
             onClick={handleFinish}
@@ -122,7 +115,6 @@ export default function ErrorPage() {
 
         </div>
 
-        {/* Error image (red stop sign) positioned in bottom right */}
         <div className="absolute bottom-0 right-0 z-20">
           <img
             src={errorImage}

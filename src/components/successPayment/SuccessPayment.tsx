@@ -11,11 +11,9 @@ export default function SuccessPayment() {
   const [isCheckLoading, setIsCheckLoading] = useState(!bankCheck);
 
   useEffect(() => {
-    // Если чек уже есть, не показываем загрузку
     if (bankCheck) {
       setIsCheckLoading(false);
     } else {
-      // Если чека нет, показываем загрузку максимум 10 секунд
       const timeout = setTimeout(() => {
         setIsCheckLoading(false);
       }, 10000);
@@ -33,14 +31,14 @@ export default function SuccessPayment() {
           className="min-w-[160px] min-h-[160px] max-w-[160px] max-h-[160px] mb-2"
         />
         <p className="text-gray-800 text-6xl font-semibold mb-12">
-          {t("Успешно")}
+          Успешно
         </p>
 
         {isCheckLoading ? (
           <div className="flex flex-col items-center">
             <Spin size="xl" />
             <p className="text-gray-600 text-xl font-medium mt-4">
-              {t("Формирование чека...")}
+              Формирование чека...
             </p>
           </div>
         ) : bankCheck ? (
@@ -60,7 +58,7 @@ export default function SuccessPayment() {
         ) : (
           <div className="flex flex-col items-center">
             <p className="text-gray-600 text-xl font-medium">
-              {t("Чек не сформирован")}
+              Чек не сформирован
             </p>
           </div>
         )}

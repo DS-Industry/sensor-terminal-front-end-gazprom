@@ -38,31 +38,6 @@ export async function cancelOrder(
   logger.info(`Cancelling order: ${order_id}`);
   await axiosInstance.post(PAYMENT.CANCELLATION + `/${order_id}/`);
 }
-
-// Unused API functions - kept for potential future use
-// These functions are not currently used but may be needed in the future
-// export async function loyaltyCheck(): Promise<ILoyaltyCheckResponse> {
-//   const response = await axiosInstance.get<ILoyaltyCheckResponse>(PAYMENT.LOYALTY_CHECK);
-//   return response.data;
-// }
-
-// export async function ucnCheck(): Promise<IUcnCheckResponse> {
-//   const response = await axiosInstance.get<IUcnCheckResponse>(PAYMENT.UCN_CHECK);
-//   return response.data;
-// }
-
-// export async function openLoyaltyCardReader(signal?: AbortSignal): Promise<any> {  
-//   const response = await axiosInstance.post(PAYMENT.OPEN_READER, {}, { 
-//     signal 
-//   });
-//   return response.data;
-// }
-
-// export async function getMobileQr(): Promise<IGetMobileQr> {
-//   const response = await axiosInstance.get<IGetMobileQr>(PAYMENT.MOBILE_QR);
-//   return response.data;
-// }
-
 export async function startRobot(order_id: string): Promise<void> {  
   
   await axiosInstance.post(PAYMENT.START + `/${order_id}/`);

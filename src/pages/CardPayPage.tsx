@@ -9,14 +9,14 @@ import { Spin } from "@gravity-ui/uikit";
 import PaymentTitleSection from "../components/paymentTitleSection/PaymentTitleSection";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 import { EPaymentMethod } from "../components/state/order/orderSlice";
-import { usePaymentProcessing } from "../hooks/usePaymentProcessing";
+import { usePaymentFlow } from "../hooks/payment/usePaymentFlow";
 import SuccessPayment from "../components/successPayment/SuccessPayment";
 import gazpromHeader from "../assets/gazprom-step-2-header.webp"
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import useStore from "../components/state/store";
-import { navigationLock } from "../util/navigationLock";
 import { logger } from "../util/logger";
+import { navigateToErrorPayment } from "../utils/navigation";
 
 export default function CardPayPage() {
   const { t } = useTranslation();
@@ -34,35 +34,52 @@ export default function CardPayPage() {
     paymentError,
     queueFull,
     bankCheck
-  } = usePaymentProcessing(EPaymentMethod.CARD);
+  } = usePaymentFlow(EPaymentMethod.CARD);
 
-  // Track if receipt is ready (with timeout similar to SuccessPayment)
   const [isReceiptReady, setIsReceiptReady] = useState(false);
+  const [checkGenerationTimeRemaining, setCheckGenerationTimeRemaining] = useState(10);
 
   useEffect(() => {
     if (paymentError && !queueFull && !hasNavigatedToErrorRef.current) {
       logger.info('[CardPayPage] Payment error detected, navigating to ErrorPaymentPage');
       hasNavigatedToErrorRef.current = true;
       setErrorCode(1002);
-      navigationLock.navigateWithLock(navigate, '/error-payment', 'CardPayPage: payment error');
+      navigateToErrorPayment(navigate);
     } else if (!paymentError) {
       hasNavigatedToErrorRef.current = false;
     }
   }, [paymentError, queueFull, navigate, setErrorCode]);
 
   useEffect(() => {
-    // If receipt already exists, it's ready
     if (bankCheck) {
       setIsReceiptReady(true);
+      setCheckGenerationTimeRemaining(0);
     } else if (paymentSuccess) {
-      // If payment is successful but no receipt yet, wait up to 10 seconds
+      setIsReceiptReady(false);
+      setCheckGenerationTimeRemaining(10);
+      
+      const countdownInterval = setInterval(() => {
+        setCheckGenerationTimeRemaining((prev) => {
+          if (prev <= 1) {
+            setIsReceiptReady(true); 
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
       const timeout = setTimeout(() => {
-        setIsReceiptReady(true); // Allow starting even if receipt doesn't arrive
+        setIsReceiptReady(true); 
+        setCheckGenerationTimeRemaining(0);
       }, 10000);
 
-      return () => clearTimeout(timeout);
+      return () => {
+        clearInterval(countdownInterval);
+        clearTimeout(timeout);
+      };
     } else {
       setIsReceiptReady(false);
+      setCheckGenerationTimeRemaining(10);
     }
   }, [bankCheck, paymentSuccess]);
 
@@ -187,9 +204,16 @@ export default function CardPayPage() {
                     ? (
                       <div className="mt-3 flex flex-col items-center">
                         {!isReceiptReady && (
-                          <div className="text-white/80 text-sm mb-2 flex items-center gap-2">
-                            <Spin size="xs" />
-                            {t("Формирование чека...")}
+                          <div className="text-white/80 text-sm mb-2 flex flex-col items-center gap-2">
+                            <div className="flex items-center gap-2">
+                              <Spin size="xs" />
+                              Формирование чека...
+                            </div>
+                            {checkGenerationTimeRemaining > 0 && (
+                              <div className="text-white/60 text-xs">
+                                {checkGenerationTimeRemaining} сек.
+                              </div>
+                            )}
                           </div>
                         )}
                         <button
@@ -197,15 +221,15 @@ export default function CardPayPage() {
                           onClick={handleStartRobot}
                           disabled={!paymentSuccess || !!paymentError || queueFull || !isReceiptReady}
                           style={{ backgroundColor: "white" }}
-                          aria-label={t("Запустить")}
+                          aria-label={"Запустить"}
                         >
                           <div className="flex items-center justify-center gap-2">
-                            {t("Запустить")}
+                            Запустить
                           </div>
                         </button>
                         {timeUntilRobotStart > 0 && (
                           <div className="text-white/80 text-l">
-                            {t("Автоматический запуск через")} {timeUntilRobotStart} {t("сек.")}
+                            Автоматический запуск через {timeUntilRobotStart} сек.
                           </div>
                         )}
                       </div>
@@ -216,14 +240,14 @@ export default function CardPayPage() {
                           <Spin size="s" />
                         </div>
                         <div className="text-white/90 text-sm font-medium">
-                          {t("Обработка оплаты...")}
+                          Обработка оплаты...
                         </div>
                       </div>
                     ) : (
                       <div className="mt-3 flex items-center justify-center gap-2 bg-white/20 px-4 py-2 rounded-full w-full">
                         <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
                         <div className="text-white/90 text-sm font-medium">
-                          {t("Ожидание карты...")}
+                          Ожидание карты...
                         </div>
                       </div>
                     )}

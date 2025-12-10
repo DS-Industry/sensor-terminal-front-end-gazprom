@@ -3,11 +3,11 @@ import { devtools, persist } from 'zustand/middleware';
 import { createOrderSlice, OrderSlice } from './order/orderSlice';
 import { AppSlice, createAppSlice } from './app/appSlice';
 import { createModalSlice, ModalSlice } from './modal/modalSlice';
+import { createPaymentSlice, PaymentSlice } from './payment/paymentSlice';
 import { logger } from '../../util/logger';
 
-export type StoreState =  OrderSlice & AppSlice & ModalSlice;
+export type StoreState = OrderSlice & AppSlice & ModalSlice & PaymentSlice;
 
-// Order expiration time: 1 hour (3600000 milliseconds)
 const ORDER_EXPIRY_TIME = 3600000;
 
 const useStore = create<StoreState>()(
@@ -17,20 +17,19 @@ const useStore = create<StoreState>()(
         ...createOrderSlice(set, get),
         ...createAppSlice(set, get),
         ...createModalSlice(set, get),
+        ...createPaymentSlice(set, get),
       }),
       {
         name: 'app-storage',
         partialize: (state) => ({
           order: state.order,
         }),
-        // Validate and expire stale orders when state is rehydrated from storage
         onRehydrateStorage: () => (state) => {
           if (state?.order && state.order.createdAt) {
             try {
               const orderCreatedAt = new Date(state.order.createdAt);
               const orderAge = Date.now() - orderCreatedAt.getTime();
               
-              // If order is older than expiry time or createdAt is invalid, clear it
               if (isNaN(orderAge) || orderAge > ORDER_EXPIRY_TIME || orderAge < 0) {
                 logger.warn('Stale order detected in localStorage, clearing it', {
                   orderId: state.order.id,
@@ -38,16 +37,14 @@ const useStore = create<StoreState>()(
                   createdAt: state.order.createdAt,
                 });
                 
-                // Clear the stale order
                 state.clearOrder();
               } else {
                 logger.debug('Order restored from localStorage', {
                   orderId: state.order.id,
-                  orderAge: Math.round(orderAge / 1000 / 60), // age in minutes
+                  orderAge: Math.round(orderAge / 1000 / 60),
                 });
               }
             } catch (error) {
-              // If createdAt is invalid or parsing fails, clear the order
               logger.error('Invalid order data in localStorage, clearing it', error);
               state.clearOrder();
             }

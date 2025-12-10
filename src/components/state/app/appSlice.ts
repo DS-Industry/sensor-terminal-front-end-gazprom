@@ -9,7 +9,6 @@ export interface AppSlice {
   isLoading: boolean;
   insertedAmount: number;
   bankCheck: string;
-  navigationTarget: string | null;
   errorCode: number | null;
   backConfirmationCallback: (() => void) | null;
   setIsLoyalty: (loyalty: boolean) => void;
@@ -18,8 +17,6 @@ export interface AppSlice {
   setIsLoading: (isLoading: boolean) => void;
   setInsertedAmount: (inserted: number) => void;
   setBankCheck: (bankCheck: string) => void;
-  setNavigationTarget: (target: string | null) => void;
-  clearNavigation: () => void;
   setErrorCode: (code: number | null) => void;
   setBackConfirmationCallback: (callback: (() => void) | null) => void;
   queuePosition: number | null;
@@ -36,7 +33,6 @@ export const createAppSlice: StoreSlice<AppSlice> = (set) => ({
   isLoading: false,
   insertedAmount: 0,
   bankCheck: "",
-  navigationTarget: null,
   errorCode: null,
   backConfirmationCallback: null,
   queuePosition: null,
@@ -64,14 +60,6 @@ export const createAppSlice: StoreSlice<AppSlice> = (set) => ({
 
   setBankCheck: (bankCheck) => {
     set(state => ({...state, bankCheck}));
-  },
-
-  setNavigationTarget: (target) => {
-    set(state => ({...state, navigationTarget: target }));
-  },
-
-  clearNavigation: () => {
-    set(state => ({...state, navigationTarget: null }));
   },
 
   setErrorCode: (code) => {
