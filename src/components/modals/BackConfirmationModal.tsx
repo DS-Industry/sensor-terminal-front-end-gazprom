@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@gravity-ui/uikit';
-import { ArrowLeft } from '@gravity-ui/icons';
+import {ArrowShapeTurnUpLeft} from '@gravity-ui/icons';
 import useStore from '../state/store';
 
 export function BackConfirmationModal() {
@@ -77,15 +77,15 @@ export function BackConfirmationModal() {
         
         <div className="flex justify-center gap-12">
           <button
-            className="px-18 py-9 rounded-3xl text-white font-bold text-3xl transition-all duration-300 hover:opacity-90 flex items-center gap-3"
+            className="rounded-3xl text-white font-bold text-[20px] transition-all duration-300 hover:opacity-90 flex items-center gap-3 w-[400px] h-[58px] justify-center"
             style={{ backgroundColor: "#0B68E1" }}
             onClick={handleConfirm}
           >
-            <Icon data={ArrowLeft} size={24} className="text-white" />
+            <Icon data={ArrowShapeTurnUpLeft} size={24} className="text-white" />
             {t("Да, вернуться")}
           </button>
           <button
-            className="px-18 py-9 rounded-3xl text-gray-900 font-bold text-3xl transition-all duration-300 hover:bg-gray-100 border-2 border-gray-300"
+            className="rounded-3xl text-gray-900 font-bold text-[20px] transition-all duration-300 hover:bg-gray-100 border-2 border-gray-300 w-[400px] h-[58px] justify-center"
             onClick={handleCancel}
           >
             {t("Отменить")}
