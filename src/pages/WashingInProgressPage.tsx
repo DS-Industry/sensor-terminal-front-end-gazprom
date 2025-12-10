@@ -6,6 +6,9 @@ import { Clock } from "@gravity-ui/icons";
 import { Icon } from "@gravity-ui/uikit";
 import CarImage from "../assets/car.png";
 import { logger } from "../util/logger";
+import { globalWebSocketManager, type WebSocketMessage } from "../util/websocketManager";
+import { EOrderStatus } from "../components/state/order/orderSlice";
+import { navigationLock } from "../util/navigationLock";
 
 import gazpromHeader from "../assets/gazprom-step-2-header.png";
 
@@ -17,10 +20,41 @@ export default function WashingInProgressPage() {
   const [timeRemaining, setTimeRemaining] = useState(180);
   const countdownHandledRef = useRef(false);
   const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const orderCompletedRef = useRef(false);
+
+  // Listen for COMPLETED status from WebSocket
+  useEffect(() => {
+    const handleStatusUpdate = (data: WebSocketMessage) => {
+      if (data.type === 'status_update' && data.status === EOrderStatus.COMPLETED) {
+        logger.info('[WashingInProgressPage] Received COMPLETED status update, navigating home', { orderId: data.order_id });
+        orderCompletedRef.current = true;
+        
+        // Navigate home immediately when order is completed
+        navigationLock.navigateWithLock(navigate, '/', 'WashingInProgressPage: order completed');
+      }
+    };
+
+    const removeListener = globalWebSocketManager.addListener('status_update', handleStatusUpdate);
+
+    return () => {
+      removeListener();
+    };
+  }, [navigate]);
+
+  // Also listen to order status from store as fallback
+  useEffect(() => {
+    const currentOrder = useStore.getState().order;
+    if (currentOrder?.status === EOrderStatus.COMPLETED && !orderCompletedRef.current) {
+      logger.info('[WashingInProgressPage] Order status is COMPLETED in store, navigating home');
+      orderCompletedRef.current = true;
+      navigationLock.navigateWithLock(navigate, '/', 'WashingInProgressPage: order completed from store');
+    }
+  }, [navigate]);
 
   useEffect(() => {
     setIsLoading(false);
     countdownHandledRef.current = false;
+    orderCompletedRef.current = false;
 
     const interval = setInterval(() => {
       setTimeRemaining((prev) => {

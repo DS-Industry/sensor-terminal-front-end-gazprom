@@ -7,6 +7,7 @@ import BoxImage from "../assets/бокс.png";
 import CarImage from "../assets/car.png";
 import { logger } from "../util/logger";
 import { startRobot, getOrderById } from "../api/services/payment";
+import { navigationLock } from "../util/navigationLock";
 
 import gazpromHeader from "../assets/gazprom-step-2-header.png";
 
@@ -18,6 +19,7 @@ export default function SuccessPaymentPage() {
   const [displayText, setDisplayText] = useState(t("Можете проезжать в бокс!"));
   const robotStartedRef = useRef(false);
   const navigationGuardRef = useRef(false);
+  const isMountedRef = useRef(true);
   const timersRef = useRef<{
     textTimer?: NodeJS.Timeout;
     navigationTimer?: NodeJS.Timeout;
@@ -31,6 +33,11 @@ export default function SuccessPaymentPage() {
       return false;
     }
     
+    // Use global navigation lock to prevent race conditions across components
+    if (!navigationLock.navigateWithLock(navigate, target, `SuccessPaymentPage: ${reason}`)) {
+      return false;
+    }
+    
     navigationGuardRef.current = true;
     logger.info(`[SuccessPaymentPage] Navigating to ${target}: ${reason}`);
     
@@ -39,7 +46,6 @@ export default function SuccessPaymentPage() {
     if (timersRef.current.navigationTimer) clearTimeout(timersRef.current.navigationTimer);
     if (timersRef.current.safetyTimer) clearTimeout(timersRef.current.safetyTimer);
     
-    navigate(target, { replace: true });
     return true;
   }, [navigate]);
 
@@ -85,18 +91,30 @@ export default function SuccessPaymentPage() {
 
   // Start robot when order is PAYED
   useEffect(() => {
+    isMountedRef.current = true;
+    
     if (order?.id && order?.status === EOrderStatus.PAYED && !robotStartedRef.current) {
       const orderId = order.id;
       const startRobotAsync = async () => {
         try {
           robotStartedRef.current = true;
           logger.info('[SuccessPaymentPage] Starting robot for order:', orderId);
-          setIsLoading(true);
+          if (isMountedRef.current) {
+            setIsLoading(true);
+          }
           
           await startRobot(orderId);
+          
+          // Check if component is still mounted after async operation
+          if (!isMountedRef.current) return;
+          
           logger.info('[SuccessPaymentPage] Robot start API call successful');
           
           const orderDetails = await getOrderById(orderId);
+          
+          // Check again after second async operation
+          if (!isMountedRef.current) return;
+          
           if (orderDetails.status === EOrderStatus.PROCESSING) {
             logger.info('[SuccessPaymentPage] Order status confirmed as PROCESSING');
             setIsLoading(false);
@@ -106,24 +124,35 @@ export default function SuccessPaymentPage() {
           }
         } catch (error) {
           logger.error('[SuccessPaymentPage] Error starting robot', error);
-          setIsLoading(false);
-          robotStartedRef.current = false; 
+          if (isMountedRef.current) {
+            setIsLoading(false);
+            robotStartedRef.current = false;
+          }
         }
       };
 
       startRobotAsync();
     }
+    
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [order?.id, order?.status, setIsLoading]);
 
   // Initialize display text and set up fallback timers
   useEffect(() => {
-    setIsLoading(false);
-
-    setDisplayText(t("Можете проезжать в бокс!"));
+    isMountedRef.current = true;
+    
+    if (isMountedRef.current) {
+      setIsLoading(false);
+      setDisplayText(t("Можете проезжать в бокс!"));
+    }
     
     // Update display text after 10 seconds
     timersRef.current.textTimer = setTimeout(() => {
-      setDisplayText(t("Идёт мойка..."));
+      if (isMountedRef.current) {
+        setDisplayText(t("Идёт мойка..."));
+      }
     }, 10000);
 
     // Fallback navigation timer (12 seconds) - only set if order is not PROCESSING
@@ -131,6 +160,8 @@ export default function SuccessPaymentPage() {
     const currentStatus = order?.status;
     if (currentStatus !== EOrderStatus.PROCESSING && currentStatus !== EOrderStatus.COMPLETED) {
       timersRef.current.navigationTimer = setTimeout(() => {
+        if (!isMountedRef.current) return;
+        
         const currentOrder = useStore.getState().order;
         const latestStatus = currentOrder?.status;
         
@@ -143,6 +174,8 @@ export default function SuccessPaymentPage() {
 
     // Safety timeout (5 minutes) - last resort navigation
     timersRef.current.safetyTimer = setTimeout(() => {
+      if (!isMountedRef.current) return;
+      
       const currentOrder = useStore.getState().order;
       const currentIsLoading = useStore.getState().isLoading;
       
@@ -156,6 +189,7 @@ export default function SuccessPaymentPage() {
     }, 300000); 
 
     return () => {
+      isMountedRef.current = false;
       if (timersRef.current.textTimer) clearTimeout(timersRef.current.textTimer);
       if (timersRef.current.navigationTimer) clearTimeout(timersRef.current.navigationTimer);
       if (timersRef.current.safetyTimer) clearTimeout(timersRef.current.safetyTimer);

@@ -6,6 +6,7 @@ import { cancelOrder, createOrder, getOrderById } from '../api/services/payment'
 import { EOrderStatus, EPaymentMethod } from '../components/state/order/orderSlice';
 import { logger } from '../util/logger';
 import { PAYMENT_CONSTANTS } from '../constants/payment';
+import { navigationLock } from '../util/navigationLock';
 
 export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   const navigate = useNavigate();
@@ -42,6 +43,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   const createOrderDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const createOrderRequestIdRef = useRef<string | null>(null);
   const isCreatingOrderRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   const clearAllTimers = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -163,6 +165,13 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
         return;
       }
       
+      // Check if component is still mounted before state update
+      if (!isMountedRef.current) {
+        logger.debug(`[${paymentMethod}] Component unmounted, skipping state update`);
+        releaseOrderCreationLock();
+        return;
+      }
+      
       logger.info(`[${paymentMethod}] Order creation API called successfully, waiting for order ID from WebSocket [requestId: ${requestId}]`);
       setIsLoading(false);
       // Don't release lock here - keep it until order is confirmed or fails
@@ -178,23 +187,31 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       // Don't show error if request was aborted (order completed or superseded)
       if (err?.name === 'AbortError' || abortSignal.aborted) {
         logger.info(`[${paymentMethod}] Order creation aborted (order likely completed or superseded)`);
-        setIsLoading(false);
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
         releaseOrderCreationLock(true);
         return;
       }
 
       logger.error(`[${paymentMethod}] Error creating order [requestId: ${requestId}]`, err);
-      setIsLoading(false);
-      releaseOrderCreationLock(true);
       
-      let errorMessage = t('Произошла ошибка при создании заказа');
-      if (err?.response?.data?.error) {
-        errorMessage = err.response.data.error;
-      } else if (err?.message) {
-        errorMessage = err.message;
+      // Check if component is still mounted before state updates
+      if (isMountedRef.current) {
+        setIsLoading(false);
+        releaseOrderCreationLock(true);
+        
+        let errorMessage = t('Произошла ошибка при создании заказа');
+        if (err?.response?.data?.error) {
+          errorMessage = err.response.data.error;
+        } else if (err?.message) {
+          errorMessage = err.message;
+        }
+        
+        setPaymentError(errorMessage);
+      } else {
+        releaseOrderCreationLock(true);
       }
-      
-      setPaymentError(errorMessage);
     }
   }, [selectedProgram, paymentMethod, setIsLoading, t, acquireOrderCreationLock, releaseOrderCreationLock]);
 
@@ -212,7 +229,8 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       
       const currentOrder = useStore.getState().order;
       
-      if (currentOrder && currentOrder.status !== orderDetails.status) {
+      // Check if component is still mounted before state update
+      if (currentOrder && currentOrder.status !== orderDetails.status && isMountedRef.current) {
         setOrder({
           id: currentOrderId,
           status: orderDetails.status,
@@ -229,31 +247,45 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
         return;
       }
 
+      // Check if component is still mounted before processing queue updates
+      if (!isMountedRef.current) {
+        isPollingRef.current = false;
+        return;
+      }
+
       if (orderDetails.queue_position !== undefined) {
         const newQueuePosition = orderDetails.queue_position;
-        setQueuePosition(newQueuePosition);
-        setGlobalQueuePosition(newQueuePosition);
+        if (isMountedRef.current) {
+          setQueuePosition(newQueuePosition);
+          setGlobalQueuePosition(newQueuePosition);
+        }
         
         if (newQueuePosition > PAYMENT_CONSTANTS.MAX_QUEUE_POSITION) {
           logger.info(`[${paymentMethod}] Queue is full, queuePosition: ${newQueuePosition}`);
-          setQueueFull(true);
-          setPaymentError(t('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.'));
+          if (isMountedRef.current) {
+            setQueueFull(true);
+            setPaymentError(t('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.'));
+          }
           clearAllTimers();
           
           try {
             await cancelOrder(currentOrderId);
-            logger.info(`[${paymentMethod}] Cancelled order due to full queue`);
-            orderCreatedRef.current = false;
+            if (isMountedRef.current) {
+              logger.info(`[${paymentMethod}] Cancelled order due to full queue`);
+              orderCreatedRef.current = false;
+            }
           } catch (cancelErr) {
             logger.error(`[${paymentMethod}] Error cancelling order`, cancelErr);
           }
           return;
         } else {
-          setQueueFull(false);
+          if (isMountedRef.current) {
+            setQueueFull(false);
+          }
         }
       }
 
-      if (orderDetails.queue_number !== undefined) {
+      if (orderDetails.queue_number !== undefined && isMountedRef.current) {
         setQueueNumber(orderDetails.queue_number);
         setGlobalQueueNumber(orderDetails.queue_number);
       }
@@ -263,44 +295,60 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
 
       logger.debug(`[${paymentMethod}] Payment check - amountSum: ${amountSum}, expected: ${expectedAmount}, status: ${orderDetails.status}`);
 
+      // Check if component is still mounted before processing payment status
+      if (!isMountedRef.current) {
+        isPollingRef.current = false;
+        return;
+      }
+
       // If status is PAYED, trust it even if amountSum is 0 (might not be set yet for instant payments)
       if (orderDetails.status === EOrderStatus.PAYED) {
         if (amountSum >= expectedAmount || amountSum === 0) {
           // amountSum === 0 means it might not be set yet, but status is PAYED so trust it
           logger.info(`[${paymentMethod}] Payment confirmed! Status: PAYED, Amount: ${amountSum} (expected: ${expectedAmount})`);
           clearAllTimers();
-          setPaymentError(null);
-          setPaymentSuccess(true);
-          setIsPaymentProcessing(false);
-          // Start countdown immediately after payment success
-          if (!countdownTimeoutRef.current && startCountdownRef.current) {
-            logger.info(`[${paymentMethod}] Starting countdown immediately after payment confirmation`);
-            startCountdownRef.current();
+          if (isMountedRef.current) {
+            setPaymentError(null);
+            setPaymentSuccess(true);
+            setIsPaymentProcessing(false);
+            // Start countdown immediately after payment success
+            if (!countdownTimeoutRef.current && startCountdownRef.current) {
+              logger.info(`[${paymentMethod}] Starting countdown immediately after payment confirmation`);
+              startCountdownRef.current();
+            }
           }
           return;
         } else if (amountSum > 0 && amountSum < expectedAmount) {
           // Partial payment - show processing state
           logger.warn(`[${paymentMethod}] Partial payment detected: ${amountSum} < ${expectedAmount}`);
-          setIsPaymentProcessing(true);
-          setIsLoading(false);
+          if (isMountedRef.current) {
+            setIsPaymentProcessing(true);
+            setIsLoading(false);
+          }
           return;
         }
       }
 
       if (amountSum >= expectedAmount && orderDetails.status !== EOrderStatus.PAYED) {
         logger.debug(`[${paymentMethod}] Payment amount sufficient but status not PAYED yet, processing...`);
-        setIsPaymentProcessing(true);
-        setIsLoading(false);
+        if (isMountedRef.current) {
+          setIsPaymentProcessing(true);
+          setIsLoading(false);
+        }
         return;
       }
 
-      setIsPaymentProcessing(false);
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsPaymentProcessing(false);
+        setIsLoading(false);
+      }
 
     } catch (err) {
       logger.error(`[${paymentMethod}] Error checking payment status`, err);
-      setIsPaymentProcessing(false);
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsPaymentProcessing(false);
+        setIsLoading(false);
+      }
     } finally {
       isPollingRef.current = false;
     }
@@ -353,9 +401,11 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       clearAllTimers();
       try {
         const orderId = orderIdRef.current || currentOrderId;
-        if (orderId) {
+        if (orderId && isMountedRef.current) {
           await cancelOrder(orderId);
-          navigate("/");
+          if (isMountedRef.current) {
+            navigationLock.navigateWithLock(navigate, "/", `${paymentMethod}: payment timeout`);
+          }
         }
       } catch (e) {
         logger.error(`[${paymentMethod}] Error cancelling order on timeout`, e);
@@ -413,16 +463,22 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     orderCreatedRef.current = false;
     releaseOrderCreationLock(true);
     
-    if (order?.id) {
+    if (order?.id && isMountedRef.current) {
       try {
         await cancelOrder(order.id);
-        logger.info(`[${paymentMethod}] Order cancelled on back button`);
+        if (isMountedRef.current) {
+          logger.info(`[${paymentMethod}] Order cancelled on back button`);
+        }
       } catch (error) {
-        logger.error(`[${paymentMethod}] Error cancelling order on back`, error);
+        if (isMountedRef.current) {
+          logger.error(`[${paymentMethod}] Error cancelling order on back`, error);
+        }
       }
     }
 
-    navigate(-1);
+    if (isMountedRef.current) {
+      navigate(-1);
+    }
   }, [clearAllTimers, setIsLoading, order, paymentMethod, navigate, releaseOrderCreationLock]);
 
   const handleRetry = useCallback(() => {
@@ -458,9 +514,16 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
 
     try {
       logger.info(`[${paymentMethod}] Payment confirmed, checking queue position for navigation`);
-      setIsLoading(true);
+      if (isMountedRef.current) {
+        setIsLoading(true);
+      }
       
       const orderDetails = await getOrderById(order.id);
+      
+      // Check if component is still mounted after async operation
+      if (!isMountedRef.current) {
+        return;
+      }
       
       const currentQueuePosition = orderDetails.queue_position ?? queuePosition;
       const currentQueueNumber = orderDetails.queue_number ?? queueNumber;
@@ -471,18 +534,20 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
         logger.info(`[${paymentMethod}] User is in queue (position: ${currentQueuePosition}), navigating to queue waiting page`);
         clearAllTimers();
         setIsLoading(false);
-        navigate('/queue-waiting');
+        navigationLock.navigateWithLock(navigate, '/queue-waiting', `${paymentMethod}: queue position ${currentQueuePosition}`);
       } else {
         logger.info(`[${paymentMethod}] Queue position is null or 0, navigating to success page (robot will start there)`);
         clearAllTimers();
         setIsLoading(false);
-        navigate('/success');
+        navigationLock.navigateWithLock(navigate, '/success', `${paymentMethod}: no queue`);
       }
     } catch (error) {
       logger.error(`[${paymentMethod}] Error checking order status`, error);
-      clearAllTimers();
-      setIsLoading(false);
-      navigate('/success');
+      if (isMountedRef.current) {
+        clearAllTimers();
+        setIsLoading(false);
+        navigationLock.navigateWithLock(navigate, '/success', `${paymentMethod}: error fallback`);
+      }
     }
   }, [order, paymentMethod, paymentSuccess, queuePosition, queueNumber, clearAllTimers, navigate, setIsLoading, t]);
 
@@ -495,6 +560,8 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   }, [startCountdown]);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
     // Prevent multiple calls if already creating order
     if (isCreatingOrderRef.current || orderCreatedRef.current) {
       logger.debug(`[${paymentMethod}] Skipping order creation: already in progress or created`);
@@ -513,12 +580,13 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     createOrderDebounceTimeoutRef.current = setTimeout(() => {
       createOrderDebounceTimeoutRef.current = null;
       // Double-check before creating (component might have unmounted)
-      if (!isCreatingOrderRef.current && !orderCreatedRef.current) {
+      if (isMountedRef.current && !isCreatingOrderRef.current && !orderCreatedRef.current) {
         createOrderAsync();
       }
     }, 100); // 100ms debounce for mount
     
     return () => {
+      isMountedRef.current = false;
       // Clear debounce timeout on unmount
       if (createOrderDebounceTimeoutRef.current) {
         clearTimeout(createOrderDebounceTimeoutRef.current);
@@ -536,17 +604,21 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
 
   useEffect(() => {
     // Start polling if:
-    // 1. Order status is WAITING_PAYMENT OR PAYED (PAYED in case payment happened before polling started)
-    // 2. Order was created (checked via ref)
-    // 3. Polling is not already running (guard against duplicates)
-    // 4. Payment success hasn't been set yet (don't poll if already paid)
+    // 1. Order ID exists (atomic check - ensures order is created)
+    // 2. Order status is WAITING_PAYMENT OR PAYED (PAYED in case payment happened before polling started)
+    // 3. Order was created (checked via ref)
+    // 4. Polling is not already running (guard against duplicates)
+    // 5. Payment success hasn't been set yet (don't poll if already paid)
+    // 6. Component is still mounted
     const shouldStartPolling = 
-      (order?.status === EOrderStatus.WAITING_PAYMENT || order?.status === EOrderStatus.PAYED) &&
+      order?.id && // Ensure order ID exists first (atomic check)
+      (order.status === EOrderStatus.WAITING_PAYMENT || order.status === EOrderStatus.PAYED) &&
       orderCreatedRef.current && 
       !pollingIntervalRef.current &&
-      !paymentSuccess;
+      !paymentSuccess &&
+      isMountedRef.current;
     
-    if (shouldStartPolling && order?.id) {
+    if (shouldStartPolling) {
       logger.info(`[${paymentMethod}] Order status is ${order.status}, starting order-detail polling: ${order.id}`);
       orderIdRef.current = order.id;
       startPolling();
@@ -588,38 +660,50 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       logger.info(`[${paymentMethod}] Order status changed to PAYED, setting payment success`);
       
       const verifyPayment = async () => {
-        if (!order.id) return;
+        if (!order.id || !isMountedRef.current) return;
         
         try {
           const orderDetails = await getOrderById(order.id);
+          
+          // Check if component is still mounted after async operation
+          if (!isMountedRef.current) return;
+          
           const amountSum = orderDetails.amount_sum ? Number(orderDetails.amount_sum) : 0;
           const expectedAmount = selectedProgram ? Number(selectedProgram.price) : 0;
           
           if (orderDetails.queue_position !== undefined) {
             const newQueuePosition = orderDetails.queue_position;
-            setQueuePosition(newQueuePosition);
-            setGlobalQueuePosition(newQueuePosition);
+            if (isMountedRef.current) {
+              setQueuePosition(newQueuePosition);
+              setGlobalQueuePosition(newQueuePosition);
+            }
             
             if (newQueuePosition > PAYMENT_CONSTANTS.MAX_QUEUE_POSITION) {
               logger.info(`[${paymentMethod}] Queue is full after payment! queuePosition: ${newQueuePosition}`);
-              setQueueFull(true);
-              setPaymentError(t('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.'));
-              setIsLoading(false);
+              if (isMountedRef.current) {
+                setQueueFull(true);
+                setPaymentError(t('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.'));
+                setIsLoading(false);
+              }
               
               try {
                 await cancelOrder(order.id);
-                logger.info(`[${paymentMethod}] Cancelled order due to full queue`);
-                orderCreatedRef.current = false;
+                if (isMountedRef.current) {
+                  logger.info(`[${paymentMethod}] Cancelled order due to full queue`);
+                  orderCreatedRef.current = false;
+                }
                 return;
               } catch (cancelErr) {
                 logger.error(`[${paymentMethod}] Error cancelling order`, cancelErr);
               }
             } else {
-              setQueueFull(false);
+              if (isMountedRef.current) {
+                setQueueFull(false);
+              }
             }
           }
           
-          if (orderDetails.queue_number !== undefined) {
+          if (orderDetails.queue_number !== undefined && isMountedRef.current) {
             setQueueNumber(orderDetails.queue_number);
             setGlobalQueueNumber(orderDetails.queue_number);
           }
@@ -631,41 +715,51 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
               // amountSum === 0 means it might not be set yet, but status is PAYED so trust it
               logger.info(`[${paymentMethod}] Payment confirmed! Status: PAYED, Amount: ${amountSum} (expected: ${expectedAmount})`);
               clearAllTimers();
-              setPaymentError(null);
-              setPaymentSuccess(true);
-              setIsPaymentProcessing(false);
-              setIsLoading(false);
-              // Start countdown immediately after payment success
-              if (!countdownTimeoutRef.current && startCountdownRef.current) {
-                logger.info(`[${paymentMethod}] Starting countdown immediately after payment verification`);
-                startCountdownRef.current();
+              if (isMountedRef.current) {
+                setPaymentError(null);
+                setPaymentSuccess(true);
+                setIsPaymentProcessing(false);
+                setIsLoading(false);
+                // Start countdown immediately after payment success
+                if (!countdownTimeoutRef.current && startCountdownRef.current) {
+                  logger.info(`[${paymentMethod}] Starting countdown immediately after payment verification`);
+                  startCountdownRef.current();
+                }
               }
             } else if (amountSum > 0 && amountSum < expectedAmount) {
               // Partial payment - show processing state
               logger.warn(`[${paymentMethod}] Partial payment detected: ${amountSum} < ${expectedAmount}`);
-              setIsPaymentProcessing(true);
-              setIsLoading(false);
+              if (isMountedRef.current) {
+                setIsPaymentProcessing(true);
+                setIsLoading(false);
+              }
             } else {
               // Status is PAYED but amount check failed - still trust the status
               logger.warn(`[${paymentMethod}] Payment status is PAYED but amount verification unclear. Trusting status.`);
               clearAllTimers();
-              setPaymentError(null);
-              setPaymentSuccess(true);
-              setIsPaymentProcessing(false);
-              setIsLoading(false);
-              if (!countdownTimeoutRef.current && startCountdownRef.current) {
-                logger.info(`[${paymentMethod}] Starting countdown after PAYED status verification`);
-                startCountdownRef.current();
+              if (isMountedRef.current) {
+                setPaymentError(null);
+                setPaymentSuccess(true);
+                setIsPaymentProcessing(false);
+                setIsLoading(false);
+                if (!countdownTimeoutRef.current && startCountdownRef.current) {
+                  logger.info(`[${paymentMethod}] Starting countdown after PAYED status verification`);
+                  startCountdownRef.current();
+                }
               }
             }
           } else {
-            setIsPaymentProcessing(true);
-            setIsLoading(false);
+            if (isMountedRef.current) {
+              setIsPaymentProcessing(true);
+              setIsLoading(false);
+            }
           }
         } catch (err) {
           logger.error(`[${paymentMethod}] Error verifying payment`, err);
-          setIsPaymentProcessing(false);
-          setIsLoading(false);
+          if (isMountedRef.current) {
+            setIsPaymentProcessing(false);
+            setIsLoading(false);
+          }
         }
       };
       
