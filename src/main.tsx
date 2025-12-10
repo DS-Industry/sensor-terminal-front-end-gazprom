@@ -6,31 +6,9 @@ import "./styles/styles.css";
 import "./i18n/index.ts";
 import "./config/env";
 import { errorTracker } from "./util/errorTracking";
-import { logger } from "./util/logger";
 
 if (!import.meta.env.DEV) {
   errorTracker.initialize().catch(console.error);
-  
-  // Global unhandled promise rejection handler
-  window.addEventListener('unhandledrejection', (event) => {
-    logger.error('Unhandled promise rejection', event.reason);
-    
-    // Convert rejection reason to Error if it's not already
-    const error = event.reason instanceof Error 
-      ? event.reason 
-      : new Error(String(event.reason));
-    
-    // Capture exception in error tracking
-    errorTracker.captureException(error, {
-      type: 'unhandledrejection',
-      reason: event.reason,
-    }).catch(() => {
-      // Silently fail if error tracking fails
-    });
-    
-    // Prevent default browser error handling in production
-    event.preventDefault();
-  });
 }
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import { ThemeProvider } from "@gravity-ui/uikit";

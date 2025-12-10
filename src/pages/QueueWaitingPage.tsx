@@ -150,15 +150,15 @@ export default function QueueWaitingPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen w-screen bg-[#0045FF]">
-      <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-62">
+    <div className="flex flex-col h-[1024px] w-[1280px] bg-[#0045FF] overflow-hidden">
+      <div className="w-full flex-shrink-0 h-64">
         <img 
           src={gazpromHeader} 
           alt="Header" 
           className="w-full h-full object-cover"
         />
       </div>
-      <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>
         <div className="flex flex-col items-center justify-center max-w-4xl px-8 text-center z-10">
           <div className="flex items-center justify-center gap-3 mb-6">
             <div className="w-4 h-4 bg-green-400 rounded-full"></div>

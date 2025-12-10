@@ -55,15 +55,15 @@ export default function ErrorPaymentPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen w-screen bg-gray-100 bg-[#0045FF]">
-        <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-62">
+    <div className="flex flex-col h-[1024px] w-[1280px] bg-gray-100 bg-[#0045FF] overflow-hidden">
+        <div className="w-full flex-shrink-0 h-64">
         <img 
           src={gazpromHeader} 
           alt="Header" 
           className="w-full h-full object-cover"
         />
       </div>
-      <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative">
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>
         <div className="flex flex-col items-center justify-center max-w-4xl px-8">
           <div className="mb-8">
             <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-lg">

@@ -26,7 +26,6 @@ export default function CardPayPage() {
     handleRetry,
     timeUntilRobotStart,
     paymentError,
-    simulateCardTap,
     queueFull,
     bankCheck
   } = usePaymentProcessing(EPaymentMethod.CARD);
@@ -137,21 +136,12 @@ export default function CardPayPage() {
                     <div className="text-gray-600 text-lg">
                       {t("Дождитесь подтверждения оплаты")}
                     </div>
-                    {import.meta.env.DEV && simulateCardTap && (
-                      <button
-                        onClick={simulateCardTap}
-                        className="mt-6 px-6 py-3 bg-green-500 text-white rounded-xl font-semibold text-sm hover:bg-green-600 transition-all duration-300 shadow-lg opacity-70 hover:opacity-100"
-                        title="Test: Simulate card tap"
-                      >
-                        🧪 TEST: Simulate Card Tap
-                      </button>
-                    )}
                   </div>
                 </div>
               )}
 
             <div className="w-96 bg-[#0967E1] text-white flex flex-col">
-              <div className="py-3 px-6 h-full flex flex-col justify-start gap-6">
+              <div className="pt-3 px-6 h-full flex flex-col justify-start">
                 <div className="flex flex-col items-center">
                   <div className="text-white/80 text-[20px] font-medium">{t("Поддерживаемые карты")}</div>
                   <div className="grid grid-cols-3 gap-3 place-items-center">
@@ -165,16 +155,16 @@ export default function CardPayPage() {
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="bg-white/10 p-4 rounded-2xl">
-                    <div className="text-white/80 text-sm mb-2">{t("Программа")}</div>
-                    <div className="text-white font-semibold text-lg">{t(`${selectedProgram?.name}`)}</div>
+                <div>
+                  <div className="bg-white/10 p-4 rounded-2xl text-center">
+                    <div className="text-white/80 text-sm mb-2 text-center">{t("Программа")}</div>
+                    <div className="text-white font-semibold text-lg text-center">{t(`${selectedProgram?.name}`)}</div>
                   </div>
 
-                  <div className="bg-white/10 p-6 rounded-2xl">
+                  <div className="mt-3 bg-white/10 p-6 rounded-2xl">
                     <div className="flex justify-center">
 
-                      <div className="text-white/80 text-sm mb-3 flex gap-2 items-center">
+                      <div className="text-white/80 text-sm mb-3 flex gap-2 items-center text-center">
                         <CreditCard />
                         {paymentSuccess && !paymentError && !queueFull 
                           ? t("Оплачено") 
@@ -183,14 +173,14 @@ export default function CardPayPage() {
                           : t("К оплате")}
                       </div>
                     </div>
-                    <div className="text-white font-bold text-5xl">
+                    <div className="text-white font-bold text-5xl text-center">
                       {selectedProgram?.price} {t("р.")}
                     </div>
                   </div>
 
                   {paymentSuccess && !paymentError && !queueFull
                     ? (
-                      <div className="flex flex-col items-center">
+                      <div className="mt-3 flex flex-col items-center">
                         {!isReceiptReady && (
                           <div className="text-white/80 text-sm mb-2 flex items-center gap-2">
                             <Spin size="xs" />
@@ -216,7 +206,7 @@ export default function CardPayPage() {
                       </div>
                     )
                     : isPaymentProcessing ? (
-                      <div className="inline-flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
+                      <div className="mt-3 inline-flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
                         <div className="text-white">
                           <Spin size="s" />
                         </div>
@@ -225,7 +215,7 @@ export default function CardPayPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="inline-flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
+                      <div className="mt-3 flex items-center justify-center gap-2 bg-white/20 px-4 py-2 rounded-full w-full">
                         <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
                         <div className="text-white/90 text-sm font-medium">
                           {t("Ожидание карты...")}

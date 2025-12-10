@@ -12,8 +12,8 @@ export default function InstructionLayout({
   const { t } = useTranslation();
   
   return (
-    <main className=" w-screen min-h-screen bg-white">
-      <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-62">
+    <main className="h-[1024px] w-[1280px] bg-white overflow-hidden">
+      <div className="w-full flex-shrink-0 h-64">
         <img 
           src={gazpromHeader} 
           alt="Header" 
@@ -21,7 +21,7 @@ export default function InstructionLayout({
         />
       </div>
       <HeaderWithLogo title={t("Инструкция")} isInstructionPage={true} /> 
-      <div>{children}</div>
+      <div className="overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>{children}</div>
     </main>
   );
 }

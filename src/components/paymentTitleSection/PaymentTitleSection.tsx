@@ -14,7 +14,7 @@ export default function PaymentTitleSection(props: IPaymentTitleSectionProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="text-center py-8 bg-white shadow-sm">
+    <div className="text-center py-4 bg-white shadow-sm">
       <div className="flex items-center justify-center gap-3 mb-4">
         {props.icon && (
           <Icon

@@ -42,8 +42,8 @@ export default function MainPage() {
   }, [order, navigate, setErrorCode])
 
   return (
-    <div className="flex flex-col min-h-screen w-screen bg-gray-200">
-      <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-62">
+    <div className="flex flex-col h-[1024px] w-[1280px] bg-gray-200 overflow-hidden">
+      <div className="w-full flex-shrink-0 h-64">
         <img 
           src={gazpromHeader} 
           alt="Header" 
@@ -51,14 +51,14 @@ export default function MainPage() {
         />
       </div>
       
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>
         <HeaderWithLogo isMainPage={true} title={t("Выберите программу")} /> 
 
-        <div className="flex-1 px-7 pb-7">
+        <div className="flex-1 px-7 pb-7 overflow-hidden">
           <div className="flex flex-col h-full">
             
             {programs && (
-              <div className="flex-1 flex flex-col justify-center">
+              <div className="flex-1 flex flex-col justify-center overflow-hidden">
                 <div
                   className={`w-full snap-x`}
                 >

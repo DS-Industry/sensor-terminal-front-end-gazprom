@@ -14,7 +14,7 @@ import gazpromHeader from "../assets/gazprom-step-2-header.png";
 export default function SuccessPaymentPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { setIsLoading, order, isLoading } = useStore();
+  const { setIsLoading, order, isLoading, queuePosition } = useStore();
   
   const [displayText, setDisplayText] = useState(t("Можете проезжать в бокс!"));
   const robotStartedRef = useRef(false);
@@ -147,13 +147,6 @@ export default function SuccessPaymentPage() {
       setIsLoading(false);
       setDisplayText(t("Можете проезжать в бокс!"));
     }
-    
-    // Update display text after 10 seconds
-    timersRef.current.textTimer = setTimeout(() => {
-      if (isMountedRef.current) {
-        setDisplayText(t("Идёт мойка..."));
-      }
-    }, 10000);
 
     // Fallback navigation timer (12 seconds) - only set if order is not PROCESSING
     // (PROCESSING status is handled by the first useEffect to avoid duplicate timers)
@@ -198,8 +191,8 @@ export default function SuccessPaymentPage() {
   }, [setIsLoading, t, navigateWithGuard, order?.status]);
 
   return (
-    <div className="flex flex-col min-h-screen w-screen bg-gray-100 bg-[#0045FF]">
-       <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-62">
+    <div className="flex flex-col h-[1024px] w-[1280px] bg-gray-100 bg-[#0045FF] overflow-hidden">
+       <div className="w-full flex-shrink-0 h-64">
         <img 
           src={gazpromHeader} 
           alt="Header" 
@@ -207,7 +200,7 @@ export default function SuccessPaymentPage() {
         />
       </div>
 
-      <div className="flex-1 flex flex-col items-start justify-center bg-[#0045FF] relative overflow-x-visible overflow-y-hidden">
+      <div className="flex-1 flex flex-col items-start justify-center bg-[#0045FF] relative overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>
         <div className="flex flex-col items-center gap-6 z-10 p-6">
           <div className="bg-[#89BAFB4D] rounded-3xl px-12 py-8">
             <h1 className="text-white text-6xl font-bold flex items-center justify-center gap-3">
@@ -216,16 +209,16 @@ export default function SuccessPaymentPage() {
             </h1>
           </div>
           
-          <div className="bg-[#89BAFB4D] rounded-2xl px-8 py-4 flex items-center gap-3">
+          {queuePosition === null || queuePosition === 0 ? <div className="bg-[#89BAFB4D] rounded-2xl px-8 py-4 flex items-center gap-3">
             <div className="w-4 h-4 bg-[#15FF00] rounded-full flex-shrink-0"></div>
             <p className="text-white text-2xl font-semibold">
               {t("Оплата успешна!")}
             </p>
-          </div>
+          </div> : null}
         </div>
 
         <div className="relative w-full h-[600px] flex items-end justify-end pr-0 overflow-x-visible overflow-y-hidden">
-          <div className="absolute -bottom-35 left-0 z-20 car-drive-animation">
+          <div className="absolute -bottom-45 left-0 z-20 car-drive-animation">
             <img
               src={CarImage}
               alt="Car"
@@ -233,7 +226,7 @@ export default function SuccessPaymentPage() {
             />
           </div>
 
-          <div className="relative z-99 w-full min-h-[900px] flex items-end justify-end pr-0 overflow-x-visible overflow-y-hidden">
+          <div className="relative z-99 w-full -bottom-30 min-h-[900px] flex items-end justify-end pr-0 overflow-x-visible overflow-y-hidden">
 
             <img
               src={BoxImage}

@@ -119,8 +119,8 @@ export default function WashingInProgressPage() {
   const shouldShowPayInAdvance = true
 
   return (
-    <div className="flex flex-col min-h-screen w-screen bg-gray-100 bg-[#0045FF]">
-        <div className="w-full flex-shrink-0 h-48 md:h-64 lg:h-62">
+    <div className="flex flex-col h-[1024px] w-[1280px] bg-gray-100 bg-[#0045FF] overflow-hidden">
+        <div className="w-full flex-shrink-0 h-64">
             <img 
             src={gazpromHeader} 
             alt="Header" 
@@ -128,7 +128,7 @@ export default function WashingInProgressPage() {
             />
         </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative overflow-x-visible overflow-y-hidden">
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>
         <div className="flex flex-col items-center justify-center max-w-4xl px-8 text-center z-10">
             <div className="bg-[#89BAFB4D] rounded-2xl py-4 px-10 flex items-center gap-3 mb-6 mt-3">
                 <h1 className="text-white text-6xl font-bold flex items-center">

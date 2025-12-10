@@ -14,9 +14,9 @@ export default function InstructionPage() {
   
   return (
     <InstructionLayout>
-      <div className="bg-white min-h-screen w-full">
-        <div className="flex flex-row gap-12 px-16 py-12">
-          <div className="flex-1">
+      <div className="bg-white h-full w-full overflow-hidden">
+        <div className="flex flex-row gap-12 px-16 py-12 h-full">
+          <div className="flex-1 overflow-scroll">
             <ul className="flex flex-col gap-10">
               <li className="flex flex-row items-center gap-5">
                 <div className="flex items-center justify-center w-[38px] h-[38px] rounded-full bg-[#0B68E1] text-white text-xl font-inter-bold flex-shrink-0">
