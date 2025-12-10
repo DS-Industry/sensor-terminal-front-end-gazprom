@@ -18,8 +18,12 @@ type EventListener = (data: WebSocketMessage) => void;
 class WebSocketManager {
   private ws: WebSocket | null = null;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectInterval = 5000;
+  private consecutiveFailures = 0;
+  // Exponential backoff configuration
+  private minReconnectInterval = 5000;     // 5 seconds minimum
+  private maxReconnectInterval = 60000;    // 60 seconds maximum
+  private longRetryInterval = 300000;      // 5 minutes for periodic retry after many failures
+  private periodicRetryThreshold = 20;    // Switch to periodic retry after this many failures
   private listeners: Map<WebSocketEvent, EventListener[]> = new Map();
   public isConnected = false;
   private connectionTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -43,7 +47,9 @@ class WebSocketManager {
         logger.debug('Page visible - checking WebSocket connection');
         if (!this.isConnected && !this.isConnecting) {
           logger.info('Reconnecting WebSocket after page became visible');
-          this.reconnectAttempts = 0; 
+          // Reset counters when page becomes visible - gives fresh start
+          this.reconnectAttempts = 0;
+          this.consecutiveFailures = 0;
           this.connect();
         }
       }
@@ -108,7 +114,9 @@ class WebSocketManager {
         this.isConnecting = false;
         this.connectionId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         logger.info(`Global WebSocket connected [${this.connectionId}]`);
+        // Reset counters on successful connection
         this.reconnectAttempts = 0;
+        this.consecutiveFailures = 0;
         this.isConnected = true;
         this.startHealthCheck();
       };
@@ -165,8 +173,8 @@ class WebSocketManager {
           logger.warn('WebSocket health check: connection is closed, reconnecting...');
           this.isConnected = false;
           this.stopHealthCheck();
-          this.reconnectAttempts = 0; 
-          this.connect();
+          // Don't reset reconnectAttempts here - let exponential backoff handle it
+          this.handleReconnect();
         } else if (this.ws.readyState === WebSocket.OPEN) {
           try {
             this.ws.send(JSON.stringify({ type: 'ping' }));
@@ -185,22 +193,53 @@ class WebSocketManager {
     }
   }
 
+  /**
+   * Calculate exponential backoff delay for reconnection attempts
+   * Formula: minInterval * 2^attempt, capped at maxInterval
+   * Examples: 5s, 10s, 20s, 40s, 60s, 60s, 60s...
+   */
+  private getReconnectDelay(attempt: number): number {
+    const exponentialDelay = Math.min(
+      this.minReconnectInterval * Math.pow(2, attempt),
+      this.maxReconnectInterval
+    );
+    return exponentialDelay;
+  }
+
   private handleReconnect() {
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
 
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      logger.info(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    this.reconnectAttempts++;
+    this.consecutiveFailures++;
+
+    // After many consecutive failures, switch to periodic retry (every 5 minutes)
+    // This prevents excessive resource usage during extended outages
+    if (this.consecutiveFailures > this.periodicRetryThreshold) {
+      const delaySeconds = Math.round(this.longRetryInterval / 1000);
+      logger.warn(
+        `Many consecutive failures (${this.consecutiveFailures}), switching to periodic retry every ${delaySeconds}s`
+      );
       
       this.reconnectTimeout = setTimeout(() => {
         this.reconnectTimeout = null;
         this.connect();
-      }, this.reconnectInterval);
+      }, this.longRetryInterval);
     } else {
-      logger.error('Max reconnection attempts reached');
+      // Normal exponential backoff
+      const delay = this.getReconnectDelay(this.reconnectAttempts);
+      const delaySeconds = Math.round(delay / 1000);
+      
+      logger.info(
+        `Reconnecting in ${delaySeconds}s... (attempt ${this.reconnectAttempts}, consecutive failures: ${this.consecutiveFailures})`
+      );
+      
+      this.reconnectTimeout = setTimeout(() => {
+        this.reconnectTimeout = null;
+        this.connect();
+      }, delay);
     }
   }
 
@@ -265,6 +304,9 @@ class WebSocketManager {
     this.isConnected = false;
     this.isConnecting = false;
     this.connectionId = null;
+    // Reset counters on manual close
+    this.reconnectAttempts = 0;
+    this.consecutiveFailures = 0;
   }
 }
 
