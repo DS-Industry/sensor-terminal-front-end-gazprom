@@ -130,8 +130,8 @@ export default function WashingInProgressPage() {
 
       <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>
         <div className="flex flex-col items-center justify-center max-w-4xl px-8 text-center z-10">
-            <div className="bg-[#89BAFB4D] rounded-2xl py-4 px-10 flex items-center gap-3 mb-6 mt-3">
-                <h1 className="text-white text-6xl font-bold flex items-center">
+            <div className="bg-[#89BAFB4D] rounded-2xl py-4 px-10 flex items-center gap-3 mb-6 mt-3 w-[727px] text-center justify-center">
+                <h1 className="text-white text-6xl font-bold flex items-center justify-center text-center">
                     {t("Идёт мойка...")}
                 </h1>
             </div>
@@ -155,11 +155,11 @@ export default function WashingInProgressPage() {
         </div>
 
         <div className="relative w-full h-[400px] flex items-end justify-end pr-0 overflow-hidden">
-          <div className="absolute -bottom-8 left-0 z-20 car-drive-animation-success">
+          <div className="absolute -bottom-20 left-0 z-20 car-drive-animation-success">
             <img
               src={CarImage}
               alt="Car"
-              className="w-auto h-[600px] md:h-[600px] object-contain"
+              className="w-auto h-[700px] md:h-[700px] object-contain"
             />
           </div>
         </div>
