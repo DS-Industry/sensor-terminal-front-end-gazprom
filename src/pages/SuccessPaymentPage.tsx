@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import useStore from "../components/state/store";
 import { EOrderStatus } from "../components/state/order/orderSlice";
@@ -11,11 +10,10 @@ import { navigateToWashing, navigateToMain } from "../utils/navigation";
 import gazpromHeader from "../assets/gazprom-step-2-header.webp";
 
 export default function SuccessPaymentPage() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const { setIsLoading, order, queuePosition } = useStore();
   
-  const [displayText, setDisplayText] = useState(t("Можете проезжать в бокс!"));
+  const [displayText, setDisplayText] = useState("Можете проезжать в бокс!");
   const robotStartedRef = useRef(false);
 
   useEffect(() => {
@@ -70,8 +68,8 @@ export default function SuccessPaymentPage() {
 
   useEffect(() => {
     setIsLoading(false);
-    setDisplayText(t("Можете проезжать в бокс!"));
-  }, [setIsLoading, t]);
+    setDisplayText("Можете проезжать в бокс!");
+  }, [setIsLoading]);
 
   return (
     <div className="flex flex-col h-[1024px] w-[1280px] bg-gray-100 bg-[#0045FF] overflow-hidden">
@@ -87,7 +85,7 @@ export default function SuccessPaymentPage() {
         <div className="flex flex-col items-center gap-6 z-10 p-6">
           <div className="bg-[#89BAFB4D] rounded-3xl px-12 py-8">
             <h1 className="text-white text-6xl font-bold flex items-center justify-center gap-3">
-              {t(displayText)}
+              {displayText}
               <span className="text-white text-5xl"></span>
             </h1>
           </div>
@@ -95,7 +93,7 @@ export default function SuccessPaymentPage() {
           {queuePosition === null || queuePosition === 0 ? <div className="bg-[#89BAFB4D] rounded-2xl px-8 py-4 flex items-center gap-3">
             <div className="w-4 h-4 bg-[#15FF00] rounded-full flex-shrink-0"></div>
             <p className="text-white text-2xl font-semibold">
-              {t("Оплата успешна!")}
+              Оплата успешна!
             </p>
           </div> : null}
         </div>

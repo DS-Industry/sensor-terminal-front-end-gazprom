@@ -5,10 +5,8 @@ import Stop from "./../assets/red-close.svg";
 import Cycle from "./../assets/cycle.svg";
 import CheckMark from "./../assets/Success_perspective_matte 1.svg";
 import CarInstruction from "./../assets/car-instruction.svg";
-import { Trans, useTranslation } from "react-i18next";
 
 export default function InstructionPage() {
-  const { t } = useTranslation();
   
   return (
     <InstructionLayout>
@@ -26,7 +24,7 @@ export default function InstructionPage() {
                   className="w-12 h-12 flex-shrink-0"
                 />
                 <p className="text-lg text-left text-black flex-1" style={{ fontSize: '18px', lineHeight: '1.4' }}>
-                  {t("instruction_new_step1")}
+                  Выберите программу мойки и произведите оплату удобным для Вас способом
                 </p>
               </li>
 
@@ -40,12 +38,7 @@ export default function InstructionPage() {
                   className="w-12 h-12 flex-shrink-0"
                 />
                 <p className="text-lg text-left flex-1" style={{ fontSize: '18px', color: '#000000', lineHeight: '1.4' }}>
-                  <Trans 
-                    i18nKey="instruction_new_step2"
-                    components={{
-                      highlight: <span className="font-bold" style={{ color: '#00B600', fontSize: '20px', display: 'inline' }} />
-                    }}
-                  />
+                  Закройте окна. Начинайте движение, после того, как на цифровом табло загорится надпись <span className="font-bold" style={{ color: '#00B600', fontSize: '20px', display: 'inline' }}>ПРОЕЗЖАЙТЕ В БОКС</span>
                 </p>
               </li>
 
@@ -59,12 +52,7 @@ export default function InstructionPage() {
                   className="w-12 h-12 flex-shrink-0"
                 />
                 <p className="text-lg text-left flex-1" style={{ fontSize: '18px', color: '#000000', lineHeight: '1.4' }}>
-                  <Trans 
-                    i18nKey="instruction_new_step3"
-                    components={{
-                      highlight: <span className="font-bold" style={{ color: '#0967E1', fontSize: '20px', display: 'inline' }} />
-                    }}
-                  />
+                  Перед началом основной мойки в программах Стандарт и Премиум, при въезде в бокс, вода подается на днище машины. <span className="font-bold" style={{ color: '#0967E1', fontSize: '20px', display: 'inline' }}>МЕДЛЕННО ПРОЕЗЖАЙТЕ</span> над зоной распыления воды, чтобы помыть днище машины и диски
                 </p>
               </li>
 
@@ -78,7 +66,7 @@ export default function InstructionPage() {
                   className="w-12 h-12 flex-shrink-0"
                 />
                 <p className="text-lg text-left text-black flex-1" style={{ fontSize: '18px', lineHeight: '1.4' }}>
-                  {t("instruction_new_step4")}
+                  Когда мойка днища завершится, проезжайте дальше в центр бокса. Расположите автомобиль по центру бокса. Когда на цифровом табло загорится надпись «Стоп» - завершите движение Заглушите двигатель
                 </p>
               </li>
 
@@ -92,7 +80,7 @@ export default function InstructionPage() {
                   className="w-12 h-12 flex-shrink-0"
                 />
                 <p className="text-lg text-left text-black flex-1" style={{ fontSize: '18px', lineHeight: '1.4' }}>
-                  {t("instruction_new_step5")}
+                  Консоли, подающие воду и моющие средства, пройдут необходимое количество циклов вокруг автомобиля, согласно выбранной программе
                 </p>
               </li>
 
@@ -106,7 +94,7 @@ export default function InstructionPage() {
                   className="w-12 h-12 flex-shrink-0"
                 />
                 <p className="text-lg text-left text-black flex-1" style={{ fontSize: '18px', lineHeight: '1.4' }}>
-                  {t("instruction_new_step6")}
+                  По окончании мойки следуйте указаниям на цифровом табло и голосовым сигналам, можете выезжть из бокса
                 </p>
               </li>
             </ul>
@@ -124,17 +112,17 @@ export default function InstructionPage() {
             <div className="flex flex-col gap-2 w-full">
               <div>
                 <p className="text-start font-bold text-lg">
-                  {t("Ширина")}: {t("до")} 2,6 м
+                  Ширина: до 2,6 м
                 </p>
               </div>
               <div>
                 <p className="text-start font-bold text-lg">
-                  {t("Длина")}: {t("до")} 6,25 м
+                  Длина: до 6,25 м
                 </p>
               </div>
               <div>
                 <p className="text-start font-bold text-lg">
-                  {t("Высота")}: {t("до")} 2 м
+                  Высота: до 2 м
                 </p>
               </div>
             </div>

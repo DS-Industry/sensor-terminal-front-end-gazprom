@@ -3,7 +3,6 @@ import ReactDOM from "react-dom/client";
 import MainPage from "./pages/MainPage.tsx";
 import "./index.css";
 import "./styles/styles.css";
-import "./i18n/index.ts";
 import "./config/env";
 
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";

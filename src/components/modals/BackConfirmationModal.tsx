@@ -1,12 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useTranslation } from 'react-i18next';
 import { Icon } from '@gravity-ui/uikit';
 import {ArrowShapeTurnUpLeft} from '@gravity-ui/icons';
 import useStore from '../state/store';
 
 export function BackConfirmationModal() {
-  const { t } = useTranslation();
   const {
     isBackConfirmationModalOpen,
     closeBackConfirmationModal,
@@ -61,16 +59,16 @@ export function BackConfirmationModal() {
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-[40px] font-bold mb-12 text-gray-900">
-          {t("Подтверждение возврата")}
+          Подтверждение возврата
         </h2>
         
         <div className="flex items-start justify-between mb-16 gap-8">
           <div className="flex-1">
             <p className="text-[25px] text-gray-900 mb-4">
-              {t("Вы действительно хотите вернуться назад?")}
+              Вы действительно хотите вернуться назад?
             </p>
             <p className="text-[25px] text-gray-900">
-              {t("Внесённые средства будут утрачены!")}
+              Внесённые средства будут утрачены!
             </p>
           </div>
         </div>
@@ -82,13 +80,13 @@ export function BackConfirmationModal() {
             onClick={handleConfirm}
           >
             <Icon data={ArrowShapeTurnUpLeft} size={24} className="text-white" />
-            {t("Да, вернуться")}
+            Да, вернуться
           </button>
           <button
             className="rounded-3xl text-gray-900 font-bold text-[20px] transition-all duration-300 hover:bg-gray-100 border-2 border-gray-300 w-[400px] h-[58px] justify-center"
             onClick={handleCancel}
           >
-            {t("Отменить")}
+            Отменить
           </button>
         </div>
       </div>

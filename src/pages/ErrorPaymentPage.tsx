@@ -1,4 +1,3 @@
-import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import useStore from "../components/state/store";
 import { useEffect, useRef, useCallback } from "react";
@@ -11,7 +10,6 @@ import { navigateToMain } from "../utils/navigation";
 const IDLE_TIMEOUT = 5000;
 
 export default function ErrorPaymentPage() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const { 
     setIsLoading, 
@@ -97,21 +95,21 @@ export default function ErrorPaymentPage() {
         <div className="flex flex-col items-center justify-center z-10 mb-8">
           <div className="bg-[#89BAFB4D] rounded-2xl px-12 py-8 mb-6">
             <h1 className="text-white text-6xl font-bold text-center">
-              {t("Ошибка оплаты!")}
+              Ошибка оплаты!
             </h1>
           </div>
 
           <p className="text-white text-2xl mb-8 text-center max-w-4xl px-8">
-            {t("Пожалуйста обратитесь к оператору")}
+            Пожалуйста обратитесь к оператору
           </p>
 
           <button
             className="px-16 py-6 rounded-full text-[#0B68E1] bg-white font-semibold text-2xl transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg"
             onClick={handleFinish}
-            aria-label={t("Закрыть")}
+            aria-label="Закрыть"
             style={{ borderRadius: '50px' }}
           >
-            {t("Закрыть")}
+            Закрыть
           </button>
         </div>
 

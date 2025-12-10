@@ -3,7 +3,6 @@ import Card from "./../assets/card-big.svg";
 import Mir from "./../assets/mir-logo 1.svg";
 import { FaApplePay, FaGooglePay } from "react-icons/fa6";
 import { RiMastercardLine, RiVisaLine } from "react-icons/ri";
-import { useTranslation } from "react-i18next";
 import { CreditCard } from "@gravity-ui/icons";
 import { Spin } from "@gravity-ui/uikit";
 import PaymentTitleSection from "../components/paymentTitleSection/PaymentTitleSection";
@@ -19,7 +18,6 @@ import { logger } from "../util/logger";
 import { navigateToErrorPayment } from "../utils/navigation";
 
 export default function CardPayPage() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const { setErrorCode } = useStore();
   const hasNavigatedToErrorRef = useRef(false);
@@ -97,8 +95,8 @@ export default function CardPayPage() {
 
         <div className="flex-1 flex flex-col">
           <PaymentTitleSection
-            title={t("Оплата картой")}
-            description={t("Приложите банковскую карту для оплаты")}
+            title="Оплата картой"
+            description="Приложите банковскую карту для оплаты"
             icon={CreditCard}
           />
 
@@ -111,10 +109,10 @@ export default function CardPayPage() {
                   <div className="flex flex-col items-center">
                     <Spin size="xl" />
                     <p className="text-gray-800 text-3xl font-semibold mt-8 mb-4">
-                      {t("Обработка оплаты...")}
+                      Обработка оплаты...
                     </p>
                     <p className="text-gray-600 text-xl font-medium">
-                      {t("Пожалуйста, подождите подтверждения оплаты")}
+                      Пожалуйста, подождите подтверждения оплаты
                     </p>
                   </div>
                 </div>
@@ -122,18 +120,18 @@ export default function CardPayPage() {
                 <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-red-50 to-red-100 px-8">
                   <div className="text-center max-w-2xl">
                     <div className="text-red-600 text-4xl font-bold mb-6">
-                      {t("Очередь заполнена")}
+                      Очередь заполнена
                     </div>
                     <div className="text-gray-800 text-xl mb-8 bg-white p-6 rounded-2xl shadow-lg">
-                      {t("В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.")}
+                      В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.
                     </div>
                     <div className="flex gap-4 justify-center">
                       <button
                         onClick={handleBack}
                         className="px-8 py-4 bg-gray-600 text-white rounded-2xl font-semibold text-lg hover:bg-gray-700 transition-all duration-300 hover:scale-105 shadow-lg"
-                        aria-label={t("Назад")}
+                        aria-label="Назад"
                       >
-                        {t("Назад")}
+                        Назад
                       </button>
                     </div>
                   </div>
@@ -153,10 +151,10 @@ export default function CardPayPage() {
                   </div>
                   <div className="text-center max-w-md">
                     <div className="text-gray-800 text-2xl font-semibold mb-4">
-                      {t("Поднесите карту к терминалу")}
+                      Поднесите карту к терминалу
                     </div>
                     <div className="text-gray-600 text-lg">
-                      {t("Дождитесь подтверждения оплаты")}
+                      Дождитесь подтверждения оплаты
                     </div>
                   </div>
                 </div>
@@ -165,7 +163,7 @@ export default function CardPayPage() {
             <div className="w-96 bg-[#0967E1] text-white flex flex-col">
               <div className="pt-3 px-6 h-full flex flex-col justify-start">
                 <div className="flex flex-col items-center">
-                  <div className="text-white/80 text-[20px] font-medium">{t("Поддерживаемые карты")}</div>
+                  <div className="text-white/80 text-[20px] font-medium">Поддерживаемые карты</div>
                   <div className="grid grid-cols-3 gap-3 place-items-center">
                     <RiMastercardLine className="text-white text-5xl" />
                     <RiVisaLine className="text-white text-5xl" />
@@ -179,8 +177,8 @@ export default function CardPayPage() {
 
                 <div>
                   <div className="bg-white/10 p-4 rounded-2xl text-center">
-                    <div className="text-white/80 text-sm mb-2 text-center">{t("Программа")}</div>
-                    <div className="text-white font-semibold text-lg text-center">{t(`${selectedProgram?.name}`)}</div>
+                    <div className="text-white/80 text-sm mb-2 text-center">Программа</div>
+                    <div className="text-white font-semibold text-lg text-center">{selectedProgram?.name}</div>
                   </div>
 
                   <div className="mt-3 bg-white/10 p-6 rounded-2xl">
@@ -189,14 +187,14 @@ export default function CardPayPage() {
                       <div className="text-white/80 text-sm mb-3 flex gap-2 items-center text-center">
                         <CreditCard />
                         {paymentSuccess && !paymentError && !queueFull 
-                          ? t("Оплачено") 
+                          ? "Оплачено" 
                           : isPaymentProcessing 
-                          ? t("Обработка...") 
-                          : t("К оплате")}
+                          ? "Обработка..." 
+                          : "К оплате"}
                       </div>
                     </div>
                     <div className="text-white font-bold text-5xl text-center">
-                      {selectedProgram?.price} {t("р.")}
+                      {selectedProgram?.price} ₽
                     </div>
                   </div>
 

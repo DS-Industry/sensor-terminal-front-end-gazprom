@@ -1,6 +1,5 @@
 import { PAYS } from "../pays-data";
 import PayCard from "../components/cards/PayCard";
-import { useTranslation } from "react-i18next";
 import { Clock } from "@gravity-ui/icons";
 import { Check } from "lucide-react";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
@@ -13,7 +12,6 @@ import gazpromHeader from "../assets/gazprom-step-2-header.webp";
 const IDLE_TIMEOUT = 30000;
 
 export default function SingleProgramPage() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const { selectedProgram } = useStore();
   const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,7 +50,7 @@ export default function SingleProgramPage() {
 
       <div className="flex-1 flex flex-col bg-gray-200 overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>
 
-        <HeaderWithLogo title={t("Выберите способ оплаты")} />
+        <HeaderWithLogo title="Выберите способ оплаты" />
 
         <div className="flex-1 px-7 pb-7 overflow-hidden">
           {selectedProgram && (
@@ -101,13 +99,13 @@ export default function SingleProgramPage() {
                         <div className="shadow-[0_4px_4px_0_rgba(0,0,0,0.25)] inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 self-start bg-[#5292FF]">
                             <Icon data={Clock} size={18} className="text-white" />
                             <Text className="text-white font-semibold text-sm">
-                              {selectedProgram.duration} {t("мин.")}
+                              {selectedProgram.duration} мин.
                             </Text>
                           </div>
                         </div>
 
                         <h2 className="text-3xl font-bold mb-5 text-white leading-tight text-center">
-                          {t(`${selectedProgram.name}`)}
+                          {selectedProgram.name}
                         </h2>
 
                         <div className="space-y-2.5 mt-4">
@@ -115,7 +113,7 @@ export default function SingleProgramPage() {
                             <div key={index} className="flex items-center gap-2.5">
                               <Check size={18} className="text-white flex-shrink-0 stroke-[3]" />
                               <Text className="text-white font-medium text-sm leading-relaxed">
-                                {t(`${service}`)}
+                                {service}
                               </Text>
                             </div>
                           ))}
@@ -129,13 +127,13 @@ export default function SingleProgramPage() {
                           {Number(selectedProgram.price)}
                         </span>
                         <span className="text-2xl text-gray-500 ml-1 font-semibold">
-                          {t("р.")}
+                          ₽
                         </span>
                       </div>
                       <div className="flex items-center justify-center gap-2">
                         <Check size={18} className="text-green-500 flex-shrink-0 stroke-[3]" />
                         <Text className="text-[#008618] font-semibold text-sm">
-                          {t("Выбранная программа")}
+                          Выбранная программа
                         </Text>
                       </div>
                     </div>

@@ -1,6 +1,5 @@
 import "./../App.css";
 import ProgramCard from "../components/cards/ProgramCard";
-import { useTranslation } from "react-i18next";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 import { usePrograms } from "../hooks/usePrograms";
 import { useEffect } from "react";
@@ -13,7 +12,6 @@ import { logger } from "../util/logger";
 import gazpromHeader from "../assets/gazprom-step-2-header.webp"
 
 export default function MainPage() {
-  const { t } = useTranslation();
   const { programs } = usePrograms();
   const { order, clearOrder, setInsertedAmount, setIsLoading, setErrorCode } = useStore();
   const navigate = useNavigate();
@@ -52,7 +50,7 @@ export default function MainPage() {
       </div>
       
       <div className="flex-1 flex flex-col overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>
-        <HeaderWithLogo isMainPage={true} title={t("Выберите программу")} /> 
+        <HeaderWithLogo isMainPage={true} title="Выберите программу" /> 
 
         <div className="flex-1 px-7 pb-7 overflow-hidden">
           <div className="flex flex-col h-full">
