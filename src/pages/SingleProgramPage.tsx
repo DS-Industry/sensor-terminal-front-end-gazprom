@@ -8,7 +8,7 @@ import { Icon, Text, Card } from "@gravity-ui/uikit";
 import useStore from "../components/state/store";
 import { useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import gazpromHeader from "../assets/gazprom-step-2-header.png";
+import gazpromHeader from "../assets/gazprom-step-2-header.webp";
 
 const IDLE_TIMEOUT = 30000;
 

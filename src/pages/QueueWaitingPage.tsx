@@ -5,11 +5,11 @@ import useStore from "../components/state/store";
 import { EOrderStatus } from "../components/state/order/orderSlice";
 import { Clock } from "@gravity-ui/icons";
 import { Icon } from "@gravity-ui/uikit";
-import CarImage from "../assets/car.png";
+import CarImage from "../assets/car.webp";
 import { logger } from "../util/logger";
 import { globalWebSocketManager, type WebSocketMessage } from "../util/websocketManager";
 import { getOrderById } from "../api/services/payment";
-import gazpromHeader from "../assets/gazprom-step-2-header.png";
+import gazpromHeader from "../assets/gazprom-step-2-header.webp";
 
 export default function QueueWaitingPage() {
   const { t } = useTranslation();

@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { VIDEO_TYPES } from '../hard-data';
-import SpareMedia from '../../assets/spare-media.jpg';
+import SpareMedia from '../../assets/spare-media.webp';
 import { logger } from '../../util/logger';
 
 interface IMediaCampaign {

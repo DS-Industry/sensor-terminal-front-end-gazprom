@@ -3,13 +3,13 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import useStore from "../components/state/store";
 import { EOrderStatus } from "../components/state/order/orderSlice";
-import BoxImage from "../assets/бокс.png";
-import CarImage from "../assets/car.png";
+import BoxImage from "../assets/бокс.webp";
+import CarImage from "../assets/car.webp";
 import { logger } from "../util/logger";
 import { startRobot, getOrderById } from "../api/services/payment";
 import { navigationLock } from "../util/navigationLock";
 
-import gazpromHeader from "../assets/gazprom-step-2-header.png";
+import gazpromHeader from "../assets/gazprom-step-2-header.webp";
 
 export default function SuccessPaymentPage() {
   const { t } = useTranslation();

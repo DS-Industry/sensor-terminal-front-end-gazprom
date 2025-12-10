@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import gazpromHeader from "../assets/gazprom-step-2-header.png";
+import gazpromHeader from "../assets/gazprom-step-2-header.webp";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 
 

@@ -11,7 +11,7 @@ import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 import { EPaymentMethod } from "../components/state/order/orderSlice";
 import { usePaymentProcessing } from "../hooks/usePaymentProcessing";
 import SuccessPayment from "../components/successPayment/SuccessPayment";
-import gazpromHeader from "../assets/gazprom-step-2-header.png"
+import gazpromHeader from "../assets/gazprom-step-2-header.webp"
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import useStore from "../components/state/store";

@@ -10,7 +10,7 @@ import { startRobot } from "../api/services/payment";
 import { useNavigate } from "react-router-dom";
 import { logger } from "../util/logger";
 
-import gazpromHeader from "../assets/gazprom-step-2-header.png"
+import gazpromHeader from "../assets/gazprom-step-2-header.webp"
 
 export default function MainPage() {
   const { t } = useTranslation();
