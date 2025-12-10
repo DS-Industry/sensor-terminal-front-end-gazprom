@@ -58,7 +58,7 @@ export default function SingleProgramPage() {
           {selectedProgram && (
             <div className="flex flex-col h-full">
 
-              <div className="flex flex-row gap-6 justify-center items-start">
+              <div className="flex flex-row gap-6 justify-center items-center">
                 <div className="w-80 flex-shrink-0">
                   <Card className="bg-white rounded-3xl shadow-xl overflow-hidden border-0 h-full"  style={{
                       borderRadius: "20px",
@@ -112,7 +112,7 @@ export default function SingleProgramPage() {
                 </div>
 
                 <div className="flex-1 max-w-4xl">
-                  <div className="flex justify-center">
+                  <div className="flex justify-center items-center gap-6">
                     {PAYS.map((pay) => (
                       <PayCard
                         key={pay.endPoint}
