@@ -36,26 +36,59 @@ export default function ProgramCard(program: IProgram) {
         }
       }}
     >
-      <div className="flex-shrink-0 h-96 p-4 relative flex flex-col bg-gradient-to-br from-blue-500 to-blue-600">
-        <div className="shadow-[0_4px_4px_0_rgba(0,0,0,0.25)] inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 self-start bg-white/20 backdrop-blur-sm border border-white/10">
-          <Clock className="w-4 h-4 text-white" />
-          <span className="text-sm font-medium text-white">{program.duration} мин.</span>
+      <div 
+        className="flex-shrink-0 h-96 p-4 relative flex flex-col overflow-hidden"
+        style={{
+          background: 'linear-gradient(to right, #47BDF0, #D632EC)'
+        }}
+      >
+        {/* Animated blurred shapes */}
+        <div 
+          className="absolute rounded-full opacity-70 blur-3xl animated-blob-1"
+          style={{
+            background: '#D632EC',
+            width: '320px',
+            height: '320px',
+            top: '5%',
+            left: '50%',
+            animation: 'blobMove1 6s ease-in-out infinite',
+            willChange: 'transform',
+          }}
+        />
+        <div 
+          className="absolute rounded-full opacity-70 blur-3xl animated-blob-2"
+          style={{
+            background: '#47BDF0',
+            width: '360px',
+            height: '360px',
+            bottom: '5%',
+            left: '5%',
+            animation: 'blobMove2 8s ease-in-out infinite',
+            willChange: 'transform',
+          }}
+        />
+        
+        <div className="relative z-10">
+          <div className="shadow-[0_4px_4px_0_rgba(0,0,0,0.25)] inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 self-start bg-white/20 backdrop-blur-sm border border-white/10">
+            <Clock className="w-4 h-4 text-white" />
+            <span className="text-sm font-medium text-white">{program.duration} мин.</span>
+          </div>
+
+          <h2 className="text-3xl font-bold mb-5 text-balance leading-tight text-white whitespace-nowrap text-center">{t(`${program.name}`)}</h2>
+
+          <div className="flex-1">
+            <ul className="space-y-2">
+              {program.functions && program.functions.split(", ").map((service, index) => (
+                <li key={index} className="flex items-center gap-3">
+                  <Check className="w-4 h-4 text-white flex-shrink-0" strokeWidth={3} />
+                  <span className="text-sm font-medium text-white">{t(`${service}`)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        <h2 className="text-3xl font-bold mb-5 text-balance leading-tight text-white whitespace-nowrap text-center">{t(`${program.name}`)}</h2>
-
-        <div className="flex-1">
-          <ul className="space-y-2">
-            {program.functions && program.functions.split(", ").map((service, index) => (
-              <li key={index} className="flex items-center gap-3">
-                <Check className="w-4 h-4 text-white flex-shrink-0" strokeWidth={3} />
-                <span className="text-sm font-medium text-white">{t(`${service}`)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="absolute top-6 right-6 flex gap-1.5">
+        <div className="absolute top-6 right-6 flex gap-1.5 z-10">
           <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
           <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
         </div>
