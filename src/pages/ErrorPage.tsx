@@ -10,10 +10,11 @@ import { logger } from "../util/logger";
 
 const IDLE_TIMEOUT = 5000;
 
-export default function ErrorPaymentPage() {
+export default function ErrorPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { 
+    errorCode, 
     setIsLoading, 
     order, 
     clearOrder, 
@@ -26,7 +27,7 @@ export default function ErrorPaymentPage() {
   const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleFinish = useCallback(async () => {
-    logger.info('[ErrorPaymentPage] Handling close - cleaning up everything');
+    logger.info('[ErrorPage] Handling close - cleaning up everything');
     
     // Clear idle timeout
     if (idleTimeoutRef.current) {
@@ -38,9 +39,9 @@ export default function ErrorPaymentPage() {
     if (order?.id) {
       try {
         await cancelOrder(order.id);
-        logger.info('[ErrorPaymentPage] Order cancelled on close');
+        logger.info('[ErrorPage] Order cancelled on close');
       } catch (error) {
-        logger.error('[ErrorPaymentPage] Error cancelling order on close', error);
+        logger.error('[ErrorPage] Error cancelling order on close', error);
       }
     }
 
@@ -54,8 +55,8 @@ export default function ErrorPaymentPage() {
     setIsLoading(false);
     
     // Navigate to main page
-    logger.info('[ErrorPaymentPage] Navigating to main page after cleanup');
-    navigationLock.navigateWithLock(navigate, "/", 'ErrorPaymentPage: close button - full cleanup');
+    logger.info('[ErrorPage] Navigating to main page after cleanup');
+    navigationLock.navigateWithLock(navigate, "/", 'ErrorPage: close button - full cleanup');
   }, [
     navigate, 
     order, 
@@ -87,7 +88,6 @@ export default function ErrorPaymentPage() {
     };
   }, [handleFinish, setIsLoading]);
 
-
   return (
     <div className="flex flex-col h-[1024px] w-[1280px] bg-[#0045FF] overflow-hidden">
       <div className="w-full flex-shrink-0 h-64">
@@ -102,13 +102,13 @@ export default function ErrorPaymentPage() {
         <div className="flex flex-col items-center justify-center z-10 mb-8">
           <div className="bg-[#89BAFB4D] rounded-2xl px-12 py-8 mb-6">
             <h1 className="text-white text-6xl font-bold text-center">
-              {t("Ошибка оплаты!")}
+              {t("Ошибка запуска робота!")}
             </h1>
           </div>
 
           {/* Instruction text */}
           <p className="text-white text-2xl mb-8 text-center max-w-4xl px-8">
-            {t("Пожалуйста обратитесь к оператору")}
+            {t("Проверьте баланс карты или обратитесь к оператору")}
           </p>
 
           {/* Close button - oval/rounded */}
@@ -120,6 +120,7 @@ export default function ErrorPaymentPage() {
           >
             {t("Закрыть")}
           </button>
+
         </div>
 
         {/* Error image (red stop sign) positioned in bottom right */}

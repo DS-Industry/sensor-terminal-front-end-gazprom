@@ -12,10 +12,17 @@ import { EPaymentMethod } from "../components/state/order/orderSlice";
 import { usePaymentProcessing } from "../hooks/usePaymentProcessing";
 import SuccessPayment from "../components/successPayment/SuccessPayment";
 import gazpromHeader from "../assets/gazprom-step-2-header.png"
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import useStore from "../components/state/store";
+import { navigationLock } from "../util/navigationLock";
+import { logger } from "../util/logger";
 
 export default function CardPayPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { setErrorCode } = useStore();
+  const hasNavigatedToErrorRef = useRef(false);
 
   const { 
     selectedProgram, 
@@ -23,7 +30,6 @@ export default function CardPayPage() {
     paymentSuccess,
     isPaymentProcessing,
     handleStartRobot,
-    handleRetry,
     timeUntilRobotStart,
     paymentError,
     queueFull,
@@ -32,6 +38,17 @@ export default function CardPayPage() {
 
   // Track if receipt is ready (with timeout similar to SuccessPayment)
   const [isReceiptReady, setIsReceiptReady] = useState(false);
+
+  useEffect(() => {
+    if (paymentError && !queueFull && !hasNavigatedToErrorRef.current) {
+      logger.info('[CardPayPage] Payment error detected, navigating to ErrorPaymentPage');
+      hasNavigatedToErrorRef.current = true;
+      setErrorCode(1002);
+      navigationLock.navigateWithLock(navigate, '/error-payment', 'CardPayPage: payment error');
+    } else if (!paymentError) {
+      hasNavigatedToErrorRef.current = false;
+    }
+  }, [paymentError, queueFull, navigate, setErrorCode]);
 
   useEffect(() => {
     // If receipt already exists, it's ready
@@ -84,28 +101,16 @@ export default function CardPayPage() {
                     </p>
                   </div>
                 </div>
-              ) : paymentError || queueFull ? (
+              ) : queueFull ? (
                 <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-red-50 to-red-100 px-8">
                   <div className="text-center max-w-2xl">
                     <div className="text-red-600 text-4xl font-bold mb-6">
-                      {queueFull ? t("Очередь заполнена") : t("Ошибка оплаты")}
+                      {t("Очередь заполнена")}
                     </div>
                     <div className="text-gray-800 text-xl mb-8 bg-white p-6 rounded-2xl shadow-lg">
-                      {queueFull 
-                        ? t("В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.")
-                        : paymentError || t("Произошла неизвестная ошибка")
-                      }
+                      {t("В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.")}
                     </div>
                     <div className="flex gap-4 justify-center">
-                      {!queueFull && (
-                        <button
-                          onClick={handleRetry}
-                          className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-semibold text-lg hover:bg-blue-700 transition-all duration-300 hover:scale-105 shadow-lg"
-                          aria-label={t("Повторить")}
-                        >
-                          {t("Повторить")}
-                        </button>
-                      )}
                       <button
                         onClick={handleBack}
                         className="px-8 py-4 bg-gray-600 text-white rounded-2xl font-semibold text-lg hover:bg-gray-700 transition-all duration-300 hover:scale-105 shadow-lg"

@@ -16,6 +16,7 @@ import SingleProgramPage from "./pages/SingleProgramPage.tsx";
 import InstructionPage from "./pages/InstructionPage.tsx";
 import CardPayPage from "./pages/CardPayPage.tsx";
 import SuccessPaymentPage from "./pages/SuccessPaymentPage.tsx";
+import ErrorPage from "./pages/ErrorPage.tsx";
 import ErrorPaymentPage from "./pages/ErrorPaymentPage.tsx";
 import WashingInProgressPage from "./pages/WashingInProgressPage.tsx";
 import QueueWaitingPage from "./pages/QueueWaitingPage.tsx";
@@ -68,6 +69,14 @@ const router = createBrowserRouter([
       },
       {
         path: "/error",
+        element: (
+          <PaymentGuard>
+            <ErrorPage />
+          </PaymentGuard>
+        ),
+      },
+      {
+        path: "/error-payment",
         element: (
           <PaymentGuard>
             <ErrorPaymentPage />
