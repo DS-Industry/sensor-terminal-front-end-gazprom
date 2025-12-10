@@ -37,12 +37,12 @@ export default function ProgramCard(program: IProgram) {
       }}
     >
       <div className="flex-shrink-0 h-96 p-4 relative flex flex-col bg-gradient-to-br from-blue-500 to-blue-600">
-        <div className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 self-start bg-white/20 backdrop-blur-sm border border-white/10">
+        <div className="shadow-[0_4px_4px_0_rgba(0,0,0,0.25)] inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 self-start bg-white/20 backdrop-blur-sm border border-white/10">
           <Clock className="w-4 h-4 text-white" />
           <span className="text-sm font-medium text-white">{program.duration} мин.</span>
         </div>
 
-        <h2 className="text-3xl font-bold mb-5 text-balance leading-tight text-white whitespace-nowrap">{t(`${program.name}`)}</h2>
+        <h2 className="text-3xl font-bold mb-5 text-balance leading-tight text-white whitespace-nowrap text-center">{t(`${program.name}`)}</h2>
 
         <div className="flex-1">
           <ul className="space-y-2">
