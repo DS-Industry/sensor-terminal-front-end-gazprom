@@ -12,10 +12,11 @@ import gazpromHeader from "../assets/gazprom-step-2-header.png";
 export default function WashingInProgressPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { setIsLoading, queuePosition, queueNumber } = useStore();
+  const { setIsLoading, queuePosition } = useStore();
   
   const [timeRemaining, setTimeRemaining] = useState(180);
   const countdownHandledRef = useRef(false);
+  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setIsLoading(false);
@@ -44,13 +45,26 @@ export default function WashingInProgressPage() {
         logger.info('[WashingInProgressPage] Waiting finished, someone is in queue, navigating to success page');
         navigate('/success', { replace: true });
         
+        // Clear any existing timeout
+        if (navigationTimeoutRef.current) {
+          clearTimeout(navigationTimeoutRef.current);
+        }
+        
         // Then redirect to washing page after showing success
-        setTimeout(() => {
+        navigationTimeoutRef.current = setTimeout(() => {
           logger.info('[WashingInProgressPage] Redirecting back to washing page after success');
           navigate('/washing', { replace: true });
+          navigationTimeoutRef.current = null;
         }, 12000);
       }
     }
+    
+    return () => {
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+        navigationTimeoutRef.current = null;
+      }
+    };
   }, [timeRemaining, queuePosition, navigate]);
 
   const formatTime = (seconds: number) => {

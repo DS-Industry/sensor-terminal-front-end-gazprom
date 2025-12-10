@@ -17,33 +17,73 @@ export default function SuccessPaymentPage() {
   
   const [displayText, setDisplayText] = useState(t("Можете проезжать в бокс!"));
   const robotStartedRef = useRef(false);
+  const navigationGuardRef = useRef(false);
+  const timersRef = useRef<{
+    textTimer?: NodeJS.Timeout;
+    navigationTimer?: NodeJS.Timeout;
+    safetyTimer?: NodeJS.Timeout;
+  }>({});
 
-  const handleFinish = useCallback(() => {
-    navigate("/");
+  // Single navigation guard function to prevent race conditions
+  const navigateWithGuard = useCallback((target: string, reason: string) => {
+    if (navigationGuardRef.current) {
+      logger.warn(`[SuccessPaymentPage] Navigation blocked: ${reason} - navigation already in progress`);
+      return false;
+    }
+    
+    navigationGuardRef.current = true;
+    logger.info(`[SuccessPaymentPage] Navigating to ${target}: ${reason}`);
+    
+    // Clear all timers to prevent duplicate navigations
+    if (timersRef.current.textTimer) clearTimeout(timersRef.current.textTimer);
+    if (timersRef.current.navigationTimer) clearTimeout(timersRef.current.navigationTimer);
+    if (timersRef.current.safetyTimer) clearTimeout(timersRef.current.safetyTimer);
+    
+    navigate(target, { replace: true });
+    return true;
   }, [navigate]);
 
+  const handleFinish = useCallback(() => {
+    navigateWithGuard("/", "Order completed");
+  }, [navigateWithGuard]);
 
+  // Handle order status changes and navigation logic
   useEffect(() => {
+    // Immediate navigation for completed orders
     if (order?.status === EOrderStatus.COMPLETED) {
       logger.info('[SuccessPaymentPage] User\'s order completed, redirecting to main screen');
       handleFinish();
       return;
     }
+
+    // Handle PROCESSING status - navigate after delay if not loading
     if (order?.status === EOrderStatus.PROCESSING) {
       if (!isLoading) {
         logger.info('[SuccessPaymentPage] Order is processing, will navigate to washing page after 12 seconds');
-        const navigationTimer = setTimeout(() => {
-          logger.info('[SuccessPaymentPage] Navigating to washing page after delay');
-          navigate('/washing', { replace: true });
+        
+        // Clear any existing navigation timer (including fallback timer from third useEffect)
+        if (timersRef.current.navigationTimer) {
+          clearTimeout(timersRef.current.navigationTimer);
+          delete timersRef.current.navigationTimer;
+        }
+        
+        timersRef.current.navigationTimer = setTimeout(() => {
+          navigateWithGuard('/washing', 'Order status PROCESSING after 12 seconds');
         }, 12000); 
 
-        return () => clearTimeout(navigationTimer);
+        return () => {
+          if (timersRef.current.navigationTimer) {
+            clearTimeout(timersRef.current.navigationTimer);
+            delete timersRef.current.navigationTimer;
+          }
+        };
       } else {
         logger.warn('[SuccessPaymentPage] Order status is PROCESSING but payment is still loading, delaying navigation');
       }
     }
-  }, [order?.status, navigate, handleFinish, isLoading]);
+  }, [order?.status, isLoading, handleFinish, navigateWithGuard]);
 
+  // Start robot when order is PAYED
   useEffect(() => {
     if (order?.id && order?.status === EOrderStatus.PAYED && !robotStartedRef.current) {
       const orderId = order.id;
@@ -75,37 +115,53 @@ export default function SuccessPaymentPage() {
     }
   }, [order?.id, order?.status, setIsLoading]);
 
+  // Initialize display text and set up fallback timers
   useEffect(() => {
     setIsLoading(false);
 
     setDisplayText(t("Можете проезжать в бокс!"));
-    const textTimer = setTimeout(() => {
+    
+    // Update display text after 10 seconds
+    timersRef.current.textTimer = setTimeout(() => {
       setDisplayText(t("Идёт мойка..."));
     }, 10000);
 
-    const navigationTimer = setTimeout(() => {
-      logger.info('[SuccessPaymentPage] Redirecting to washing page after 12 seconds');
-      navigate('/washing', { replace: true });
-    }, 12000);
+    // Fallback navigation timer (12 seconds) - only set if order is not PROCESSING
+    // (PROCESSING status is handled by the first useEffect to avoid duplicate timers)
+    const currentStatus = order?.status;
+    if (currentStatus !== EOrderStatus.PROCESSING && currentStatus !== EOrderStatus.COMPLETED) {
+      timersRef.current.navigationTimer = setTimeout(() => {
+        const currentOrder = useStore.getState().order;
+        const latestStatus = currentOrder?.status;
+        
+        // Only navigate if order is not completed and navigation hasn't occurred
+        if (latestStatus !== EOrderStatus.COMPLETED && latestStatus !== EOrderStatus.PROCESSING) {
+          navigateWithGuard('/washing', 'Fallback timer after 12 seconds');
+        }
+      }, 12000);
+    }
 
-    const safetyTimer = setTimeout(() => {
-      if (order?.status === EOrderStatus.PROCESSING && !isLoading) {
-        logger.warn('[SuccessPaymentPage] Safety timeout reached, order is PROCESSING, navigating to washing page');
-        navigate('/washing', { replace: true });
-      } else if (!isLoading) {
-        logger.warn('[SuccessPaymentPage] Safety timeout reached, navigating to washing page anyway');
-        navigate('/washing', { replace: true });
+    // Safety timeout (5 minutes) - last resort navigation
+    timersRef.current.safetyTimer = setTimeout(() => {
+      const currentOrder = useStore.getState().order;
+      const currentIsLoading = useStore.getState().isLoading;
+      
+      if (currentOrder?.status === EOrderStatus.PROCESSING && !currentIsLoading) {
+        navigateWithGuard('/washing', 'Safety timeout - order is PROCESSING');
+      } else if (!currentIsLoading) {
+        navigateWithGuard('/washing', 'Safety timeout - fallback navigation');
       } else {
         logger.error('[SuccessPaymentPage] Safety timeout reached but payment is still loading - possible API hang');
       }
     }, 300000); 
 
     return () => {
-      clearTimeout(textTimer);
-      clearTimeout(navigationTimer);
-      clearTimeout(safetyTimer);
+      if (timersRef.current.textTimer) clearTimeout(timersRef.current.textTimer);
+      if (timersRef.current.navigationTimer) clearTimeout(timersRef.current.navigationTimer);
+      if (timersRef.current.safetyTimer) clearTimeout(timersRef.current.safetyTimer);
+      timersRef.current = {};
     };
-  }, [setIsLoading, t, navigate, isLoading, order?.status]);
+  }, [setIsLoading, t, navigateWithGuard, order?.status]);
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-100 bg-[#0045FF]">

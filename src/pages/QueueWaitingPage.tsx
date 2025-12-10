@@ -72,23 +72,30 @@ export default function QueueWaitingPage() {
     const interval = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev <= 1) {
-          clearInterval(interval);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
     if (!order?.id) return;
 
     const orderId = order.id;
+    let isMounted = true;
+    
     const checkQueueStatus = async () => {
+      if (!isMounted) return;
+      
       try {
         const orderDetails = await getOrderById(orderId);
+        
+        if (!isMounted) return;
         
         const { setOrder: setGlobalOrder, setQueuePosition: setGlobalQueuePosition } = useStore.getState();
         setGlobalOrder({
@@ -104,19 +111,30 @@ export default function QueueWaitingPage() {
           
           if (orderDetails.queue_position === 0 || orderDetails.queue_position === null) {
             logger.info('[QueueWaitingPage] Queue position updated to 0 or null, order state updated. Redirecting to success page');
-            navigate('/success', { replace: true });
+            if (isMounted) {
+              navigate('/success', { replace: true });
+            }
           }
         }
       } catch (error) {
-        logger.error('[QueueWaitingPage] Error checking queue status', error);
+        if (isMounted) {
+          logger.error('[QueueWaitingPage] Error checking queue status', error);
+        }
       }
     };
 
     checkQueueStatus();
     
-    const interval = setInterval(checkQueueStatus, 2000);
+    const interval = setInterval(() => {
+      if (isMounted) {
+        checkQueueStatus();
+      }
+    }, 2000);
 
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [order?.id, navigate]);
 
   useEffect(() => {

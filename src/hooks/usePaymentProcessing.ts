@@ -32,12 +32,16 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const orderCreatedRef = useRef(false);
+  const orderCreationLockRef = useRef(false);
   const isPollingRef = useRef(false);
   const orderIdRef = useRef<string | undefined>(undefined);
   const checkPaymentStatusRef = useRef<() => Promise<void>>();
   const handleStartRobotRef = useRef<() => Promise<void>>();
   const startCountdownRef = useRef<() => void>();
   const createOrderAbortControllerRef = useRef<AbortController | null>(null);
+  const createOrderDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const createOrderRequestIdRef = useRef<string | null>(null);
+  const isCreatingOrderRef = useRef(false);
 
   const clearAllTimers = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -60,18 +64,64 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       createOrderAbortControllerRef.current.abort();
       createOrderAbortControllerRef.current = null;
     }
+    if (createOrderDebounceTimeoutRef.current) {
+      clearTimeout(createOrderDebounceTimeoutRef.current);
+      createOrderDebounceTimeoutRef.current = null;
+    }
+    // Clear order creation lock and state
+    orderCreationLockRef.current = false;
+    isCreatingOrderRef.current = false;
     isPollingRef.current = false;
+    createOrderRequestIdRef.current = null;
     setTimeUntilRobotStart(0);
   }, []);
 
+  // Atomic lock acquisition - returns true if lock was acquired, false if already locked
+  const acquireOrderCreationLock = useCallback((): boolean => {
+    // Atomic check-and-set: if lock is false, set it to true and return true
+    // If lock is already true, return false immediately
+    if (orderCreationLockRef.current || isCreatingOrderRef.current) {
+      return false;
+    }
+    orderCreationLockRef.current = true;
+    isCreatingOrderRef.current = true;
+    return true;
+  }, []);
+
+  // Release lock and reset state
+  const releaseOrderCreationLock = useCallback((resetCreatedFlag = false) => {
+    orderCreationLockRef.current = false;
+    isCreatingOrderRef.current = false;
+    if (resetCreatedFlag) {
+      orderCreatedRef.current = false;
+    }
+  }, []);
+
   const createOrderAsync = useCallback(async () => {
-    if (!selectedProgram || orderCreatedRef.current) {
-      logger.warn(`[${paymentMethod}] Cannot create order: missing program or already created`);
+    // Early validation checks
+    if (!selectedProgram) {
+      logger.warn(`[${paymentMethod}] Cannot create order: missing program`);
       return;
     }
 
+    if (orderCreatedRef.current) {
+      logger.warn(`[${paymentMethod}] Cannot create order: order already created`);
+      return;
+    }
+
+    // Atomic lock acquisition - prevents race conditions
+    if (!acquireOrderCreationLock()) {
+      logger.warn(`[${paymentMethod}] Cannot create order: already in progress (locked)`);
+      return;
+    }
+
+    // Generate unique request ID for this order creation attempt
+    const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    createOrderRequestIdRef.current = requestId;
+
     // Abort any existing createOrder request
     if (createOrderAbortControllerRef.current) {
+      logger.debug(`[${paymentMethod}] Aborting previous order creation request`);
       createOrderAbortControllerRef.current.abort();
     }
 
@@ -79,32 +129,63 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     createOrderAbortControllerRef.current = new AbortController();
     const abortSignal = createOrderAbortControllerRef.current.signal;
 
+    // Verify this request is still valid (not superseded by another call)
+    if (createOrderRequestIdRef.current !== requestId) {
+      logger.debug(`[${paymentMethod}] Order creation request superseded, aborting`);
+      releaseOrderCreationLock();
+      return;
+    }
+
     orderCreatedRef.current = true;
     setPaymentError(null);
     setQueueFull(false);
 
     try {
       setIsLoading(true);
-      logger.debug(`[${paymentMethod}] Creating order for program: ${selectedProgram.id}`);
+      logger.debug(`[${paymentMethod}] Creating order for program: ${selectedProgram.id} [requestId: ${requestId}]`);
       
       await createOrder({
         program_id: selectedProgram.id,
         payment_type: paymentMethod,
       }, abortSignal);
-      
-      logger.info(`[${paymentMethod}] Order creation API called successfully, waiting for order ID from WebSocket`);
-      setIsLoading(false);
-    } catch (err: any) {
-      // Don't show error if request was aborted (order completed)
-      if (err?.name === 'AbortError' || abortSignal.aborted) {
-        logger.info(`[${paymentMethod}] Order creation aborted (order likely completed)`);
-        setIsLoading(false);
+
+      // Verify request is still valid after async operation
+      if (createOrderRequestIdRef.current !== requestId) {
+        logger.debug(`[${paymentMethod}] Order creation completed but request was superseded`);
+        releaseOrderCreationLock();
         return;
       }
 
-      logger.error(`[${paymentMethod}] Error creating order`, err);
+      // Check if aborted
+      if (abortSignal.aborted) {
+        logger.info(`[${paymentMethod}] Order creation aborted after API call`);
+        releaseOrderCreationLock();
+        return;
+      }
+      
+      logger.info(`[${paymentMethod}] Order creation API called successfully, waiting for order ID from WebSocket [requestId: ${requestId}]`);
       setIsLoading(false);
-      orderCreatedRef.current = false;
+      // Don't release lock here - keep it until order is confirmed or fails
+      // Lock will be released when order status changes or on error
+    } catch (err: any) {
+      // Verify request is still valid
+      if (createOrderRequestIdRef.current !== requestId) {
+        logger.debug(`[${paymentMethod}] Order creation error but request was superseded`);
+        releaseOrderCreationLock();
+        return;
+      }
+
+      // Don't show error if request was aborted (order completed or superseded)
+      if (err?.name === 'AbortError' || abortSignal.aborted) {
+        logger.info(`[${paymentMethod}] Order creation aborted (order likely completed or superseded)`);
+        setIsLoading(false);
+        releaseOrderCreationLock(true);
+        return;
+      }
+
+      logger.error(`[${paymentMethod}] Error creating order [requestId: ${requestId}]`, err);
+      setIsLoading(false);
+      releaseOrderCreationLock(true);
       
       let errorMessage = t('Произошла ошибка при создании заказа');
       if (err?.response?.data?.error) {
@@ -115,7 +196,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       
       setPaymentError(errorMessage);
     }
-  }, [selectedProgram, paymentMethod, setIsLoading, t]);
+  }, [selectedProgram, paymentMethod, setIsLoading, t, acquireOrderCreationLock, releaseOrderCreationLock]);
 
   const checkPaymentStatus = useCallback(async () => {
     const currentOrderId = orderIdRef.current || order?.id;
@@ -182,18 +263,28 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
 
       logger.debug(`[${paymentMethod}] Payment check - amountSum: ${amountSum}, expected: ${expectedAmount}, status: ${orderDetails.status}`);
 
-      if (orderDetails.status === EOrderStatus.PAYED && amountSum >= expectedAmount) {
-        logger.info(`[${paymentMethod}] Payment confirmed! Status: PAYED, Amount: ${amountSum}`);
-        clearAllTimers();
-        setPaymentError(null);
-        setPaymentSuccess(true);
-        setIsPaymentProcessing(false);
-        // Start countdown immediately after payment success
-        if (!countdownTimeoutRef.current && startCountdownRef.current) {
-          logger.info(`[${paymentMethod}] Starting countdown immediately after payment confirmation`);
-          startCountdownRef.current();
+      // If status is PAYED, trust it even if amountSum is 0 (might not be set yet for instant payments)
+      if (orderDetails.status === EOrderStatus.PAYED) {
+        if (amountSum >= expectedAmount || amountSum === 0) {
+          // amountSum === 0 means it might not be set yet, but status is PAYED so trust it
+          logger.info(`[${paymentMethod}] Payment confirmed! Status: PAYED, Amount: ${amountSum} (expected: ${expectedAmount})`);
+          clearAllTimers();
+          setPaymentError(null);
+          setPaymentSuccess(true);
+          setIsPaymentProcessing(false);
+          // Start countdown immediately after payment success
+          if (!countdownTimeoutRef.current && startCountdownRef.current) {
+            logger.info(`[${paymentMethod}] Starting countdown immediately after payment confirmation`);
+            startCountdownRef.current();
+          }
+          return;
+        } else if (amountSum > 0 && amountSum < expectedAmount) {
+          // Partial payment - show processing state
+          logger.warn(`[${paymentMethod}] Partial payment detected: ${amountSum} < ${expectedAmount}`);
+          setIsPaymentProcessing(true);
+          setIsLoading(false);
+          return;
         }
-        return;
       }
 
       if (amountSum >= expectedAmount && orderDetails.status !== EOrderStatus.PAYED) {
@@ -237,9 +328,16 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       return;
     }
 
+    // Prevent duplicate polling
     if (pollingIntervalRef.current) {
       logger.debug(`[${paymentMethod}] Polling already started, skipping`);
       return;
+    }
+
+    // Clear any existing timeout first
+    if (depositTimeoutRef.current) {
+      clearTimeout(depositTimeoutRef.current);
+      depositTimeoutRef.current = null;
     }
 
     logger.info(`[${paymentMethod}] Starting payment polling immediately for order: ${currentOrderId}`);
@@ -264,6 +362,7 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       }
     }, PAYMENT_CONSTANTS.DEPOSIT_TIME);
 
+    // Initial check
     if (checkPaymentStatusRef.current) {
       checkPaymentStatusRef.current();
     }
@@ -300,12 +399,19 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   }, [paymentMethod]);
 
   const handleBack = useCallback(async () => {
+    // Clear any pending debounce
+    if (createOrderDebounceTimeoutRef.current) {
+      clearTimeout(createOrderDebounceTimeoutRef.current);
+      createOrderDebounceTimeoutRef.current = null;
+    }
+
     clearAllTimers();
     setIsLoading(false);
     setPaymentSuccess(false);
     setIsPaymentProcessing(false);
     setPaymentError(null);
     orderCreatedRef.current = false;
+    releaseOrderCreationLock(true);
     
     if (order?.id) {
       try {
@@ -317,14 +423,26 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     }
 
     navigate(-1);
-  }, [clearAllTimers, setIsLoading, order, paymentMethod, navigate]);
+  }, [clearAllTimers, setIsLoading, order, paymentMethod, navigate, releaseOrderCreationLock]);
 
   const handleRetry = useCallback(() => {
+    // Clear debounce timeout if any
+    if (createOrderDebounceTimeoutRef.current) {
+      clearTimeout(createOrderDebounceTimeoutRef.current);
+      createOrderDebounceTimeoutRef.current = null;
+    }
+
     setPaymentError(null);
     setIsPaymentProcessing(false);
     orderCreatedRef.current = false;
-    createOrderAsync();
-  }, [createOrderAsync]);
+    releaseOrderCreationLock(true);
+    
+    // Debounce retry to prevent rapid clicks
+    createOrderDebounceTimeoutRef.current = setTimeout(() => {
+      createOrderDebounceTimeoutRef.current = null;
+      createOrderAsync();
+    }, 300); // 300ms debounce
+  }, [createOrderAsync, releaseOrderCreationLock]);
 
   const handleStartRobot = useCallback(async () => {
     if (!order?.id) {
@@ -377,10 +495,35 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   }, [startCountdown]);
 
   useEffect(() => {
+    // Prevent multiple calls if already creating order
+    if (isCreatingOrderRef.current || orderCreatedRef.current) {
+      logger.debug(`[${paymentMethod}] Skipping order creation: already in progress or created`);
+      return;
+    }
+
+    // Clear any existing debounce timeout
+    if (createOrderDebounceTimeoutRef.current) {
+      clearTimeout(createOrderDebounceTimeoutRef.current);
+      createOrderDebounceTimeoutRef.current = null;
+    }
+
     logger.debug(`[${paymentMethod}] Component mounted, creating order`);
-    createOrderAsync();
+    
+    // Small debounce to prevent rapid re-renders from triggering multiple calls
+    createOrderDebounceTimeoutRef.current = setTimeout(() => {
+      createOrderDebounceTimeoutRef.current = null;
+      // Double-check before creating (component might have unmounted)
+      if (!isCreatingOrderRef.current && !orderCreatedRef.current) {
+        createOrderAsync();
+      }
+    }, 100); // 100ms debounce for mount
     
     return () => {
+      // Clear debounce timeout on unmount
+      if (createOrderDebounceTimeoutRef.current) {
+        clearTimeout(createOrderDebounceTimeoutRef.current);
+        createOrderDebounceTimeoutRef.current = null;
+      }
       clearAllTimers();
     };
   }, [createOrderAsync, clearAllTimers, paymentMethod]);
@@ -392,8 +535,19 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   }, [order?.id]);
 
   useEffect(() => {
-    if (order?.status === EOrderStatus.WAITING_PAYMENT && orderCreatedRef.current && !pollingIntervalRef.current) {
-      logger.info(`[${paymentMethod}] Order status is WAITING_PAYMENT, starting order-detail polling: ${order.id}`);
+    // Start polling if:
+    // 1. Order status is WAITING_PAYMENT OR PAYED (PAYED in case payment happened before polling started)
+    // 2. Order was created (checked via ref)
+    // 3. Polling is not already running (guard against duplicates)
+    // 4. Payment success hasn't been set yet (don't poll if already paid)
+    const shouldStartPolling = 
+      (order?.status === EOrderStatus.WAITING_PAYMENT || order?.status === EOrderStatus.PAYED) &&
+      orderCreatedRef.current && 
+      !pollingIntervalRef.current &&
+      !paymentSuccess;
+    
+    if (shouldStartPolling && order?.id) {
+      logger.info(`[${paymentMethod}] Order status is ${order.status}, starting order-detail polling: ${order.id}`);
       orderIdRef.current = order.id;
       startPolling();
     }
@@ -408,7 +562,9 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
         depositTimeoutRef.current = null;
       }
     };
-  }, [order?.status, order?.id, orderCreatedRef.current, paymentMethod, startPolling]);
+    // Removed orderCreatedRef.current from dependencies - refs don't trigger re-renders
+    // The ref is still checked in the effect body, which is the correct approach
+  }, [order?.status, order?.id, paymentMethod, startPolling, paymentSuccess]);
 
   useEffect(() => {
     // Abort createOrder request if order is completed or processing
@@ -418,10 +574,16 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
         createOrderAbortControllerRef.current.abort();
         createOrderAbortControllerRef.current = null;
       }
+      // Release lock when order is confirmed (completed or processing)
+      releaseOrderCreationLock();
     }
-  }, [order?.status, paymentMethod]);
+  }, [order?.status, paymentMethod, releaseOrderCreationLock]);
 
   useEffect(() => {
+    // Only verify payment if:
+    // 1. Order status is PAYED
+    // 2. Payment success hasn't been set yet (guard against duplicates)
+    // 3. Order was created (checked via ref)
     if (order?.status === EOrderStatus.PAYED && !paymentSuccess && orderCreatedRef.current) {
       logger.info(`[${paymentMethod}] Order status changed to PAYED, setting payment success`);
       
@@ -462,16 +624,39 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
             setGlobalQueueNumber(orderDetails.queue_number);
           }
           
-          if (orderDetails.status === EOrderStatus.PAYED && amountSum >= expectedAmount) {
-            clearAllTimers();
-            setPaymentError(null);
-            setPaymentSuccess(true);
-            setIsPaymentProcessing(false);
-            setIsLoading(false);
-            // Start countdown immediately after payment success
-            if (!countdownTimeoutRef.current && startCountdownRef.current) {
-              logger.info(`[${paymentMethod}] Starting countdown immediately after payment verification`);
-              startCountdownRef.current();
+          // If status is PAYED, trust it even if amountSum is not yet available
+          // This handles cases where payment happens instantly and amountSum hasn't been set yet
+          if (orderDetails.status === EOrderStatus.PAYED) {
+            if (amountSum >= expectedAmount || amountSum === 0) {
+              // amountSum === 0 means it might not be set yet, but status is PAYED so trust it
+              logger.info(`[${paymentMethod}] Payment confirmed! Status: PAYED, Amount: ${amountSum} (expected: ${expectedAmount})`);
+              clearAllTimers();
+              setPaymentError(null);
+              setPaymentSuccess(true);
+              setIsPaymentProcessing(false);
+              setIsLoading(false);
+              // Start countdown immediately after payment success
+              if (!countdownTimeoutRef.current && startCountdownRef.current) {
+                logger.info(`[${paymentMethod}] Starting countdown immediately after payment verification`);
+                startCountdownRef.current();
+              }
+            } else if (amountSum > 0 && amountSum < expectedAmount) {
+              // Partial payment - show processing state
+              logger.warn(`[${paymentMethod}] Partial payment detected: ${amountSum} < ${expectedAmount}`);
+              setIsPaymentProcessing(true);
+              setIsLoading(false);
+            } else {
+              // Status is PAYED but amount check failed - still trust the status
+              logger.warn(`[${paymentMethod}] Payment status is PAYED but amount verification unclear. Trusting status.`);
+              clearAllTimers();
+              setPaymentError(null);
+              setPaymentSuccess(true);
+              setIsPaymentProcessing(false);
+              setIsLoading(false);
+              if (!countdownTimeoutRef.current && startCountdownRef.current) {
+                logger.info(`[${paymentMethod}] Starting countdown after PAYED status verification`);
+                startCountdownRef.current();
+              }
             }
           } else {
             setIsPaymentProcessing(true);
@@ -486,7 +671,10 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       
       verifyPayment();
     }
-  }, [order?.status, order?.id, paymentSuccess, orderCreatedRef.current, paymentMethod, selectedProgram, setOrder, setGlobalQueuePosition, setGlobalQueueNumber, clearAllTimers, setIsLoading, t]);
+    // Removed orderCreatedRef.current from dependencies - refs don't trigger re-renders
+    // The ref is still checked in the effect body, which is the correct approach
+    // The !paymentSuccess guard also prevents duplicate execution
+  }, [order?.status, order?.id, paymentSuccess, paymentMethod, selectedProgram, setOrder, setGlobalQueuePosition, setGlobalQueueNumber, clearAllTimers, setIsLoading, t]);
 
   useEffect(() => {
     if (paymentSuccess) {
