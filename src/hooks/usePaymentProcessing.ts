@@ -17,7 +17,11 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
     setIsLoading,
     setOrder,
     setQueuePosition: setGlobalQueuePosition,
-    setQueueNumber: setGlobalQueueNumber
+    setQueueNumber: setGlobalQueueNumber,
+    clearOrder,
+    setSelectedProgram,
+    setBankCheck,
+    setInsertedAmount
   } = useStore();
 
   const [paymentSuccess, setPaymentSuccess] = useState(false);
@@ -449,20 +453,18 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
   }, [paymentMethod]);
 
   const handleBack = useCallback(async () => {
+    logger.info(`[${paymentMethod}] Handling back navigation - cleaning up everything`);
+    
     // Clear any pending debounce
     if (createOrderDebounceTimeoutRef.current) {
       clearTimeout(createOrderDebounceTimeoutRef.current);
       createOrderDebounceTimeoutRef.current = null;
     }
 
+    // Clear all timers and intervals
     clearAllTimers();
-    setIsLoading(false);
-    setPaymentSuccess(false);
-    setIsPaymentProcessing(false);
-    setPaymentError(null);
-    orderCreatedRef.current = false;
-    releaseOrderCreationLock(true);
     
+    // Cancel order if it exists
     if (order?.id && isMountedRef.current) {
       try {
         await cancelOrder(order.id);
@@ -476,10 +478,51 @@ export const usePaymentProcessing = (paymentMethod: EPaymentMethod) => {
       }
     }
 
+    // Reset all local state
+    setIsLoading(false);
+    setPaymentSuccess(false);
+    setIsPaymentProcessing(false);
+    setPaymentError(null);
+    setTimeUntilRobotStart(0);
+    setQueuePosition(null);
+    setQueueNumber(null);
+    setQueueFull(false);
+    
+    // Reset all refs
+    orderCreatedRef.current = false;
+    orderIdRef.current = undefined;
+    releaseOrderCreationLock(true);
+    isPollingRef.current = false;
+    createOrderRequestIdRef.current = null;
+    
+    // Clear all global store state
     if (isMountedRef.current) {
-      navigate(-1);
+      clearOrder();
+      setSelectedProgram(null);
+      setBankCheck("");
+      setInsertedAmount(0);
+      setGlobalQueuePosition(null);
+      setGlobalQueueNumber(null);
+      setIsLoading(false);
+      
+      // Navigate to main page explicitly
+      logger.info(`[${paymentMethod}] Navigating to main page after cleanup`);
+      navigationLock.navigateWithLock(navigate, "/", `${paymentMethod}: back button - full cleanup`);
     }
-  }, [clearAllTimers, setIsLoading, order, paymentMethod, navigate, releaseOrderCreationLock]);
+  }, [
+    clearAllTimers, 
+    setIsLoading, 
+    order, 
+    paymentMethod, 
+    navigate, 
+    releaseOrderCreationLock,
+    clearOrder,
+    setSelectedProgram,
+    setBankCheck,
+    setInsertedAmount,
+    setGlobalQueuePosition,
+    setGlobalQueueNumber
+  ]);
 
   const handleRetry = useCallback(() => {
     // Clear debounce timeout if any
