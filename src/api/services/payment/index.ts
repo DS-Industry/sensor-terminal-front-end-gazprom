@@ -38,7 +38,11 @@ export async function cancelOrder(
   logger.info(`Cancelling order: ${order_id}`);
   await axiosInstance.post(PAYMENT.CANCELLATION + `/${order_id}/`);
 }
-export async function startRobot(order_id: string): Promise<void> {  
-  
-  await axiosInstance.post(PAYMENT.START + `/${order_id}/`);
+export interface IStartRobotResponse {
+  message?: string;
+}
+
+export async function startRobot(order_id: string): Promise<IStartRobotResponse> {  
+  const response = await axiosInstance.post<IStartRobotResponse>(PAYMENT.START + `/${order_id}/`);
+  return response.data;
 }
