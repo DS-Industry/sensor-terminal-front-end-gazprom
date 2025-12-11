@@ -19,7 +19,7 @@ import { navigateToErrorPayment } from "../utils/navigation";
 
 export default function CardPayPage() {
   const navigate = useNavigate();
-  const { setErrorCode } = useStore();
+  const { setErrorCode, setIsLoading } = useStore();
   const hasNavigatedToErrorRef = useRef(false);
 
   const { 
@@ -47,6 +47,14 @@ export default function CardPayPage() {
       hasNavigatedToErrorRef.current = false;
     }
   }, [paymentError, queueFull, navigate, setErrorCode]);
+
+  // Ensure loading is cleared when payment succeeds
+  useEffect(() => {
+    if (paymentSuccess && !paymentError && !queueFull) {
+      logger.debug('[CardPayPage] Payment succeeded, ensuring loading is cleared');
+      setIsLoading(false);
+    }
+  }, [paymentSuccess, paymentError, queueFull, setIsLoading]);
 
   useEffect(() => {
     if (bankCheck) {

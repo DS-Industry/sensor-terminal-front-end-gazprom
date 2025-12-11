@@ -13,14 +13,52 @@ import gazpromHeader from "../assets/gazprom-step-2-header.webp"
 
 export default function MainPage() {
   const { programs } = usePrograms();
-  const { order, clearOrder, setInsertedAmount, setIsLoading, setErrorCode } = useStore();
+  const { 
+    order, 
+    clearOrder, 
+    setInsertedAmount, 
+    setIsLoading, 
+    setErrorCode,
+    setQueuePosition,
+    setQueueNumber,
+    setSelectedProgram,
+    setBankCheck,
+    setBackConfirmationCallback,
+    resetPayment,
+  } = useStore();
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Clean all order-related states when entering main screen
+    logger.info('[MainPage] Cleaning all order-related states');
+    
+    // Clear order
     clearOrder();
+    
+    // Reset payment state
+    resetPayment();
+    
+    // Reset app state related to orders
     setInsertedAmount(0);
     setIsLoading(false);
-  }, [clearOrder, setInsertedAmount, setIsLoading])
+    setErrorCode(null);
+    setQueuePosition(null);
+    setQueueNumber(null);
+    setSelectedProgram(null);
+    setBankCheck("");
+    setBackConfirmationCallback(null);
+  }, [
+    clearOrder,
+    resetPayment,
+    setInsertedAmount,
+    setIsLoading,
+    setErrorCode,
+    setQueuePosition,
+    setQueueNumber,
+    setSelectedProgram,
+    setBankCheck,
+    setBackConfirmationCallback,
+  ])
 
   useEffect(() => {
     if (order?.status === EOrderStatus.PAYED) {
