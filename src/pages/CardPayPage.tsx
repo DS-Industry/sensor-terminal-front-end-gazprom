@@ -1,8 +1,5 @@
 import Wifi from "./../assets/wifi.svg";
 import Card from "./../assets/card-big.svg";
-import Mir from "./../assets/mir-logo 1.svg";
-import { FaApplePay, FaGooglePay } from "react-icons/fa6";
-import { RiMastercardLine, RiVisaLine } from "react-icons/ri";
 import { CreditCard } from "@gravity-ui/icons";
 import { Spin } from "@gravity-ui/uikit";
 import PaymentTitleSection from "../components/paymentTitleSection/PaymentTitleSection";
@@ -48,7 +45,6 @@ export default function CardPayPage() {
     }
   }, [paymentError, queueFull, navigate, setErrorCode]);
 
-  // Ensure loading is cleared when payment succeeds
   useEffect(() => {
     if (paymentSuccess && !paymentError && !queueFull) {
       logger.debug('[CardPayPage] Payment succeeded, ensuring loading is cleared');
@@ -183,86 +179,59 @@ export default function CardPayPage() {
             <div className="w-96 bg-[#0967E1] text-white flex flex-col">
               <div className="pt-3 px-6 h-full flex flex-col justify-start">
                 <div className="flex flex-col items-center">
-                  <div className="text-white/80 text-[20px] font-medium">Поддерживаемые карты</div>
-                  <div className="grid grid-cols-3 gap-3 place-items-center">
-                    <RiMastercardLine className="text-white text-5xl" />
-                    <RiVisaLine className="text-white text-5xl" />
-                    <img 
-                      src={Mir} 
-                      alt="mir" 
-                      className="w-16 h-16 object-contain"
-                      loading="lazy"
-                      decoding="async"
-                      fetchPriority="low"
-                    />
-                    <div className="col-span-3 flex justify-center items-center gap-3">
-                      <FaGooglePay className="text-white text-5xl" />
-                      <FaApplePay className="text-white text-5xl" />
-                    </div>
-                  </div>
                 </div>
 
-                <div>
+                <div className="flex flex-col gap-10 py-10 justify-start h-full">
                   <div className="bg-white/10 p-4 rounded-2xl text-center">
                     <div className="text-white/80 text-sm mb-2 text-center">Программа</div>
                     <div className="text-white font-semibold text-lg text-center">{selectedProgram?.name}</div>
                   </div>
 
-                  <div className="mt-3 bg-white/10 p-6 rounded-2xl">
-                    <div className="flex justify-center">
+                  <div>
+                    <div className="mt-3 bg-white/10 p-6 rounded-2xl">
+                      <div className="flex justify-center">
 
-                      <div className="text-white/80 text-sm mb-3 flex gap-2 items-center text-center">
-                        <CreditCard />
-                        {paymentSuccess && !paymentError && !queueFull 
-                          ? "Оплачено" 
-                          : isPaymentProcessing 
-                          ? "Обработка..." 
-                          : "К оплате"}
+                        <div className="text-white/80 text-sm mb-3 flex gap-2 items-center text-center">
+                          <CreditCard />
+                          {paymentSuccess && !paymentError && !queueFull 
+                            ? "Оплачено" 
+                            : isPaymentProcessing 
+                            ? "Обработка..." 
+                            : "К оплате"}
+                        </div>
+                      </div>
+                      <div className="text-white font-bold text-5xl text-center">
+                        {selectedProgram?.price} ₽
                       </div>
                     </div>
-                    <div className="text-white font-bold text-5xl text-center">
-                      {selectedProgram?.price} ₽
-                    </div>
+
+                    {paymentSuccess && !paymentError && !queueFull
+                      ? (
+                        <div className="mt-3 flex items-center justify-center gap-2 bg-white/20 px-4 py-2 rounded-full w-full">
+                          <div className="w-3 h-3 bg-[#15FF00] rounded-full animate-pulse"></div>
+                          <div className="text-white/90 text-sm font-medium">
+                            Оплата успешна!
+                          </div>
+                        </div>
+                      )
+                      : isPaymentProcessing ? (
+                        <div className="mt-3 inline-flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
+                          <div className="text-white">
+                            <Spin size="s" />
+                          </div>
+                          <div className="text-white/90 text-sm font-medium">
+                            Обработка оплаты...
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-3 flex items-center justify-center gap-2 bg-white/20 px-4 py-2 rounded-full w-full">
+                          <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                          <div className="text-white/90 text-sm font-medium">
+                            Ожидание карты...
+                          </div>
+                        </div>
+                      )}
                   </div>
-
-                  {paymentSuccess && !paymentError && !queueFull
-                    ? (
-                      <div className="mt-3 flex flex-col items-center">
-                        <button
-                          className="w-full px-8 py-4 rounded-3xl text-blue-600 font-semibold text-medium transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg z-50 mb-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                          onClick={handleStartRobot}
-                          disabled={!paymentSuccess || !!paymentError || queueFull || !isReceiptReady}
-                          style={{ backgroundColor: "white" }}
-                          aria-label={"Запустить"}
-                        >
-                          <div className="flex items-center justify-center gap-2">
-                            Запустить
-                          </div>
-                        </button>
-                        {timeUntilRobotStart > 0 && (
-                          <div className="text-white/80 text-l">
-                            Автоматический запуск через {timeUntilRobotStart} сек.
-                          </div>
-                        )}
-                      </div>
-                    )
-                    : isPaymentProcessing ? (
-                      <div className="mt-3 inline-flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
-                        <div className="text-white">
-                          <Spin size="s" />
-                        </div>
-                        <div className="text-white/90 text-sm font-medium">
-                          Обработка оплаты...
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-3 flex items-center justify-center gap-2 bg-white/20 px-4 py-2 rounded-full w-full">
-                        <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
-                        <div className="text-white/90 text-sm font-medium">
-                          Ожидание карты...
-                        </div>
-                      </div>
-                    )}
                 </div>
               </div>
             </div>

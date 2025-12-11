@@ -1,4 +1,4 @@
-import { RiMastercardLine, RiVisaLine } from "react-icons/ri";
+import { RiVisaLine, RiMastercardFill } from "react-icons/ri";
 import { FaApplePay, FaGooglePay } from "react-icons/fa6";
 import { useNavigate } from "react-router-dom";
 import { Card, Text } from "@gravity-ui/uikit";
@@ -69,7 +69,7 @@ export default function PayCard({
           <div className="bg-[#89BAFB99] p-2 rounded-2xl text-center w-full h-full flex flex-col justify-center">
             <div className="text-white/80 text-[15px] mb-1">Банковские карты</div>
             <div className="flex flex-row justify-center gap-3 items-center h-6">
-              <RiMastercardLine className="text-white text-2xl" />
+              <RiMastercardFill className="text-white text-2xl" />
               <RiVisaLine className="text-white text-2xl" />
               <FaApplePay className="text-white text-2xl" />
               <FaGooglePay className="text-white text-2xl" />
