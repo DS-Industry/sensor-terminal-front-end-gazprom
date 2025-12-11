@@ -45,7 +45,6 @@ export default function SingleProgramPage() {
           src={gazpromHeader} 
           alt="Header" 
           className="w-full h-full object-cover"
-          fetchPriority="high"
           decoding="async"
         />
       </div>

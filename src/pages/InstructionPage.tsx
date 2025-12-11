@@ -24,7 +24,6 @@ export default function InstructionPage() {
                   className="w-12 h-12 flex-shrink-0"
                   loading="lazy"
                   decoding="async"
-                  fetchPriority="low"
                 />
                 <p className="text-lg text-left text-black flex-1" style={{ fontSize: '18px', lineHeight: '1.4' }}>
                   Выберите программу мойки и произведите оплату удобным для Вас способом
@@ -41,7 +40,6 @@ export default function InstructionPage() {
                   className="w-12 h-12 flex-shrink-0"
                   loading="lazy"
                   decoding="async"
-                  fetchPriority="low"
                 />
                 <p className="text-lg text-left flex-1" style={{ fontSize: '18px', color: '#000000', lineHeight: '1.4' }}>
                   Закройте окна. Начинайте движение, после того, как на цифровом табло загорится надпись <span className="font-bold" style={{ color: '#00B600', fontSize: '20px', display: 'inline' }}>ПРОЕЗЖАЙТЕ В БОКС</span>
@@ -58,7 +56,6 @@ export default function InstructionPage() {
                   className="w-12 h-12 flex-shrink-0"
                   loading="lazy"
                   decoding="async"
-                  fetchPriority="low"
                 />
                 <p className="text-lg text-left flex-1" style={{ fontSize: '18px', color: '#000000', lineHeight: '1.4' }}>
                   Перед началом основной мойки в программах Стандарт и Премиум, при въезде в бокс, вода подается на днище машины. <span className="font-bold" style={{ color: '#0967E1', fontSize: '20px', display: 'inline' }}>МЕДЛЕННО ПРОЕЗЖАЙТЕ</span> над зоной распыления воды, чтобы помыть днище машины и диски
@@ -75,7 +72,6 @@ export default function InstructionPage() {
                   className="w-12 h-12 flex-shrink-0"
                   loading="lazy"
                   decoding="async"
-                  fetchPriority="low"
                 />
                 <p className="text-lg text-left text-black flex-1" style={{ fontSize: '18px', lineHeight: '1.4' }}>
                   Когда мойка днища завершится, проезжайте дальше в центр бокса. Расположите автомобиль по центру бокса. Когда на цифровом табло загорится надпись «Стоп» - завершите движение Заглушите двигатель
@@ -92,7 +88,6 @@ export default function InstructionPage() {
                   className="w-12 h-12 flex-shrink-0"
                   loading="lazy"
                   decoding="async"
-                  fetchPriority="low"
                 />
                 <p className="text-lg text-left text-black flex-1" style={{ fontSize: '18px', lineHeight: '1.4' }}>
                   Консоли, подающие воду и моющие средства, пройдут необходимое количество циклов вокруг автомобиля, согласно выбранной программе
@@ -109,7 +104,6 @@ export default function InstructionPage() {
                   className="w-12 h-12 flex-shrink-0"
                   loading="lazy"
                   decoding="async"
-                  fetchPriority="low"
                 />
                 <p className="text-lg text-left text-black flex-1" style={{ fontSize: '18px', lineHeight: '1.4' }}>
                   По окончании мойки следуйте указаниям на цифровом табло и голосовым сигналам, можете выезжть из бокса
@@ -128,7 +122,6 @@ export default function InstructionPage() {
               }}
               loading="lazy"
               decoding="async"
-              fetchPriority="low"
             />
             <div className="flex flex-col gap-2 w-full">
               <div>

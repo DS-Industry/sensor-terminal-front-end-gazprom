@@ -8,7 +8,7 @@ import { EPaymentMethod } from "../components/state/order/orderSlice";
 import { usePaymentFlow } from "../hooks/payment/usePaymentFlow";
 import SuccessPayment from "../components/successPayment/SuccessPayment";
 import gazpromHeader from "../assets/gazprom-step-2-header.webp"
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import useStore from "../components/state/store";
 import { logger } from "../util/logger";
@@ -16,7 +16,7 @@ import { navigateToErrorPayment } from "../utils/navigation";
 
 export default function CardPayPage() {
   const navigate = useNavigate();
-  const { setErrorCode, setIsLoading } = useStore();
+  const { setErrorCode } = useStore();
   const hasNavigatedToErrorRef = useRef(false);
 
   const { 
@@ -24,15 +24,10 @@ export default function CardPayPage() {
     handleBack, 
     paymentSuccess,
     isPaymentProcessing,
-    handleStartRobot,
-    timeUntilRobotStart,
     paymentError,
     queueFull,
-    bankCheck
   } = usePaymentFlow(EPaymentMethod.CARD);
 
-  const [isReceiptReady, setIsReceiptReady] = useState(false);
-  const [_, setCheckGenerationTimeRemaining] = useState(10);
 
   useEffect(() => {
     if (paymentError && !queueFull && !hasNavigatedToErrorRef.current) {
@@ -45,45 +40,6 @@ export default function CardPayPage() {
     }
   }, [paymentError, queueFull, navigate, setErrorCode]);
 
-  useEffect(() => {
-    if (paymentSuccess && !paymentError && !queueFull) {
-      logger.debug('[CardPayPage] Payment succeeded, ensuring loading is cleared');
-      setIsLoading(false);
-    }
-  }, [paymentSuccess, paymentError, queueFull, setIsLoading]);
-
-  useEffect(() => {
-    if (bankCheck) {
-      setIsReceiptReady(true);
-      setCheckGenerationTimeRemaining(0);
-    } else if (paymentSuccess) {
-      setIsReceiptReady(false);
-      setCheckGenerationTimeRemaining(10);
-      
-      const countdownInterval = setInterval(() => {
-        setCheckGenerationTimeRemaining((prev) => {
-          if (prev <= 1) {
-            setIsReceiptReady(true); 
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      const timeout = setTimeout(() => {
-        setIsReceiptReady(true); 
-        setCheckGenerationTimeRemaining(0);
-      }, 10000);
-
-      return () => {
-        clearInterval(countdownInterval);
-        clearTimeout(timeout);
-      };
-    } else {
-      setIsReceiptReady(false);
-      setCheckGenerationTimeRemaining(10);
-    }
-  }, [bankCheck, paymentSuccess]);
 
   return (
     <div className="flex flex-col min-h-screen w-screen bg-gray-100">
@@ -92,7 +48,6 @@ export default function CardPayPage() {
           src={gazpromHeader} 
           alt="Header" 
           className="w-full h-full object-cover"
-          fetchPriority="high"
           decoding="async"
         />
       </div>
@@ -151,7 +106,6 @@ export default function CardPayPage() {
                       className="w-68 h-68 object-contain"
                       loading="lazy"
                       decoding="async"
-                      fetchPriority="low"
                     />
                     <img
                       src={Card}
@@ -162,7 +116,6 @@ export default function CardPayPage() {
                       }}
                       loading="lazy"
                       decoding="async"
-                      fetchPriority="low"
                     />
                   </div>
                   <div className="text-center max-w-md">

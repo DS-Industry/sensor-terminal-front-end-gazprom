@@ -103,7 +103,6 @@ export default function ErrorPaymentPage() {
           src={gazpromHeader} 
           alt="Header" 
           className="w-full h-full object-cover"
-          fetchPriority="high"
           decoding="async"
         />
       </div>
@@ -136,7 +135,6 @@ export default function ErrorPaymentPage() {
             className="w-auto h-auto max-w-[300px] max-h-[300px] object-contain"
             loading="lazy"
             decoding="async"
-            fetchPriority="low"
           />
         </div>
       </div>

@@ -78,7 +78,6 @@ export default function SuccessPaymentPage() {
           src={gazpromHeader} 
           alt="Header" 
           className="w-full h-full object-cover"
-          fetchPriority="high"
           decoding="async"
         />
       </div>
@@ -108,7 +107,6 @@ export default function SuccessPaymentPage() {
               className="w-auto h-[800px] md:h-[800px] object-contain"
               loading="lazy"
               decoding="async"
-              fetchPriority="low"
             />
           </div>
 
@@ -120,7 +118,6 @@ export default function SuccessPaymentPage() {
               className="h-full max-h-[900px] object-contain"
               loading="lazy"
               decoding="async"
-              fetchPriority="low"
             />
           </div>
         </div>

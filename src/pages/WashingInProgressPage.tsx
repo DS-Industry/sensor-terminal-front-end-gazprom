@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useStore from "../components/state/store";
 import CarImage from "../assets/car.webp";
@@ -10,9 +10,8 @@ import gazpromHeader from "../assets/gazprom-step-2-header.webp";
 
 export default function WashingInProgressPage() {
   const navigate = useNavigate();
-  const { setIsLoading, queuePosition } = useStore();
-  
-  const [timeRemaining, setTimeRemaining] = useState(180);
+  const { setIsLoading } = useStore();
+
   const { order } = useStore();
 
   useEffect(() => {
@@ -40,18 +39,6 @@ export default function WashingInProgressPage() {
 
   useEffect(() => {
     setIsLoading(false);
-
-    const interval = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
   }, [setIsLoading]);
 
 
@@ -77,7 +64,6 @@ export default function WashingInProgressPage() {
             src={gazpromHeader} 
             alt="Header" 
             className="w-full h-full object-cover"
-            fetchPriority="high"
             decoding="async"
             />
         </div>
@@ -116,7 +102,6 @@ export default function WashingInProgressPage() {
               className="w-auto h-[700px] md:h-[700px] object-contain"
               loading="lazy"
               decoding="async"
-              fetchPriority="low"
             />
           </div>
         </div>
