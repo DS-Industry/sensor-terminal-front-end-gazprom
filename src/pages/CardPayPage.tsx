@@ -35,7 +35,7 @@ export default function CardPayPage() {
   } = usePaymentFlow(EPaymentMethod.CARD);
 
   const [isReceiptReady, setIsReceiptReady] = useState(false);
-  const [checkGenerationTimeRemaining, setCheckGenerationTimeRemaining] = useState(10);
+  const [_, setCheckGenerationTimeRemaining] = useState(10);
 
   useEffect(() => {
     if (paymentError && !queueFull && !hasNavigatedToErrorRef.current) {
@@ -88,10 +88,12 @@ export default function CardPayPage() {
           src={gazpromHeader} 
           alt="Header" 
           className="w-full h-full object-cover"
+          fetchPriority="high"
+          decoding="async"
         />
       </div>
       <div className="flex-1 flex flex-col">
-        <HeaderWithLogo backButtonClick={handleBack} />
+        <HeaderWithLogo backButtonClick={handleBack} paymentSuccess={paymentSuccess} />
 
         <div className="flex-1 flex flex-col">
           <PaymentTitleSection
@@ -139,7 +141,14 @@ export default function CardPayPage() {
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center bg-[#EEEEEE]">
                   <div className="relative mb-12">
-                    <img src={Wifi} alt="wifi" className="w-68 h-68 object-contain" />
+                    <img 
+                      src={Wifi} 
+                      alt="wifi" 
+                      className="w-68 h-68 object-contain"
+                      loading="lazy"
+                      decoding="async"
+                      fetchPriority="low"
+                    />
                     <img
                       src={Card}
                       alt="card"
@@ -147,6 +156,9 @@ export default function CardPayPage() {
                       style={{
                         animation: 'cardEnter 5s ease-in-out infinite'
                       }}
+                      loading="lazy"
+                      decoding="async"
+                      fetchPriority="low"
                     />
                   </div>
                   <div className="text-center max-w-md">
@@ -167,7 +179,14 @@ export default function CardPayPage() {
                   <div className="grid grid-cols-3 gap-3 place-items-center">
                     <RiMastercardLine className="text-white text-5xl" />
                     <RiVisaLine className="text-white text-5xl" />
-                    <img src={Mir} alt="mir" className="w-16 h-16 object-contain" />
+                    <img 
+                      src={Mir} 
+                      alt="mir" 
+                      className="w-16 h-16 object-contain"
+                      loading="lazy"
+                      decoding="async"
+                      fetchPriority="low"
+                    />
                     <div className="col-span-3 flex justify-center items-center gap-3">
                       <FaGooglePay className="text-white text-5xl" />
                       <FaApplePay className="text-white text-5xl" />
@@ -201,19 +220,6 @@ export default function CardPayPage() {
                   {paymentSuccess && !paymentError && !queueFull
                     ? (
                       <div className="mt-3 flex flex-col items-center">
-                        {!isReceiptReady && (
-                          <div className="text-white/80 text-sm mb-2 flex flex-col items-center gap-2">
-                            <div className="flex items-center gap-2">
-                              <Spin size="xs" />
-                              Формирование чека...
-                            </div>
-                            {checkGenerationTimeRemaining > 0 && (
-                              <div className="text-white/60 text-xs">
-                                {checkGenerationTimeRemaining} сек.
-                              </div>
-                            )}
-                          </div>
-                        )}
                         <button
                           className="w-full px-8 py-4 rounded-3xl text-blue-600 font-semibold text-medium transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg z-50 mb-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           onClick={handleStartRobot}

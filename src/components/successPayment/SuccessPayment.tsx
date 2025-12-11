@@ -27,6 +27,9 @@ export default function SuccessPayment() {
           src={CheckMark}
           alt="check mark"
           className="min-w-[160px] min-h-[160px] max-w-[160px] max-h-[160px] mb-2"
+          loading="lazy"
+          decoding="async"
+          fetchPriority="low"
         />
         <p className="text-gray-800 text-6xl font-semibold mb-12">
           Успешно

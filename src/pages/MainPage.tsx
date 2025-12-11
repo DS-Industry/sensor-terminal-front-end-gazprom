@@ -45,7 +45,9 @@ export default function MainPage() {
         <img 
           src={gazpromHeader} 
           alt="Header" 
-           className="w-full h-full object-cover"
+          className="w-full h-full object-cover"
+          fetchPriority="high"
+          decoding="async"
         />
       </div>
       

@@ -54,6 +54,8 @@ export default function QueueWaitingPage() {
           src={gazpromHeader} 
           alt="Header" 
           className="w-full h-full object-cover"
+          fetchPriority="high"
+          decoding="async"
         />
       </div>
       <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>
@@ -80,6 +82,9 @@ export default function QueueWaitingPage() {
               src={CarImage}
               alt="Car"
               className="w-auto h-[600px] md:h-[600px] object-contain"
+              loading="lazy"
+              decoding="async"
+              fetchPriority="low"
             />
           </div>
         </div>

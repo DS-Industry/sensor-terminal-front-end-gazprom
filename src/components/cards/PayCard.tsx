@@ -59,6 +59,9 @@ export default function PayCard({
             src={imgUrl}
             alt="logo pay way"
             className="h-24 w-auto object-contain"
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
           />
         </div>
 

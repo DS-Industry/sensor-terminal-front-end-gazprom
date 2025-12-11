@@ -19,7 +19,9 @@ export default function ErrorPaymentPage() {
     setBankCheck, 
     setInsertedAmount, 
     setQueuePosition, 
-    setQueueNumber 
+    setQueueNumber,
+    resetPayment,
+    setErrorCode
   } = useStore();
   const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -31,25 +33,35 @@ export default function ErrorPaymentPage() {
       idleTimeoutRef.current = null;
     }
     
-    if (order?.id) {
-      try {
-        await cancelOrder(order.id);
-        logger.info('[ErrorPaymentPage] Order cancelled on close');
-      } catch (error) {
-        logger.error('[ErrorPaymentPage] Error cancelling order on close', error);
+    try {
+      if (order?.id) {
+        try {
+          await cancelOrder(order.id);
+          logger.info('[ErrorPaymentPage] Order cancelled on close', { orderId: order.id });
+        } catch (error) {
+          logger.error('[ErrorPaymentPage] Error cancelling order on close', error);
+        }
       }
-    }
 
-    clearOrder();
-    setSelectedProgram(null);
-    setBankCheck("");
-    setInsertedAmount(0);
-    setQueuePosition(null);
-    setQueueNumber(null);
-    setIsLoading(false);
-    
-    logger.info('[ErrorPaymentPage] Navigating to main page after cleanup');
-    navigateToMain(navigate);
+      resetPayment();
+      
+      clearOrder();
+      
+      setSelectedProgram(null);
+      setBankCheck("");
+      setInsertedAmount(0);
+      setQueuePosition(null);
+      setQueueNumber(null);
+      setErrorCode(null);
+      setIsLoading(false);
+      
+      logger.info('[ErrorPaymentPage] All state cleared, navigating to main page');
+      
+      navigateToMain(navigate);
+    } catch (error) {
+      logger.error('[ErrorPaymentPage] Error during cleanup', error);
+      navigateToMain(navigate);
+    }
   }, [
     navigate, 
     order, 
@@ -59,7 +71,9 @@ export default function ErrorPaymentPage() {
     setInsertedAmount, 
     setQueuePosition, 
     setQueueNumber, 
-    setIsLoading
+    setIsLoading,
+    resetPayment,
+    setErrorCode
   ]);
 
   const clearIdleTimeout = () => {
@@ -89,6 +103,8 @@ export default function ErrorPaymentPage() {
           src={gazpromHeader} 
           alt="Header" 
           className="w-full h-full object-cover"
+          fetchPriority="high"
+          decoding="async"
         />
       </div>
       <div className="flex-1 flex flex-col items-center justify-center bg-[#0045FF] relative overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>
@@ -118,6 +134,9 @@ export default function ErrorPaymentPage() {
             src={errorImage}
             alt="Error"
             className="w-auto h-auto max-w-[300px] max-h-[300px] object-contain"
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
           />
         </div>
       </div>

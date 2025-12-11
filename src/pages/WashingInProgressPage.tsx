@@ -77,6 +77,8 @@ export default function WashingInProgressPage() {
             src={gazpromHeader} 
             alt="Header" 
             className="w-full h-full object-cover"
+            fetchPriority="high"
+            decoding="async"
             />
         </div>
 
@@ -112,6 +114,9 @@ export default function WashingInProgressPage() {
               src={CarImage}
               alt="Car"
               className="w-auto h-[700px] md:h-[700px] object-contain"
+              loading="lazy"
+              decoding="async"
+              fetchPriority="low"
             />
           </div>
         </div>

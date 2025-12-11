@@ -11,6 +11,7 @@ interface IHeaderWithLogoProps {
   backButtonClick?: () => void;
   disableBackConfirmation?: boolean;
   title?: string;
+  paymentSuccess?: boolean;
 }
 
 export default function HeaderWithLogo(props: IHeaderWithLogoProps) {
@@ -19,6 +20,7 @@ export default function HeaderWithLogo(props: IHeaderWithLogoProps) {
     openBackConfirmationModal,
     setBackConfirmationCallback
   } = useStore();
+  
 
   const handleBackClick = () => {
     logger.debug("[HeaderWithLogo] Back button clicked");
@@ -64,6 +66,7 @@ export default function HeaderWithLogo(props: IHeaderWithLogoProps) {
               className="px-8 py-4 rounded-3xl text-white font-semibold text-medium transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg"
               onClick={handleBackClick}
               style={{ backgroundColor: "#0B68E1" }}
+              disabled={props.paymentSuccess}
             >
               <div className="flex items-center gap-2">
                 {props.isInstructionPage ? <Icon data={Check} size={20} /> : <Icon data={ArrowLeft} size={20} />}
