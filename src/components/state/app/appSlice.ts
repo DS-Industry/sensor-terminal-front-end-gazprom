@@ -10,7 +10,7 @@ export interface AppSlice {
   insertedAmount: number;
   bankCheck: string;
   errorCode: number | null;
-  backConfirmationCallback: (() => void) | null;
+  backConfirmationCallback: (() => void | Promise<void>) | null;
   setIsLoyalty: (loyalty: boolean) => void;
   setPrograms: (programs: IProgram[]) => void;
   setSelectedProgram: (program: IProgram | null) => void;
@@ -18,7 +18,7 @@ export interface AppSlice {
   setInsertedAmount: (inserted: number) => void;
   setBankCheck: (bankCheck: string) => void;
   setErrorCode: (code: number | null) => void;
-  setBackConfirmationCallback: (callback: (() => void) | null) => void;
+  setBackConfirmationCallback: (callback: (() => void | Promise<void>) | null) => void;
   queuePosition: number | null;
   queueNumber: number | null;
   setQueuePosition: (position: number | null) => void;

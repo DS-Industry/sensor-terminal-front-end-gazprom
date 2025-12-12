@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '@gravity-ui/uikit';
+import { Icon, Spin } from '@gravity-ui/uikit';
 import {ArrowShapeTurnUpLeft} from '@gravity-ui/icons';
 import useStore from '../state/store';
 
@@ -12,6 +12,8 @@ export function BackConfirmationModal() {
   } = useStore();
   
   const callbackRef = useRef(backConfirmationCallback);
+
+  const [isLoading, setIsLoading] = useState(false);
   
   useEffect(() => {
     callbackRef.current = backConfirmationCallback;
@@ -20,6 +22,7 @@ export function BackConfirmationModal() {
   useEffect(() => {
     if (isBackConfirmationModalOpen) {
       document.body.style.overflow = 'hidden';
+      setIsLoading(false);
     } else {
       document.body.style.overflow = 'unset';
     }
@@ -28,20 +31,31 @@ export function BackConfirmationModal() {
     };
   }, [isBackConfirmationModalOpen]);
 
-  const handleConfirm = () => {
-    if (backConfirmationCallback) {
-      backConfirmationCallback();
+  const handleConfirm = async () => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    
+    try {
+      if (callbackRef.current) {
+        await callbackRef.current();
+      }
+      
+      closeBackConfirmationModal();
+    } catch (error) {
+      setIsLoading(false);
+      console.error('Failed to cancel order:', error);
     }
-    closeBackConfirmationModal();
   };
 
   const handleCancel = (e: React.MouseEvent) => {
+    if (isLoading) return;
     e.stopPropagation();
     closeBackConfirmationModal();
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
+    if (e.target === e.currentTarget && !isLoading) {
       closeBackConfirmationModal();
     }
   };
@@ -72,19 +86,30 @@ export function BackConfirmationModal() {
             </p>
           </div>
         </div>
-        
-        <div className="flex justify-center gap-12">
+
+        <div className="flex justify-center gap-16">
           <button
-            className="rounded-3xl text-white font-bold text-[20px] transition-all duration-300 hover:opacity-90 flex items-center gap-3 w-[400px] h-[58px] justify-center"
+            className="rounded-3xl text-white font-bold text-[26px] transition-all duration-300 hover:opacity-90 flex items-center gap-4 w-[550px] h-[90px] justify-center disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ backgroundColor: "#0B68E1" }}
             onClick={handleConfirm}
+            disabled={isLoading}
           >
-            <Icon data={ArrowShapeTurnUpLeft} size={24} className="text-white" />
-            Да, вернуться
+            {isLoading ? (
+              <>
+                <Spin size="m" />
+                <span>Обработка...</span>
+              </>
+            ) : (
+              <>
+                <Icon data={ArrowShapeTurnUpLeft} size={28} className="text-white" />
+                Да, вернуться
+              </>
+            )}
           </button>
           <button
-            className="rounded-3xl text-gray-900 font-bold text-[20px] transition-all duration-300 hover:bg-gray-100 border-2 border-gray-300 w-[400px] h-[58px] justify-center"
+            className="rounded-3xl text-gray-900 font-bold text-[26px] transition-all duration-300 hover:bg-gray-100 border-2 border-gray-300 w-[550px] h-[90px] justify-center disabled:opacity-60 disabled:cursor-not-allowed"
             onClick={handleCancel}
+            disabled={isLoading}
           >
             Отменить
           </button>

@@ -8,7 +8,7 @@ import { logger } from '../../util/logger';
 interface IHeaderWithLogoProps {
   isMainPage?: boolean;
   isInstructionPage?: boolean;
-  backButtonClick?: () => void;
+  backButtonClick?: () => Promise<void>;
   disableBackConfirmation?: boolean;
   title?: string;
   paymentSuccess?: boolean;
@@ -34,9 +34,9 @@ export default function HeaderWithLogo(props: IHeaderWithLogoProps) {
       logger.debug("[HeaderWithLogo] Using custom backButtonClick handler");
       openBackConfirmationModal();
 
-      setBackConfirmationCallback(() => {
+      setBackConfirmationCallback(async() => {
         if (props.backButtonClick) {
-          props.backButtonClick();
+          await props.backButtonClick();
         }
       });
     } else {
