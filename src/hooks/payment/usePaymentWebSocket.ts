@@ -34,6 +34,26 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
   const qrCodePollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const qrCodePollAttemptsRef = useRef<number>(0);
 
+  const safeSetPaymentState = useCallback((newState: PaymentState) => {
+    const currentState = useStore.getState().paymentState;
+    
+    if (currentState === PaymentState.PAYMENT_SUCCESS) {
+      const allowedTransitions = [
+        PaymentState.QUEUE_WAITING,
+        PaymentState.STARTING_ROBOT,
+        PaymentState.ROBOT_STARTED,
+        PaymentState.PAYMENT_ERROR, 
+      ];
+      
+      if (!allowedTransitions.includes(newState)) {
+        logger.debug(`[${paymentMethod}] Blocked payment state change from PAYMENT_SUCCESS to ${newState}`);
+        return;
+      }
+    }
+    
+    setPaymentState(newState);
+  }, [paymentMethod, setPaymentState]);
+
   const fetchOrderDetailsOnPayed = useCallback(async (orderId: string) => {
     if (hasFetchedPayedDetailsRef.current) {
       logger.debug(`[${paymentMethod}] Already fetched order details for PAYED status`);
@@ -55,7 +75,7 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
 
         if (newQueuePosition > PAYMENT_CONSTANTS.MAX_QUEUE_POSITION) {
           logger.info(`[${paymentMethod}] Queue is full, queuePosition: ${newQueuePosition}`);
-          setPaymentState(PaymentState.QUEUE_FULL);
+          safeSetPaymentState(PaymentState.QUEUE_FULL);
           setPaymentError('Очередь заполнена. В очереди уже находится один автомобиль. Пожалуйста, подождите окончания мойки.');
           
           try {
@@ -74,7 +94,9 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
 
       if (orderDetails.qr_code) {
         logger.debug(`[${paymentMethod}] QR code received in initial fetch: ${orderDetails.qr_code}`);
+        const currentPaymentState = useStore.getState().paymentState;
         setBankCheck(orderDetails.qr_code);
+        logger.debug(`[${paymentMethod}] QR code set, current payment state: ${currentPaymentState}`);
         if (qrCodePollIntervalRef.current) {
           clearInterval(qrCodePollIntervalRef.current);
           qrCodePollIntervalRef.current = null;
@@ -106,7 +128,13 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
             
             if (pollOrderDetails.qr_code && isMountedRef.current) {
               logger.debug(`[${paymentMethod}] QR code received via polling (attempt ${qrCodePollAttemptsRef.current}): ${pollOrderDetails.qr_code}`);
+              
+              const currentPaymentState = useStore.getState().paymentState;
               setBankCheck(pollOrderDetails.qr_code);
+              
+              if (currentPaymentState === PaymentState.PAYMENT_SUCCESS) {
+                logger.debug(`[${paymentMethod}] QR code set, payment state remains PAYMENT_SUCCESS`);
+              }
               
               if (qrCodePollIntervalRef.current) {
                 clearInterval(qrCodePollIntervalRef.current);
@@ -143,11 +171,11 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
       if (amountSum >= expectedAmount || amountSum === 0) {
         logger.info(`[${paymentMethod}] Payment confirmed! Amount: ${amountSum} (expected: ${expectedAmount})`);
         setPaymentError(null);
-        setPaymentState(PaymentState.PAYMENT_SUCCESS);
+        safeSetPaymentState(PaymentState.PAYMENT_SUCCESS);
         setIsLoading(false);
       } else if (amountSum > 0 && amountSum < expectedAmount) {
         logger.warn(`[${paymentMethod}] Partial payment detected: ${amountSum} < ${expectedAmount}`);
-        setPaymentState(PaymentState.PROCESSING_PAYMENT);
+        safeSetPaymentState(PaymentState.PROCESSING_PAYMENT);
         setIsLoading(true);
       }
     } catch (err) {
@@ -156,7 +184,7 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
         setIsLoading(false);
       }
     }
-  }, [paymentMethod, selectedProgram, setQueuePosition, setQueueNumber, setPaymentState, setPaymentError, setIsLoading, setBankCheck]);
+  }, [paymentMethod, selectedProgram, setQueuePosition, setQueueNumber, safeSetPaymentState, setPaymentError, setIsLoading, setBankCheck]);
 
   useEffect(() => {
     if (!orderId) return;
@@ -198,6 +226,12 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
         }
         setIsLoading(false);
       } else if (orderStatus === EOrderStatus.WAITING_PAYMENT) {
+        const currentPaymentState = useStore.getState().paymentState;
+        if (currentPaymentState === PaymentState.PAYMENT_SUCCESS) {
+          logger.debug(`[${paymentMethod}] Payment already successful, ignoring WAITING_PAYMENT status update`);
+          return;
+        }
+        
         if (checkAmountIntervalRef.current) {
           clearInterval(checkAmountIntervalRef.current);
         }
@@ -211,7 +245,7 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
             
             if (amountSum > lastAmountSumRef.current && amountSum > 0) {
               logger.info(`[${paymentMethod}] Card detected! Amount: ${amountSum}, setting processing state`);
-              setPaymentState(PaymentState.PROCESSING_PAYMENT);
+              safeSetPaymentState(PaymentState.PROCESSING_PAYMENT);
               setIsLoading(true);
               
               if (checkAmountIntervalRef.current) {
