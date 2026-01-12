@@ -12,10 +12,7 @@ export default function ProgramCard(program: IProgram) {
   const { setOrderProgramId, setSelectedProgram } = useStore.getState();
 
   return (
-    <Card type="action" className="w-80 bg-white rounded-[20px] shadow-xl overflow-hidden flex flex-col border-0" 
-      style={{
-        boxShadow: "0 4px 4px 0 rgba(0, 0, 0, 0.25)"
-      }}
+    <Card type="action" className="w-80 bg-white flex flex-col rounded-lg overflow-hidden"
       onClick={() => {
         logger.debug(`ProgramCard: Selected program ${program.id}`);
         setOrderProgramId(program.id);
@@ -35,7 +32,7 @@ export default function ProgramCard(program: IProgram) {
       }}
     >
       <div 
-        className="flex-shrink-0 h-96 p-4 relative flex flex-col overflow-hidden"
+        className="flex-1 relative flex flex-col px-4 pt-4"
         style={{
           background: 'linear-gradient(to right, #0967E1, #D632EC)'
         }}
@@ -46,7 +43,6 @@ export default function ProgramCard(program: IProgram) {
           style={{
             background: '#D632EC',
             width: '320px',
-            height: '320px',
             top: '5%',
             left: '50%',
             animation: 'blobMove1 6s ease-in-out infinite',
@@ -58,7 +54,7 @@ export default function ProgramCard(program: IProgram) {
           style={{
             background: '#47BDF0',
             width: '360px',
-            height: '360px',
+            // height: '360px',
             bottom: '5%',
             left: '5%',
             animation: 'blobMove2 8s ease-in-out infinite',
@@ -66,7 +62,7 @@ export default function ProgramCard(program: IProgram) {
           }}
         />
         
-        <div className="relative z-10">
+        <div className="relative z-10 flex flex-col flex-1 min-h-0">
           <div className="shadow-[0_4px_4px_0_rgba(0,0,0,0.25)] inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 self-start bg-[#5292FF]">
             <Clock className="w-4 h-4 text-white" />
             <span className="text-sm font-medium text-white">{program.duration} мин.</span>
@@ -74,9 +70,9 @@ export default function ProgramCard(program: IProgram) {
 
           <h2 className="text-3xl font-bold mb-5 text-balance leading-tight text-white whitespace-nowrap text-center">{program.name}</h2>
 
-          <div className="flex-1">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <ul className="space-y-2">
-              {program.functions && program.functions.split(", ").map((service, index) => (
+            {program.functions && program.functions.split(", ").map((service, index) => (
                 <li key={index} className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-white flex-shrink-0" strokeWidth={3} />
                   <span className="text-sm font-medium text-white">{service}</span>

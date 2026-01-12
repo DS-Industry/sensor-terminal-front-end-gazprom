@@ -78,7 +78,7 @@ export default function MainPage() {
   }, [order, navigate, setErrorCode])
 
   return (
-    <div className="flex flex-col h-[1024px] w-[1280px] bg-gray-200 overflow-hidden">
+    <div className="flex flex-col min-h-[1024px] w-[1280px] bg-gray-200">
       <div className="w-full flex-shrink-0 h-64">
         <img 
           src={gazpromHeader} 
@@ -88,20 +88,20 @@ export default function MainPage() {
         />
       </div>
       
-      <div className="flex-1 flex flex-col overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>
+      <div className="flex-1 flex flex-col overflow-scroll" style={{ maxHeight: 'calc(1024px - 256px)' }}>
         <HeaderWithLogo isMainPage={true} title="Выберите программу" /> 
 
-        <div className="flex-1 px-7 pb-7 overflow-hidden">
-          <div className="flex flex-col h-full">
+        <div className="flex-1 px-7 pb-7 overflow-y-auto" style={{ minHeight: 0 }}>
+          <div className="flex flex-col">
             
             {programs && (
               <div className="flex-1 flex flex-col justify-center overflow-hidden">
+              <div
+                className={`w-full snap-x`}
+              >
                 <div
-                  className={`w-full snap-x`}
+                  className={`flex flex-row justify-center items-stretch gap-6 w-full`}
                 >
-                  <div
-                    className={`flex flex-row justify-center gap-6 w-full`}
-                  >
                     {programs.map((item) => (
                       <ProgramCard
                         key={`program-card-${item.id}`}

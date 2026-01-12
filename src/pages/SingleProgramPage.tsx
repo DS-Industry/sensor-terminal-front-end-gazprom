@@ -39,7 +39,7 @@ export default function SingleProgramPage() {
 
 
   return (
-    <div className="flex flex-col h-[1024px] w-[1280px] bg-gray-200 overflow-hidden">
+    <div className="flex flex-col min-h-[1024px] w-[1280px] bg-gray-200 overflow-hidden">
       <div className="w-full flex-shrink-0 h-64">
         <img 
           src={gazpromHeader} 
@@ -49,11 +49,11 @@ export default function SingleProgramPage() {
         />
       </div>
 
-      <div className="flex-1 flex flex-col bg-gray-200 overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>
+      <div className="flex-1 flex flex-col bg-gray-200 overflow-scroll" style={{ maxHeight: 'calc(1024px - 256px)' }}>
 
         <HeaderWithLogo title="Выберите способ оплаты" />
 
-        <div className="flex-1 px-7 pb-7 overflow-hidden">
+        <div className="flex-1 px-7 pb-7 overflow-scroll">
           {selectedProgram && (
             <div className="flex flex-col h-full">
 
