@@ -88,7 +88,7 @@ export default function MainPage() {
         />
       </div>
       
-      <div className="flex-1 flex flex-col overflow-scroll" style={{ maxHeight: 'calc(1024px - 256px)' }}>
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ maxHeight: 'calc(1024px - 256px)' }}>
         <HeaderWithLogo isMainPage={true} title="Выберите программу" /> 
 
         <div className="flex-1 px-7 pb-7 overflow-y-auto" style={{ minHeight: 0 }}>

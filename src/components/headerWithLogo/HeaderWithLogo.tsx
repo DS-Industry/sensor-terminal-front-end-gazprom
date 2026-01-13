@@ -45,7 +45,7 @@ export default function HeaderWithLogo(props: IHeaderWithLogoProps) {
   };
 
   return (
-    <Card className="mx-7 my-5 p-4 shadow-lg border-0">
+    <Card className="mx-7 my-4 p-4 shadow-lg border-0">
       <div className="flex justify-between items-center">
         <ClientLogo />
         {props.title && <div className="text-[35px] font-bold">{props.title}</div>}
