@@ -67,7 +67,7 @@ export default function PayCard({
         {endPoint === "opti24" ? (
           <div className="mt-4 h-20 flex items-center">
             <div className="bg-[#89BAFB99] p-2 rounded-2xl text-center w-full h-full flex flex-col justify-center">
-              <div className="text-white/80 text-[15px]">ОПТИ 24</div>
+              <div className="text-white/80 text-[15px]">Оплата с помощью топливной карты ОПТИ 24</div>
             </div>
           </div>
         ) : (
