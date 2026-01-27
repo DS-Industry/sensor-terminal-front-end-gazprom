@@ -24,6 +24,8 @@ class WebSocketService {
     const handleStatusUpdate = (data: WebSocketMessage) => {
       if (data.type === 'status_update' && data.order_id) {
         const currentOrder = useStore.getState().order;
+
+        console.log('data: ', data)
         
         if (!currentOrder?.id || currentOrder.id === data.order_id) {
           logger.debug(`Updating order status globally: ${data.status} for order ${data.order_id}`);

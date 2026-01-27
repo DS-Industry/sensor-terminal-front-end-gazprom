@@ -24,6 +24,11 @@ import { AppHealthMonitor } from "./components/appHealth/AppHealthMonitor.tsx";
 
 WebSocketService.initialize();
 
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  return false;
+});
+
 // eslint-disable-next-line react-refresh/only-export-components
 function Root() {
   return (
