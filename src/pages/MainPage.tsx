@@ -23,6 +23,7 @@ export default function MainPage() {
     setQueueNumber,
     setSelectedProgram,
     setBankCheck,
+    setOptiQrCode,
     setBackConfirmationCallback,
     resetPayment,
   } = useStore();
@@ -46,6 +47,7 @@ export default function MainPage() {
     setQueueNumber(null);
     setSelectedProgram(null);
     setBankCheck("");
+    setOptiQrCode("");
     setBackConfirmationCallback(null);
   }, [
     clearOrder,
@@ -57,6 +59,7 @@ export default function MainPage() {
     setQueueNumber,
     setSelectedProgram,
     setBankCheck,
+    setOptiQrCode,
     setBackConfirmationCallback,
   ])
 

@@ -10,6 +10,7 @@ import { ThemeProvider } from "@gravity-ui/uikit";
 import SingleProgramPage from "./pages/SingleProgramPage.tsx";
 import InstructionPage from "./pages/InstructionPage.tsx";
 import CardPayPage from "./pages/CardPayPage.tsx";
+import OptiPayPage from "./pages/OptiPayPage.tsx";
 import SuccessPaymentPage from "./pages/SuccessPaymentPage.tsx";
 import ErrorPage from "./pages/ErrorPage.tsx";
 import ErrorPaymentPage from "./pages/ErrorPaymentPage.tsx";
@@ -50,6 +51,10 @@ const router = createBrowserRouter([
       {
         path: "/programs/:program/bankCard",
         element: <CardPayPage />,
+      },
+      {
+        path: "/programs/:program/opti24",
+        element: <OptiPayPage />,
       },
       {
         path: "/instruction",

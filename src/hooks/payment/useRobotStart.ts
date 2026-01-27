@@ -66,6 +66,8 @@ export function useRobotStart({ orderId, navigate }: UseRobotStartOptions) {
           setQueueNumber(orderDetails.queue_number);
         }
 
+        console.log('ХОХОХОХОХОХОХОХОХОХО', orderDetails);
+
         // Update order status if available
         if (orderDetails.status) {
           setOrder({

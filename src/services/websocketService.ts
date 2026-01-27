@@ -37,6 +37,7 @@ class WebSocketService {
             transactionId: data.transaction_id,
           });
 
+
           if (orderStatus === EOrderStatus.COMPLETED) {
             logger.info(`Order ${data.order_id} completed`);
           }

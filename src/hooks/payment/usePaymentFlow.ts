@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { cancelOrder } from '../../api/services/payment';
+import { cancelOrder, getOrderById } from '../../api/services/payment';
 import { EPaymentMethod } from '../../components/state/order/orderSlice';
 import { PaymentState } from '../../state/paymentStateMachine';
 import { PAYMENT_CONSTANTS } from '../../constants/payment';
@@ -26,6 +26,7 @@ export function usePaymentFlow(paymentMethod: EPaymentMethod) {
     clearOrder,
     setSelectedProgram,
     setBankCheck,
+    setOptiQrCode,
     setInsertedAmount,
     setQueuePosition: setGlobalQueuePosition,
     setQueueNumber: setGlobalQueueNumber,
@@ -34,6 +35,7 @@ export function usePaymentFlow(paymentMethod: EPaymentMethod) {
 
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bankCheckPollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isMountedRef = useRef(true);
 
   const { createOrder, cancelOrderCreation } = useOrderCreation({
@@ -66,6 +68,58 @@ export function usePaymentFlow(paymentMethod: EPaymentMethod) {
     const initialTime = PAYMENT_CONSTANTS.START_ROBOT_INTERVAL / 1000;
     useStore.getState().setTimeUntilRobotStart(initialTime);
 
+    const BANK_CHECK_POLL_DURATION = 10000; 
+    const BANK_CHECK_POLL_INTERVAL = 1000; 
+    const maxBankCheckPollAttempts = BANK_CHECK_POLL_DURATION / BANK_CHECK_POLL_INTERVAL; 
+    
+    if (bankCheckPollIntervalRef.current) {
+      clearInterval(bankCheckPollIntervalRef.current);
+    }
+
+    let bankCheckPollAttempts = 0;
+    bankCheckPollIntervalRef.current = setInterval(async () => {
+      if (!isMountedRef.current || !order?.id) {
+        if (bankCheckPollIntervalRef.current) {
+          clearInterval(bankCheckPollIntervalRef.current);
+          bankCheckPollIntervalRef.current = null;
+        }
+        return;
+      }
+
+      bankCheckPollAttempts++;
+
+      try {
+        const orderDetails = await getOrderById(order.id);
+        
+        if (orderDetails.qr_code && isMountedRef.current) {
+          logger.debug(`[${paymentMethod}] Bank check QR code received via polling (attempt ${bankCheckPollAttempts}): ${orderDetails.qr_code}`);
+          
+          if (paymentMethod === EPaymentMethod.OPTI) {
+            logger.debug(`[${paymentMethod}] Skipping bank check QR code from API for OPTI`);
+          } else {
+            setBankCheck(orderDetails.qr_code);
+          }
+        }
+        
+        if (bankCheckPollAttempts >= maxBankCheckPollAttempts) {
+          if (bankCheckPollIntervalRef.current) {
+            clearInterval(bankCheckPollIntervalRef.current);
+            bankCheckPollIntervalRef.current = null;
+          }
+          logger.info(`[${paymentMethod}] Bank check polling completed after ${maxBankCheckPollAttempts} attempts`);
+        }
+      } catch (err) {
+        logger.error(`[${paymentMethod}] Error polling for bank check (attempt ${bankCheckPollAttempts})`, err);
+        
+        if (bankCheckPollAttempts >= maxBankCheckPollAttempts) {
+          if (bankCheckPollIntervalRef.current) {
+            clearInterval(bankCheckPollIntervalRef.current);
+            bankCheckPollIntervalRef.current = null;
+          }
+        }
+      }
+    }, BANK_CHECK_POLL_INTERVAL);
+
     countdownTimeoutRef.current = setTimeout(() => {
       logger.info(`[${paymentMethod}] Automatic robot start triggered`);
       handleStartRobot();
@@ -83,7 +137,7 @@ export function usePaymentFlow(paymentMethod: EPaymentMethod) {
         useStore.getState().setTimeUntilRobotStart(currentTime - 1);
       }
     }, 1000);
-  }, [paymentMethod, handleStartRobot]);
+  }, [paymentMethod, handleStartRobot, order?.id, setBankCheck]);
 
   useEffect(() => {
     if (paymentState === PaymentState.PAYMENT_SUCCESS && !countdownTimeoutRef.current) {
@@ -109,6 +163,10 @@ export function usePaymentFlow(paymentMethod: EPaymentMethod) {
         clearTimeout(countdownTimeoutRef.current);
         countdownTimeoutRef.current = null;
       }
+      if (bankCheckPollIntervalRef.current) {
+        clearInterval(bankCheckPollIntervalRef.current);
+        bankCheckPollIntervalRef.current = null;
+      }
     };
   }, [selectedProgram, paymentMethod, paymentState, createOrder]);
 
@@ -122,6 +180,10 @@ export function usePaymentFlow(paymentMethod: EPaymentMethod) {
     if (countdownTimeoutRef.current) {
       clearTimeout(countdownTimeoutRef.current);
       countdownTimeoutRef.current = null;
+    }
+    if (bankCheckPollIntervalRef.current) {
+      clearInterval(bankCheckPollIntervalRef.current);
+      bankCheckPollIntervalRef.current = null;
     }
     
     cancelOrderCreation();
@@ -144,6 +206,7 @@ export function usePaymentFlow(paymentMethod: EPaymentMethod) {
       clearOrder();
       setSelectedProgram(null);
       setBankCheck("");
+      setOptiQrCode("");
       setInsertedAmount(0);
       setIsLoading(false);
       
@@ -161,6 +224,7 @@ export function usePaymentFlow(paymentMethod: EPaymentMethod) {
     clearOrder,
     setSelectedProgram,
     setBankCheck,
+    setOptiQrCode,
     setInsertedAmount,
   ]);
 
@@ -177,6 +241,9 @@ export function usePaymentFlow(paymentMethod: EPaymentMethod) {
       }
       if (countdownTimeoutRef.current) {
         clearTimeout(countdownTimeoutRef.current);
+      }
+      if (bankCheckPollIntervalRef.current) {
+        clearInterval(bankCheckPollIntervalRef.current);
       }
     };
   }, []);

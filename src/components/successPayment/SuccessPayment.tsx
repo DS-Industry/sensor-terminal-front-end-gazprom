@@ -56,12 +56,20 @@ export default function SuccessPayment() {
           <>
             <div className="flex flex-col items-center">
               <div className="w-[282px] h-[282px] bg-white rounded-2xl flex items-center justify-center mb-4 p-4 shadow-lg">
-                <QRCode
-                  size={256}
-                  style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                  value={bankCheck}
-                  viewBox="0 0 256 256"
-                />
+                {bankCheck.startsWith('data:image/') ? (
+                  <img 
+                    src={bankCheck} 
+                    alt="QR Code" 
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <QRCode
+                    size={256}
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    value={bankCheck}
+                    viewBox="0 0 256 256"
+                  />
+                )}
               </div>
               <p className="text-gray-600 text-xl font-medium mb-8">
                 Ваш чек

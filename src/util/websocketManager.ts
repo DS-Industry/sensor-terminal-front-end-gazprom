@@ -3,14 +3,15 @@ import { env } from '../config/env';
 
 const WS_BASE_URL = env.VITE_API_BASE_WS_URL;
 
-type WebSocketEvent = 'status_update' | 'mobile_payment' | 'device_status' | 'error' | 'card_reader';
+type WebSocketEvent = 'status_update' | 'mobile_payment' | 'device_status' | 'error' | 'card_reader' | 'order_qr_opti';
 
 export interface WebSocketMessage {
   type: WebSocketEvent;
   order_id?: string;
   status?: string;
   transaction_id?: string;
-  timestamp: string;
+  timestamp?: string;
+  qr?: string;
 }
 
 type EventListener = (data: WebSocketMessage) => void;
@@ -19,11 +20,10 @@ class WebSocketManager {
   private ws: WebSocket | null = null;
   private reconnectAttempts = 0;
   private consecutiveFailures = 0;
-  // Exponential backoff configuration
-  private minReconnectInterval = 5000;     // 5 seconds minimum
-  private maxReconnectInterval = 60000;    // 60 seconds maximum
-  private longRetryInterval = 300000;      // 5 minutes for periodic retry after many failures
-  private periodicRetryThreshold = 20;    // Switch to periodic retry after this many failures
+  private minReconnectInterval = 5000;    
+  private maxReconnectInterval = 60000;   
+  private longRetryInterval = 300000;     
+  private periodicRetryThreshold = 20;   
   private listeners: Map<WebSocketEvent, EventListener[]> = new Map();
   public isConnected = false;
   private connectionTimeout: ReturnType<typeof setTimeout> | null = null;

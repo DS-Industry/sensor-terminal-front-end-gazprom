@@ -12,7 +12,7 @@ interface UseOrderCreationOptions {
 }
 
 export function useOrderCreation({ selectedProgram, paymentMethod }: UseOrderCreationOptions) {
-  const { setIsLoading, setOrder, setPaymentState, setPaymentError } = useStore();
+  const { setIsLoading, setOrder, setPaymentState, setPaymentError, setOptiQrCode } = useStore();
   const isCreatingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -37,6 +37,11 @@ export function useOrderCreation({ selectedProgram, paymentMethod }: UseOrderCre
 
     setPaymentError(null);
     setPaymentState(PaymentState.CREATING_ORDER);
+    
+    if (paymentMethod === EPaymentMethod.OPTI) {
+      setOptiQrCode("");
+      logger.debug(`[${paymentMethod}] Cleared OPTI QR code for new order`);
+    }
 
     try {
       logger.debug(`[${paymentMethod}] Creating order for program: ${selectedProgram.id}`);
@@ -52,7 +57,6 @@ export function useOrderCreation({ selectedProgram, paymentMethod }: UseOrderCre
       }
 
       logger.info(`[${paymentMethod}] Order creation API called successfully, waiting for order ID from WebSocket`);
-      setPaymentState(PaymentState.WAITING_PAYMENT);
     } catch (err: any) {
       if (err?.name === 'AbortError' || abortSignal.aborted) {
         logger.info(`[${paymentMethod}] Order creation aborted`);
@@ -74,7 +78,7 @@ export function useOrderCreation({ selectedProgram, paymentMethod }: UseOrderCre
       setPaymentError(errorMessage);
       isCreatingRef.current = false;
     }
-  }, [selectedProgram, paymentMethod, setIsLoading, setOrder, setPaymentState, setPaymentError]);
+  }, [selectedProgram, paymentMethod, setIsLoading, setOrder, setPaymentState, setPaymentError, setOptiQrCode]);
 
   const cancelOrderCreation = useCallback(() => {
     if (abortControllerRef.current) {

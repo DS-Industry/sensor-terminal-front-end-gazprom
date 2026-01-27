@@ -24,6 +24,7 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
     setPaymentError,
     setIsLoading,
     setBankCheck,
+    setOptiQrCode,
   } = useStore();
 
   const depositTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -31,8 +32,6 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
   const hasFetchedPayedDetailsRef = useRef(false);
   const checkAmountIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastAmountSumRef = useRef<number>(0);
-  const qrCodePollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const qrCodePollAttemptsRef = useRef<number>(0);
 
   const safeSetPaymentState = useCallback((newState: PaymentState) => {
     const currentState = useStore.getState().paymentState;
@@ -94,73 +93,18 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
 
       if (orderDetails.qr_code) {
         logger.debug(`[${paymentMethod}] QR code received in initial fetch: ${orderDetails.qr_code}`);
-        const currentPaymentState = useStore.getState().paymentState;
-        setBankCheck(orderDetails.qr_code);
-        logger.debug(`[${paymentMethod}] QR code set, current payment state: ${currentPaymentState}`);
-        if (qrCodePollIntervalRef.current) {
-          clearInterval(qrCodePollIntervalRef.current);
-          qrCodePollIntervalRef.current = null;
-          qrCodePollAttemptsRef.current = 0;
+        
+        if (paymentMethod === EPaymentMethod.OPTI) {
+          logger.debug(`[${paymentMethod}] Skipping QR code from API for OPTI - it comes only via WebSocket`);
+        } else {
+          setBankCheck(orderDetails.qr_code);
         }
       } else {
-        logger.debug(`[${paymentMethod}] QR code not available in initial fetch, starting polling`);
-        qrCodePollAttemptsRef.current = 0;
-        const MAX_QR_POLL_ATTEMPTS = 10; 
-        const QR_POLL_INTERVAL = 1000; 
-
-        if (qrCodePollIntervalRef.current) {
-          clearInterval(qrCodePollIntervalRef.current);
+        if (paymentMethod === EPaymentMethod.OPTI) {
+          logger.debug(`[${paymentMethod}] QR code not in API response - waiting for WebSocket order_qr_opti message`);
+        } else {
+          logger.debug(`[${paymentMethod}] QR code not available in initial fetch - will be polled after PAYMENT_SUCCESS`);
         }
-
-        qrCodePollIntervalRef.current = setInterval(async () => {
-          if (!isMountedRef.current || !orderId) {
-            if (qrCodePollIntervalRef.current) {
-              clearInterval(qrCodePollIntervalRef.current);
-              qrCodePollIntervalRef.current = null;
-            }
-            return;
-          }
-
-          qrCodePollAttemptsRef.current++;
-
-          try {
-            const pollOrderDetails = await getOrderById(orderId);
-            
-            if (pollOrderDetails.qr_code && isMountedRef.current) {
-              logger.debug(`[${paymentMethod}] QR code received via polling (attempt ${qrCodePollAttemptsRef.current}): ${pollOrderDetails.qr_code}`);
-              
-              const currentPaymentState = useStore.getState().paymentState;
-              setBankCheck(pollOrderDetails.qr_code);
-              
-              if (currentPaymentState === PaymentState.PAYMENT_SUCCESS) {
-                logger.debug(`[${paymentMethod}] QR code set, payment state remains PAYMENT_SUCCESS`);
-              }
-              
-              if (qrCodePollIntervalRef.current) {
-                clearInterval(qrCodePollIntervalRef.current);
-                qrCodePollIntervalRef.current = null;
-                qrCodePollAttemptsRef.current = 0;
-              }
-            } else if (qrCodePollAttemptsRef.current >= MAX_QR_POLL_ATTEMPTS) {
-              logger.warn(`[${paymentMethod}] QR code polling stopped after ${MAX_QR_POLL_ATTEMPTS} attempts`);
-              if (qrCodePollIntervalRef.current) {
-                clearInterval(qrCodePollIntervalRef.current);
-                qrCodePollIntervalRef.current = null;
-                qrCodePollAttemptsRef.current = 0;
-              }
-            }
-          } catch (err) {
-            logger.error(`[${paymentMethod}] Error polling for QR code (attempt ${qrCodePollAttemptsRef.current})`, err);
-            
-            if (qrCodePollAttemptsRef.current >= MAX_QR_POLL_ATTEMPTS) {
-              if (qrCodePollIntervalRef.current) {
-                clearInterval(qrCodePollIntervalRef.current);
-                qrCodePollIntervalRef.current = null;
-                qrCodePollAttemptsRef.current = 0;
-              }
-            }
-          }
-        }, QR_POLL_INTERVAL);
       }
 
       const amountSum = orderDetails.amount_sum ? Number(orderDetails.amount_sum) : 0;
@@ -184,7 +128,52 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
         setIsLoading(false);
       }
     }
-  }, [paymentMethod, selectedProgram, setQueuePosition, setQueueNumber, safeSetPaymentState, setPaymentError, setIsLoading, setBankCheck]);
+  }, [paymentMethod, selectedProgram, setQueuePosition, setQueueNumber, safeSetPaymentState, setPaymentError, setIsLoading, setBankCheck, setOptiQrCode]);
+
+  const handleOrderQrOpti = useCallback((data: WebSocketMessage) => {
+    if (data.type !== 'order_qr_opti' || !data.order_id) {
+      return;
+    }
+
+    const currentOrder = useStore.getState().order;
+    if (orderId && data.order_id !== orderId) {
+      logger.debug(`[${paymentMethod}] Ignoring order_qr_opti for different order: ${data.order_id} (current: ${orderId})`);
+      return;
+    }
+
+    if (!orderId && currentOrder?.id && currentOrder.id !== data.order_id) {
+      logger.debug(`[${paymentMethod}] Ignoring order_qr_opti for different order: ${data.order_id} (current: ${currentOrder.id})`);
+      return;
+    }
+
+    logger.info(`[${paymentMethod}] Received order_qr_opti message for order ${data.order_id}`);
+
+    if (!currentOrder?.id || currentOrder.id === data.order_id) {
+      setOrder({
+        id: data.order_id,
+        transactionId: data.transaction_id,
+        status: currentOrder?.status || EOrderStatus.WAITING_PAYMENT,
+        programId: currentOrder?.programId,
+        paymentMethod: currentOrder?.paymentMethod || paymentMethod,
+        createdAt: currentOrder?.createdAt || new Date().toISOString(),
+      });
+    }
+
+    if (data.qr) {
+      logger.info(`[${paymentMethod}] Setting OPTI QR code from WebSocket message (length: ${data.qr.length})`);
+      const qrDataUrl = `data:image/png;base64,${data.qr}`;
+      setOptiQrCode(qrDataUrl);
+
+      console.log("qrDataUrl: ", qrDataUrl)
+      
+      const currentPaymentState = useStore.getState().paymentState;
+      if (currentPaymentState === PaymentState.CREATING_ORDER || currentPaymentState === PaymentState.WAITING_PAYMENT) {
+        logger.info(`[${paymentMethod}] QR code received, payment state remains WAITING_PAYMENT`);
+      }
+    } else {
+      logger.warn(`[${paymentMethod}] order_qr_opti message received but qr field is empty`);
+    }
+  }, [orderId, paymentMethod, setOptiQrCode, setOrder]);
 
   useEffect(() => {
     if (!orderId) return;
@@ -281,7 +270,8 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
       }
     };
 
-    const removeListener = globalWebSocketManager.addListener('status_update', handleStatusUpdate);
+    const removeStatusListener = globalWebSocketManager.addListener('status_update', handleStatusUpdate);
+    const removeQrOptiListener = globalWebSocketManager.addListener('order_qr_opti', handleOrderQrOpti);
 
     if (order?.status === EOrderStatus.WAITING_PAYMENT) {
       depositTimeoutRef.current = setTimeout(async () => {
@@ -298,7 +288,8 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
 
     return () => {
       isMountedRef.current = false;
-      removeListener();
+      removeStatusListener();
+      removeQrOptiListener();
       if (depositTimeoutRef.current) {
         clearTimeout(depositTimeoutRef.current);
         depositTimeoutRef.current = null;
@@ -307,14 +298,9 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
         clearInterval(checkAmountIntervalRef.current);
         checkAmountIntervalRef.current = null;
       }
-      if (qrCodePollIntervalRef.current) {
-        clearInterval(qrCodePollIntervalRef.current);
-        qrCodePollIntervalRef.current = null;
-        qrCodePollAttemptsRef.current = 0;
-      }
       lastAmountSumRef.current = 0;
     };
-  }, [orderId, order?.status, paymentMethod, fetchOrderDetailsOnPayed, setOrder, setIsLoading]);
+  }, [orderId, order?.status, paymentMethod, fetchOrderDetailsOnPayed, setOrder, setIsLoading, handleOrderQrOpti]);
 
   return {};
 }

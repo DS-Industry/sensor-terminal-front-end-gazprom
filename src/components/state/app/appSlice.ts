@@ -9,6 +9,7 @@ export interface AppSlice {
   isLoading: boolean;
   insertedAmount: number;
   bankCheck: string;
+  optiQrCode: string; 
   errorCode: number | null;
   backConfirmationCallback: (() => void | Promise<void>) | null;
   setIsLoyalty: (loyalty: boolean) => void;
@@ -17,6 +18,7 @@ export interface AppSlice {
   setIsLoading: (isLoading: boolean) => void;
   setInsertedAmount: (inserted: number) => void;
   setBankCheck: (bankCheck: string) => void;
+  setOptiQrCode: (qrCode: string) => void;
   setErrorCode: (code: number | null) => void;
   setBackConfirmationCallback: (callback: (() => void | Promise<void>) | null) => void;
   queuePosition: number | null;
@@ -33,6 +35,7 @@ export const createAppSlice: StoreSlice<AppSlice> = (set) => ({
   isLoading: false,
   insertedAmount: 0,
   bankCheck: "",
+  optiQrCode: "",
   errorCode: null,
   backConfirmationCallback: null,
   queuePosition: null,
@@ -60,6 +63,10 @@ export const createAppSlice: StoreSlice<AppSlice> = (set) => ({
 
   setBankCheck: (bankCheck) => {
     set(state => ({...state, bankCheck}));
+  },
+
+  setOptiQrCode: (qrCode) => {
+    set(state => ({...state, optiQrCode: qrCode}));
   },
 
   setErrorCode: (code) => {
