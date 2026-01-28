@@ -1,5 +1,6 @@
 import { globalWebSocketManager, type WebSocketMessage } from '../util/websocketManager';
 import { EOrderStatus } from '../components/state/order/orderSlice';
+import { PaymentState } from '../state/paymentStateMachine';
 import { logger } from '../util/logger';
 import useStore from '../components/state/store';
 // Navigation is handled by pages watching order status
@@ -24,21 +25,24 @@ class WebSocketService {
     const handleStatusUpdate = (data: WebSocketMessage) => {
       if (data.type === 'status_update' && data.order_id) {
         const currentOrder = useStore.getState().order;
+        const paymentState = useStore.getState().paymentState;
 
-        console.log('data: ', data)
+        const orderStatus = data.status as EOrderStatus | undefined;
         
-        if (!currentOrder?.id || currentOrder.id === data.order_id) {
+        const shouldUpdate = 
+          !currentOrder?.id || 
+          currentOrder.id === data.order_id ||
+          (orderStatus === EOrderStatus.CREATED && paymentState === PaymentState.CREATING_ORDER);
+        
+        if (shouldUpdate) {
           logger.debug(`Updating order status globally: ${data.status} for order ${data.order_id}`);
           
-          const orderStatus = data.status as EOrderStatus | undefined;
-
           useStore.getState().setOrder({
             ...currentOrder,
             id: data.order_id,
             status: orderStatus,
             transactionId: data.transaction_id,
           });
-
 
           if (orderStatus === EOrderStatus.COMPLETED) {
             logger.info(`Order ${data.order_id} completed`);

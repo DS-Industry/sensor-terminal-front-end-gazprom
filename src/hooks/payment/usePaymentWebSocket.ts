@@ -136,28 +136,20 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
     }
 
     const currentOrder = useStore.getState().order;
-    if (orderId && data.order_id !== orderId) {
-      logger.debug(`[${paymentMethod}] Ignoring order_qr_opti for different order: ${data.order_id} (current: ${orderId})`);
-      return;
-    }
-
-    if (!orderId && currentOrder?.id && currentOrder.id !== data.order_id) {
-      logger.debug(`[${paymentMethod}] Ignoring order_qr_opti for different order: ${data.order_id} (current: ${currentOrder.id})`);
+    
+    if (!currentOrder || currentOrder.id !== data.order_id) {
+      logger.debug(`[${paymentMethod}] Ignoring order_qr_opti for different order: ${data.order_id} (current: ${currentOrder?.id || 'none'})`);
       return;
     }
 
     logger.info(`[${paymentMethod}] Received order_qr_opti message for order ${data.order_id}`);
 
-    if (!currentOrder?.id || currentOrder.id === data.order_id) {
-      setOrder({
-        id: data.order_id,
-        transactionId: data.transaction_id,
-        status: currentOrder?.status || EOrderStatus.WAITING_PAYMENT,
-        programId: currentOrder?.programId,
-        paymentMethod: currentOrder?.paymentMethod || paymentMethod,
-        createdAt: currentOrder?.createdAt || new Date().toISOString(),
-      });
-    }
+    setOrder({
+      ...currentOrder,
+      id: data.order_id,
+      transactionId: data.transaction_id,
+      status: currentOrder.status || EOrderStatus.WAITING_PAYMENT,
+    });
 
     if (data.qr) {
       logger.info(`[${paymentMethod}] Setting OPTI QR code from WebSocket message (length: ${data.qr.length})`);
@@ -173,35 +165,39 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
     } else {
       logger.warn(`[${paymentMethod}] order_qr_opti message received but qr field is empty`);
     }
-  }, [orderId, paymentMethod, setOptiQrCode, setOrder]);
+  }, [paymentMethod, setOptiQrCode, setOrder]);
 
   useEffect(() => {
-    if (!orderId) return;
-
     isMountedRef.current = true;
     hasFetchedPayedDetailsRef.current = false;
 
     const handleStatusUpdate = async (data: WebSocketMessage) => {
-      if (data.type !== 'status_update' || !data.order_id || data.order_id !== orderId) {
+      
+      if (data.type !== 'status_update' || !data.order_id) {
+        return;
+      }
+
+      const currentOrder = useStore.getState().order;
+      
+      if (!currentOrder || currentOrder.id !== data.order_id) {
+        logger.debug(`[${paymentMethod}] Ignoring status update for order ${data.order_id} (current order: ${currentOrder?.id || 'none'})`);
         return;
       }
 
       const orderStatus = data.status as EOrderStatus | undefined;
       if (!orderStatus) return;
 
-      logger.debug(`[${paymentMethod}] WebSocket status update: ${orderStatus} for order ${orderId}`);
+      logger.debug(`[${paymentMethod}] WebSocket status update: ${orderStatus} for order ${data.order_id}`);
+      setOrder({
+        ...currentOrder,
+        status: orderStatus,
+        transactionId: data.transaction_id,
+      });
 
-      const currentOrder = useStore.getState().order;
-      if (currentOrder?.id === orderId) {
-        setOrder({
-          ...currentOrder,
-          status: orderStatus,
-          transactionId: data.transaction_id,
-        });
-      }
+      const effectiveOrderId = data.order_id;
 
       if (orderStatus === EOrderStatus.PAYED) {
-        await fetchOrderDetailsOnPayed(orderId);
+        await fetchOrderDetailsOnPayed(effectiveOrderId);
       } else if (orderStatus === EOrderStatus.COMPLETED) {
         if (depositTimeoutRef.current) {
           clearTimeout(depositTimeoutRef.current);
@@ -226,10 +222,17 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
         }
         
         checkAmountIntervalRef.current = setInterval(async () => {
-          if (!orderId || !isMountedRef.current) return;
+          const latestOrder = useStore.getState().order;
+          if (!latestOrder || latestOrder.id !== effectiveOrderId || !isMountedRef.current) {
+            if (checkAmountIntervalRef.current) {
+              clearInterval(checkAmountIntervalRef.current);
+              checkAmountIntervalRef.current = null;
+            }
+            return;
+          }
           
           try {
-            const orderDetails = await getOrderById(orderId);
+            const orderDetails = await getOrderById(effectiveOrderId);
             const amountSum = orderDetails.amount_sum ? Number(orderDetails.amount_sum) : 0;
             
             if (amountSum > lastAmountSumRef.current && amountSum > 0) {
@@ -260,8 +263,9 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
             checkAmountIntervalRef.current = null;
           }
           try {
-            if (orderId && isMountedRef.current) {
-              await cancelOrder(orderId);
+            const latestOrder = useStore.getState().order;
+            if (latestOrder?.id === effectiveOrderId && isMountedRef.current) {
+              await cancelOrder(effectiveOrderId);
             }
           } catch (e) {
             logger.error(`[${paymentMethod}] Error cancelling order on timeout`, e);
@@ -273,12 +277,14 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
     const removeStatusListener = globalWebSocketManager.addListener('status_update', handleStatusUpdate);
     const removeQrOptiListener = globalWebSocketManager.addListener('order_qr_opti', handleOrderQrOpti);
 
-    if (order?.status === EOrderStatus.WAITING_PAYMENT) {
+    const currentOrder = useStore.getState().order;
+    if (currentOrder?.status === EOrderStatus.WAITING_PAYMENT && currentOrder?.id) {
       depositTimeoutRef.current = setTimeout(async () => {
         logger.info(`[${paymentMethod}] Payment timeout reached, cancelling order`);
         try {
-          if (orderId && isMountedRef.current) {
-            await cancelOrder(orderId);
+          const latestOrder = useStore.getState().order;
+          if (latestOrder?.id === currentOrder.id && currentOrder.id && isMountedRef.current) {
+            await cancelOrder(currentOrder.id);
           }
         } catch (e) {
           logger.error(`[${paymentMethod}] Error cancelling order on timeout`, e);
@@ -300,7 +306,7 @@ export function usePaymentWebSocket({ orderId, selectedProgram, paymentMethod }:
       }
       lastAmountSumRef.current = 0;
     };
-  }, [orderId, order?.status, paymentMethod, fetchOrderDetailsOnPayed, setOrder, setIsLoading, handleOrderQrOpti]);
+  }, [orderId, order?.status, paymentMethod, fetchOrderDetailsOnPayed, setOrder, setIsLoading, handleOrderQrOpti, safeSetPaymentState]);
 
   return {};
 }
