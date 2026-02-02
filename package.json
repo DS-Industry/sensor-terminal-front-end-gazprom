@@ -13,6 +13,7 @@
     "test:coverage": "vitest --coverage"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.980.0",
     "@gravity-ui/uikit": "^7.22.0",
     "@tailwindcss/vite": "^4.1.13",
     "axios": "^1.12.2",
