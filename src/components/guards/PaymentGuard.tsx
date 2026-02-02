@@ -5,14 +5,15 @@ import { logger } from '../../util/logger';
 
 interface PaymentGuardProps {
   children: ReactNode;
-  requireOrder?: boolean;
 }
 
-export function PaymentGuard({ children, requireOrder = true }: PaymentGuardProps) {
+export function PaymentGuard({ children }: PaymentGuardProps) {
   const location = useLocation();
   const { order } = useStore();
 
-  if (requireOrder && !order?.id) {
+  const protectedRoutes = ['/success', '/error', '/error-payment', '/washing', '/queue-waiting'];
+  
+  if (protectedRoutes.includes(location.pathname) && !order?.id) {
     logger.warn(`[PaymentGuard] Access denied to ${location.pathname} - no order found`);
     return <Navigate to="/" replace />;
   }

@@ -1,4 +1,3 @@
-import { useTranslation } from "react-i18next";
 import { Card, Icon, Text } from "@gravity-ui/uikit";
 import { ArrowRight } from "@gravity-ui/icons";
 import { Clock, Check } from "lucide-react";
@@ -8,16 +7,12 @@ import { IProgram } from "../../api/types/program";
 import { logger } from "../../util/logger";
 
 export default function ProgramCard(program: IProgram) {
-  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const { setOrderProgramId, setSelectedProgram } = useStore.getState();
 
   return (
-    <Card type="action" className="w-80 bg-white rounded-[20px] shadow-xl overflow-hidden flex flex-col border-0" 
-      style={{
-        boxShadow: "0 4px 4px 0 rgba(0, 0, 0, 0.25)"
-      }}
+    <Card type="action" className="w-80 bg-white flex flex-col rounded-[20px] overflow-hidden"
       onClick={() => {
         logger.debug(`ProgramCard: Selected program ${program.id}`);
         setOrderProgramId(program.id);
@@ -25,7 +20,7 @@ export default function ProgramCard(program: IProgram) {
         navigate(`/programs/${program.id}`)
       }}
       role="button"
-      aria-label={t(`Выбрать программу ${program.name}`)}
+      aria-label={`Выбрать программу ${program.name}`}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -37,7 +32,7 @@ export default function ProgramCard(program: IProgram) {
       }}
     >
       <div 
-        className="flex-shrink-0 h-96 p-4 relative flex flex-col overflow-hidden"
+        className="flex-1 relative flex flex-col px-4 pt-4"
         style={{
           background: 'linear-gradient(to right, #0967E1, #D632EC)'
         }}
@@ -48,40 +43,51 @@ export default function ProgramCard(program: IProgram) {
           style={{
             background: '#D632EC',
             width: '320px',
-            height: '320px',
             top: '5%',
             left: '50%',
             animation: 'blobMove1 6s ease-in-out infinite',
             willChange: 'transform',
           }}
         />
-        <div 
-          className="absolute rounded-full opacity-70 blur-3xl animated-blob-2"
-          style={{
-            background: '#47BDF0',
-            width: '360px',
-            height: '360px',
-            bottom: '5%',
-            left: '5%',
-            animation: 'blobMove2 8s ease-in-out infinite',
-            willChange: 'transform',
-          }}
-        />
+       <div 
+        className="absolute rounded-full opacity-70 blur-3xl animated-blob-1"
+        style={{
+          background: '#D632EC',
+          width: '320px',
+          height: '320px',
+          top: '5%',
+          left: '50%',
+          animation: 'blobMove1 6s ease-in-out infinite',
+          willChange: 'transform',
+        }}
+      />
+      <div 
+        className="absolute rounded-full opacity-70 blur-3xl animated-blob-2"
+        style={{
+          background: '#47BDF0',
+          width: '360px',
+          height: '360px',
+          bottom: '5%',
+          left: '5%',
+          animation: 'blobMove2 8s ease-in-out infinite',
+          willChange: 'transform',
+        }}
+      />
         
-        <div className="relative z-10">
-          <div className="shadow-[0_4px_4px_0_rgba(0,0,0,0.25)] inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 self-start bg-[#5292FF]">
+        <div className="relative z-10 flex flex-col flex-1 min-h-0">
+          <div className="shadow-[0_4px_4px_0_rgba(0,0,0,0.25)] inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-3 self-start bg-[#5292FF]">
             <Clock className="w-4 h-4 text-white" />
             <span className="text-sm font-medium text-white">{program.duration} мин.</span>
           </div>
 
-          <h2 className="text-3xl font-bold mb-5 text-balance leading-tight text-white whitespace-nowrap text-center">{t(`${program.name}`)}</h2>
+          <h2 className="text-3xl font-bold mb-4 text-balance leading-tight text-white whitespace-nowrap text-center">{program.name}</h2>
 
-          <div className="flex-1">
-            <ul className="space-y-2">
-              {program.functions && program.functions.split(", ").map((service, index) => (
+          <div className="flex-1 min-h-0 overflow-y-auto mb-2">
+            <ul className="space-y-2 mb-2">
+            {program.functions && program.functions.split(", ").map((service, index) => (
                 <li key={index} className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-white flex-shrink-0" strokeWidth={3} />
-                  <span className="text-sm font-medium text-white">{t(`${service}`)}</span>
+                  <span className="text-sm font-medium text-white">{service}</span>
                 </li>
               ))}
             </ul>
@@ -94,14 +100,14 @@ export default function ProgramCard(program: IProgram) {
         </div>
       </div>
 
-      <div className="flex-shrink-0 p-6 bg-white">
-        <div className="mb-6 text-center">
+      <div className="flex-shrink-0 p-4 bg-white">
+        <div className="mb-3 text-center">
           <span className="text-6xl font-bold text-gray-900 tracking-tight">{Number(program.price)}</span>
-          <span className="text-2xl text-gray-500 ml-1">{t("р.")}</span>
+          <span className="text-2xl text-gray-500 ml-1">₽</span>
         </div>
 
         <div className="flex items-center justify-between p-3 cursor-pointer animate-pulse">
-          <Text className="text-black-800">{t("Выбрать программу")}</Text>
+          <Text className="text-black-800">Выбрать программу</Text>
           <Icon data={ArrowRight} size={18} className="text-gray-600" />
         </div>
       </div>

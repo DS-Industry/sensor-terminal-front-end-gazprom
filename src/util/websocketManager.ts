@@ -3,14 +3,15 @@ import { env } from '../config/env';
 
 const WS_BASE_URL = env.VITE_API_BASE_WS_URL;
 
-type WebSocketEvent = 'status_update' | 'mobile_payment' | 'device_status' | 'error' | 'card_reader';
+type WebSocketEvent = 'status_update' | 'mobile_payment' | 'device_status' | 'error' | 'card_reader' | 'order_qr_opti';
 
 export interface WebSocketMessage {
   type: WebSocketEvent;
   order_id?: string;
   status?: string;
   transaction_id?: string;
-  timestamp: string;
+  timestamp?: string;
+  qr?: string;
 }
 
 type EventListener = (data: WebSocketMessage) => void;
@@ -18,8 +19,11 @@ type EventListener = (data: WebSocketMessage) => void;
 class WebSocketManager {
   private ws: WebSocket | null = null;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectInterval = 5000;
+  private consecutiveFailures = 0;
+  private minReconnectInterval = 5000;    
+  private maxReconnectInterval = 60000;   
+  private longRetryInterval = 300000;     
+  private periodicRetryThreshold = 20;   
   private listeners: Map<WebSocketEvent, EventListener[]> = new Map();
   public isConnected = false;
   private connectionTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -36,23 +40,21 @@ class WebSocketManager {
   }
 
   private setupPageVisibilityHandling() {
-    // Handle page visibility changes (tab switching, minimizing)
-    // For 24/7 operation, we want to maintain connection even when tab is hidden
     this.visibilityHandler = () => {
       if (document.hidden) {
         logger.debug('Page hidden - maintaining WebSocket connection');
       } else {
         logger.debug('Page visible - checking WebSocket connection');
-        // If connection is lost while tab was hidden, reconnect
         if (!this.isConnected && !this.isConnecting) {
           logger.info('Reconnecting WebSocket after page became visible');
-          this.reconnectAttempts = 0; // Reset attempts for manual reconnect
+          // Reset counters when page becomes visible - gives fresh start
+          this.reconnectAttempts = 0;
+          this.consecutiveFailures = 0;
           this.connect();
         }
       }
     };
 
-    // Handle page unload (browser close/refresh) - only cleanup, don't prevent
     this.beforeUnloadHandler = () => {
       logger.info('Page unloading - cleaning up WebSocket');
       this.cleanup();
@@ -80,7 +82,6 @@ class WebSocketManager {
   }
 
   connect() { 
-    // Prevent duplicate connection attempts
     if (this.ws?.readyState === WebSocket.OPEN) {
       logger.debug('WebSocket already connected, skipping');
       return;
@@ -113,7 +114,9 @@ class WebSocketManager {
         this.isConnecting = false;
         this.connectionId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         logger.info(`Global WebSocket connected [${this.connectionId}]`);
+        // Reset counters on successful connection
         this.reconnectAttempts = 0;
+        this.consecutiveFailures = 0;
         this.isConnected = true;
         this.startHealthCheck();
       };
@@ -149,8 +152,7 @@ class WebSocketManager {
           this.connectionTimeout = null;
         }
         this.stopHealthCheck();
-        // Only auto-reconnect if it wasn't a manual close
-        if (event.code !== 1000) { // 1000 = normal closure
+        if (event.code !== 1000) { 
           this.handleReconnect();
         }
       };
@@ -163,23 +165,17 @@ class WebSocketManager {
   }
 
   private startHealthCheck() {
-    // Stop existing health check if any
     this.stopHealthCheck();
 
-    // For 24/7 operation, periodically check connection health
-    // Check every 30 seconds
     this.healthCheckInterval = setInterval(() => {
       if (this.ws) {
-        // Check if connection is still alive
         if (this.ws.readyState === WebSocket.CLOSED || this.ws.readyState === WebSocket.CLOSING) {
           logger.warn('WebSocket health check: connection is closed, reconnecting...');
           this.isConnected = false;
           this.stopHealthCheck();
-          this.reconnectAttempts = 0; // Reset for health check reconnect
-          this.connect();
+          // Don't reset reconnectAttempts here - let exponential backoff handle it
+          this.handleReconnect();
         } else if (this.ws.readyState === WebSocket.OPEN) {
-          // Connection is open, send ping if server supports it
-          // Most WebSocket servers support ping/pong
           try {
             this.ws.send(JSON.stringify({ type: 'ping' }));
           } catch (error) {
@@ -187,7 +183,7 @@ class WebSocketManager {
           }
         }
       }
-    }, 30000); // 30 seconds
+    }, 30000);
   }
 
   private stopHealthCheck() {
@@ -197,23 +193,53 @@ class WebSocketManager {
     }
   }
 
+  /**
+   * Calculate exponential backoff delay for reconnection attempts
+   * Formula: minInterval * 2^attempt, capped at maxInterval
+   * Examples: 5s, 10s, 20s, 40s, 60s, 60s, 60s...
+   */
+  private getReconnectDelay(attempt: number): number {
+    const exponentialDelay = Math.min(
+      this.minReconnectInterval * Math.pow(2, attempt),
+      this.maxReconnectInterval
+    );
+    return exponentialDelay;
+  }
+
   private handleReconnect() {
-    // Clear existing reconnect timeout if any
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
 
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      logger.info(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    this.reconnectAttempts++;
+    this.consecutiveFailures++;
+
+    // After many consecutive failures, switch to periodic retry (every 5 minutes)
+    // This prevents excessive resource usage during extended outages
+    if (this.consecutiveFailures > this.periodicRetryThreshold) {
+      const delaySeconds = Math.round(this.longRetryInterval / 1000);
+      logger.warn(
+        `Many consecutive failures (${this.consecutiveFailures}), switching to periodic retry every ${delaySeconds}s`
+      );
       
       this.reconnectTimeout = setTimeout(() => {
         this.reconnectTimeout = null;
         this.connect();
-      }, this.reconnectInterval);
+      }, this.longRetryInterval);
     } else {
-      logger.error('Max reconnection attempts reached');
+      // Normal exponential backoff
+      const delay = this.getReconnectDelay(this.reconnectAttempts);
+      const delaySeconds = Math.round(delay / 1000);
+      
+      logger.info(
+        `Reconnecting in ${delaySeconds}s... (attempt ${this.reconnectAttempts}, consecutive failures: ${this.consecutiveFailures})`
+      );
+      
+      this.reconnectTimeout = setTimeout(() => {
+        this.reconnectTimeout = null;
+        this.connect();
+      }, delay);
     }
   }
 
@@ -247,7 +273,6 @@ class WebSocketManager {
   }
 
   cleanup() {
-    // Cleanup method for page unload - stops reconnection attempts
     this.stopHealthCheck();
     if (this.connectionTimeout) {
       clearTimeout(this.connectionTimeout);
@@ -257,15 +282,10 @@ class WebSocketManager {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
-    // Remove page visibility event listeners
     this.removePageVisibilityHandling();
-    // Note: We don't clear listeners here as they'll be garbage collected
-    // For 24/7 operation, we typically don't want to close the connection
-    // unless explicitly requested
   }
 
   close() {
-    // Explicit close - stops reconnection and closes connection
     this.stopHealthCheck();
     if (this.connectionTimeout) {
       clearTimeout(this.connectionTimeout);
@@ -275,16 +295,18 @@ class WebSocketManager {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
-    // Remove page visibility event listeners
     this.removePageVisibilityHandling();
     if (this.ws) {
-      this.ws.close(1000, 'Manual close'); // 1000 = normal closure
+      this.ws.close(1000, 'Manual close');
       this.ws = null;
     }
     this.listeners.clear();
     this.isConnected = false;
     this.isConnecting = false;
     this.connectionId = null;
+    // Reset counters on manual close
+    this.reconnectAttempts = 0;
+    this.consecutiveFailures = 0;
   }
 }
 

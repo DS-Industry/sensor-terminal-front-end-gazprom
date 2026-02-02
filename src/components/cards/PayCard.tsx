@@ -1,7 +1,6 @@
-import { RiMastercardLine, RiVisaLine } from "react-icons/ri";
+import { RiVisaLine, RiMastercardFill } from "react-icons/ri";
 import { FaApplePay, FaGooglePay } from "react-icons/fa6";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { Card, Text } from "@gravity-ui/uikit";
 
 interface IPayCard {
@@ -20,7 +19,6 @@ export default function PayCard({
   price,
 }: IPayCard) {
   const navigate = useNavigate();
-  const { t } = useTranslation();
 
   return (
     <Card
@@ -35,7 +33,7 @@ export default function PayCard({
         });
       }}
       role="button"
-      aria-label={t(`${label}`)}
+      aria-label={label}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -52,7 +50,7 @@ export default function PayCard({
       <div className="p-6 h-full flex flex-col">
         <div className="flex justify-between items-start mb-4">
           <Text className="text-white font-bold text-[20px]">
-            {t(`${label}`)}
+            {label}
           </Text>
         </div>
 
@@ -60,21 +58,31 @@ export default function PayCard({
           <img
             src={imgUrl}
             alt="logo pay way"
-            className="h-24 w-auto object-contain"
+            className="h-24 w-auto object-contain max-w-[104px]"
+            loading="lazy"
+            decoding="async"
           />
         </div>
 
-        <div className="mt-4 h-20 flex items-center">
-          <div className="bg-[#89BAFB99] p-2 rounded-2xl text-center w-full h-full flex flex-col justify-center">
-            <div className="text-white/80 text-[15px] mb-1">{t("Банковские карты")}</div>
-            <div className="flex flex-row justify-center gap-3 items-center h-6">
-              <RiMastercardLine className="text-white text-2xl" />
-              <RiVisaLine className="text-white text-2xl" />
-              <FaApplePay className="text-white text-2xl" />
-              <FaGooglePay className="text-white text-2xl" />
+        {endPoint === "opti24" ? (
+          <div className="mt-4 h-20 flex items-center">
+            <div className="bg-[#89BAFB99] p-2 rounded-2xl text-center w-full h-full flex flex-col justify-center">
+              <div className="text-white/80 text-[15px]">Оплата с помощью топливной карты ОПТИ 24</div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="mt-4 h-20 flex items-center">
+            <div className="bg-[#89BAFB99] p-2 rounded-2xl text-center w-full h-full flex flex-col justify-center">
+              <div className="text-white/80 text-[15px] mb-1">Банковские карты</div>
+              <div className="flex flex-row justify-center gap-3 items-center h-6">
+                <RiMastercardFill className="text-white text-2xl" />
+                <RiVisaLine className="text-white text-2xl" />
+                <FaApplePay className="text-white text-2xl" />
+                <FaGooglePay className="text-white text-2xl" />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Card>
   );

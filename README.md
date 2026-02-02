@@ -140,21 +140,42 @@ src/
 │   ├── cards/         # Card components
 │   ├── modals/        # Modal components
 │   ├── state/         # Zustand store slices
+│   │   ├── order/     # Order slice
+│   │   ├── app/       # App slice
+│   │   ├── modal/     # Modal slice
+│   │   └── payment/   # Payment slice
+│   ├── guards/        # Route guards
 │   └── ui/            # UI components
 ├── config/            # Configuration files
 │   └── env.ts         # Environment variable validation
 ├── constants/         # Application constants
 ├── hooks/             # Custom React hooks
+│   ├── payment/       # Payment-related hooks
+│   │   ├── useOrderCreation.ts
+│   │   ├── usePaymentPolling.ts
+│   │   ├── useQueueManagement.ts
+│   │   ├── useRobotStart.ts
+│   │   └── usePaymentFlow.ts
+│   └── ...            # Other hooks
 ├── i18n/              # Internationalization setup
 ├── layouts/           # Layout components
 ├── pages/             # Page components
+├── services/          # Services
+│   └── websocketService.ts # WebSocket service
+├── state/             # State machine definitions
+│   └── paymentStateMachine.ts
 ├── test/              # Test utilities and setup
 ├── util/              # Utility functions
 │   ├── logger.ts      # Logging utility
 │   ├── errorTracking.ts # Error tracking (Sentry)
 │   └── websocketManager.ts # WebSocket manager
+├── utils/             # Utility functions
+│   ├── navigation.ts  # Navigation utilities
+│   └── errorHandling.ts # Error handling utilities
 └── main.tsx           # Application entry point
 ```
+
+For detailed architecture information, see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## 🔐 Environment Variables
 
@@ -176,18 +197,25 @@ src/
 
 ### Payment Processing
 
-The payment flow is handled by the `usePaymentProcessing` hook, which:
-- Creates orders via API
-- Polls for payment status
-- Handles queue management
-- Manages automatic robot start countdown
+The payment flow is handled by the `usePaymentFlow` hook, which orchestrates multiple specialized hooks:
+- `useOrderCreation`: Creates orders via API
+- `usePaymentPolling`: Polls for payment status
+- `useQueueManagement`: Handles queue position and navigation
+- `useRobotStart`: Manages robot start process
+
+The payment state is managed by a finite state machine (see `ARCHITECTURE.md` for details).
 
 ### WebSocket Integration
 
-Real-time updates are handled by the `WebSocketManager` class:
+Real-time updates are handled by:
+- `WebSocketManager` (`util/websocketManager.ts`): Low-level WebSocket connection management
+- `WebSocketService` (`services/websocketService.ts`): High-level service that handles events and updates the store
+
+Features:
 - Automatic reconnection on disconnect
 - Event-based message handling
 - Connection status tracking
+- Store updates on order status changes
 
 ### Error Handling
 
@@ -197,9 +225,13 @@ Real-time updates are handled by the `WebSocketManager` class:
 
 ### State Management
 
-Zustand store slices:
+Zustand store with multiple slices:
 - `orderSlice`: Order state management
-- Global state for programs, queue, loading states
+- `appSlice`: Application state (programs, queue, loading states)
+- `modalSlice`: Modal state
+- `paymentSlice`: Payment state machine state
+
+The payment flow uses a finite state machine for predictable state transitions (see `ARCHITECTURE.md`).
 
 ## 🧪 Testing
 

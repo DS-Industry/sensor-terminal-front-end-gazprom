@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+img {
+  pointer-events: none;
+  user-drag: none;
+  -webkit-user-drag: none;
+  -moz-user-drag: none; 
+  -ms-user-drag: none; 
+}
+
 @keyframes cardEnter {
   0% {
     transform: translate(260px, -100px) rotate(-75deg) scale(0.85);
