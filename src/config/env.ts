@@ -4,6 +4,11 @@ interface EnvConfig {
   VITE_S3_URL?: string;
   VITE_ATTACHMENT_BASE_URL?: string;
   VITE_REFRESH_INTERVAL?: string;
+  VITE_S3_ENDPOINT?: string;
+  VITE_S3_BUCKET_NAME?: string;
+  VITE_S3_REGION?: string;
+  VITE_AWS_ACCESS_KEY_ID?: string;
+  VITE_AWS_SECRET_ACCESS_KEY?: string;
 }
 
 const REQUIRED_ENV_VARS = [
@@ -15,6 +20,11 @@ const OPTIONAL_ENV_VARS = {
   VITE_S3_URL: '',
   VITE_ATTACHMENT_BASE_URL: '',
   VITE_REFRESH_INTERVAL: '3600000',
+  VITE_S3_ENDPOINT: '',
+  VITE_S3_BUCKET_NAME: '',
+  VITE_S3_REGION: 'ru-1',
+  VITE_AWS_ACCESS_KEY_ID: '',
+  VITE_AWS_SECRET_ACCESS_KEY: '',
 } as const;
 
 function validateEnv(): EnvConfig {
