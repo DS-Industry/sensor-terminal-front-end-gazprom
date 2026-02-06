@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { createOrder } from '../../api/services/payment';
-import { EPaymentMethod } from '../../components/state/order/orderSlice';
+import { EPaymentMethod, EOrderStatus } from '../../components/state/order/orderSlice';
 import { PaymentState } from '../../state/paymentStateMachine';
 import { logger } from '../../util/logger';
 import useStore from '../../components/state/store';
@@ -60,6 +60,18 @@ export function useOrderCreation({ selectedProgram, paymentMethod }: UseOrderCre
     } catch (err: any) {
       if (err?.name === 'AbortError' || abortSignal.aborted) {
         logger.info(`[${paymentMethod}] Order creation aborted`);
+        return;
+      }
+
+      const isTimeoutError = err?.message?.includes('timeout') || err?.code === 'ECONNABORTED';
+      const currentState = useStore.getState();
+      const paymentWasConfirmed = 
+        currentState.paymentState === PaymentState.PAYMENT_SUCCESS ||
+        currentState.order?.status === EOrderStatus.PAYED;
+
+      if (isTimeoutError && paymentWasConfirmed) {
+        logger.warn(`[${paymentMethod}] HTTP request timed out but payment was already confirmed via WebSocket - ignoring timeout error`);
+        isCreatingRef.current = false;
         return;
       }
 
