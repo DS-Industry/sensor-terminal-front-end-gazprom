@@ -144,6 +144,7 @@ class WebSocketManager {
 
       this.ws.onclose = (event) => {
         logger.info(`WebSocket disconnected: ${event.code} ${event.reason} [${this.connectionId || 'unknown'}]`);
+        this.ws = null;
         this.isConnected = false;
         this.isConnecting = false;
         this.connectionId = null;
@@ -152,9 +153,12 @@ class WebSocketManager {
           this.connectionTimeout = null;
         }
         this.stopHealthCheck();
-        if (event.code !== 1000) { 
-          this.handleReconnect();
+        if (event.code === 1000) {
+          this.reconnectAttempts = 0;
+          this.consecutiveFailures = 0;
+          logger.info('WebSocket closed cleanly (1000), reconnecting shortly...');
         }
+        this.handleReconnect();
       };
 
     } catch (error) {
