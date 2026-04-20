@@ -111,6 +111,9 @@ export default function MainPage() {
                         id={item.id}
                         name={item.name}
                         price={item.price}
+                        lty_price={item.lty_price}
+                        start_time_lty_price={item.start_time_lty_price}
+                        end_time_lty_price={item.end_time_lty_price}
                         description={item.description}
                         duration={item.duration}
                         functions={item.functions}
