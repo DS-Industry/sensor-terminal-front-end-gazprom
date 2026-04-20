@@ -8,6 +8,10 @@ import { logger } from "../../util/logger";
 
 export default function ProgramCard(program: IProgram) {
   const navigate = useNavigate();
+  const hasHappyHours =
+    !!program.lty_price &&
+    !!program.start_time_lty_price &&
+    !!program.end_time_lty_price;
 
   const { setOrderProgramId, setSelectedProgram } = useStore.getState();
 
@@ -105,6 +109,15 @@ export default function ProgramCard(program: IProgram) {
           <span className="text-6xl font-bold text-gray-900 tracking-tight">{Number(program.price)}</span>
           <span className="text-2xl text-gray-500 ml-1">₽</span>
         </div>
+
+        {hasHappyHours && (
+          <div className="mb-3 rounded-xl bg-blue-50 px-3 py-2 text-center flex flex-col">
+            <span className="text-xs font-medium text-blue-800">
+              Счастливые часы: с {program.start_time_lty_price} до {program.end_time_lty_price}
+            </span>
+            <span className="text-xs font-medium text-blue-800">{Number(program.lty_price)} ₽</span>
+          </div>
+        )}
 
         <div className="flex items-center justify-between p-3 cursor-pointer animate-pulse">
           <Text className="text-black-800">Выбрать программу</Text>
