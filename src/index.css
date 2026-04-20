@@ -22,7 +22,11 @@ img {
     transform: translate(260px, -100px) rotate(-75deg) scale(0.85);
     opacity: 1;
   }
-  50% {
+  25% {
+    transform: translate(0, 0) rotate(15deg) scale(1.15);
+    opacity: 1;
+  }
+  70% {
     transform: translate(0, 0) rotate(15deg) scale(1.15);
     opacity: 1;
   }

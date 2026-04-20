@@ -112,7 +112,7 @@ export default function CardPayPage() {
                       alt="card"
                       className="absolute -bottom-12 -right-12 w-96 h-60 object-contain"
                       style={{
-                        animation: 'cardEnter 5s ease-in-out infinite'
+                        animation: "cardEnter 9s ease-in-out infinite"
                       }}
                       loading="lazy"
                       decoding="async"
