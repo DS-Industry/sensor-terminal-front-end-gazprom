@@ -1,4 +1,3 @@
-import { useTranslation } from "react-i18next";
 import gazpromHeader from "../assets/gazprom-step-2-header.webp";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 
@@ -8,8 +7,6 @@ export default function InstructionLayout({
 }: {
   children: React.ReactNode;
 }) {
-
-  const { t } = useTranslation();
   
   return (
     <main className="h-[1024px] w-[1280px] bg-white overflow-hidden flex flex-col">
@@ -18,10 +15,11 @@ export default function InstructionLayout({
           src={gazpromHeader} 
           alt="Header" 
           className="w-full h-full object-cover"
+          decoding="async"
         />
       </div>
       <div className="flex-shrink-0">
-        <HeaderWithLogo title={t("Инструкция")} isInstructionPage={true} /> 
+        <HeaderWithLogo title="Инструкция" isInstructionPage={true} /> 
       </div>
       <div className="flex-1 overflow-hidden min-h-0">{children}</div>
     </main>
