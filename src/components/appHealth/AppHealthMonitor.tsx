@@ -6,6 +6,12 @@ import useStore from '../state/store';
 import { navigateToMain } from '../../utils/navigation';
 import { EOrderStatus } from '../state/order/orderSlice';
 
+const ACTIVE_PAYMENT_STATUSES = [
+  EOrderStatus.WAITING_PAYMENT,
+  EOrderStatus.PAYED,
+  EOrderStatus.PROCESSING,
+];
+
 export function AppHealthMonitor() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -14,21 +20,29 @@ export function AppHealthMonitor() {
   const appStartTimeRef = useRef<number>(Date.now());
   const lastResetTimeRef = useRef<number>(Date.now());
   const skippedResetsRef = useRef<number>(0);
-  const { order, clearOrder, setSelectedProgram, setBankCheck, setInsertedAmount, setQueuePosition, setQueueNumber } = useStore();
-  const store = useStore; // Keep reference to store for accessing current state in callbacks
+  const locationPathnameRef = useRef(location.pathname);
+  const navigateRef = useRef(navigate);
+  const store = useStore;
 
   const refreshInterval = getRefreshInterval();
 
-  // Watchdog configuration
-  const heartbeatInterval = 10000; // Check every 10 seconds
-  const maxHeartbeatDelay = 30000; // If heartbeat is delayed by more than 30s, app is frozen
+  const heartbeatInterval = 10000;
+  const maxHeartbeatDelay = 30000;
   const lastHeartbeatTimeRef = useRef<number>(Date.now());
   const scheduledHeartbeatTimeRef = useRef<number>(Date.now());
   const heartbeatTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafCheckRef = useRef<number | null>(null);
   const lastRafTimeRef = useRef<number>(Date.now());
   const frozenDetectionCountRef = useRef<number>(0);
-  const frozenDetectionThreshold = 3; // Require 3 consecutive detections before refresh
+  const frozenDetectionThreshold = 3;
+
+  useEffect(() => {
+    locationPathnameRef.current = location.pathname;
+  }, [location.pathname]);
+
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
 
   const checkMemoryUsage = () => {
     if ('memory' in performance) {
@@ -51,21 +65,18 @@ export function AppHealthMonitor() {
   };
 
   const shouldSkipHealthActions = (): boolean => {
-    const activePaymentStatuses = [
-      EOrderStatus.WAITING_PAYMENT,
-      EOrderStatus.PAYED,
-      EOrderStatus.PROCESSING,
-    ];
-    
-    return order !== null && activePaymentStatuses.includes(order.status);
+    const currentOrder = store.getState().order;
+    return currentOrder !== null && ACTIVE_PAYMENT_STATUSES.includes(currentOrder.status);
   };
 
   const performSoftReset = () => {
+    const currentOrder = store.getState().order;
+
     if (shouldSkipHealthActions()) {
       skippedResetsRef.current++;
       logger.debug(`[AppHealth] Skipping soft reset - active payment flow detected`, {
-        orderId: order?.id,
-        status: order?.status,
+        orderId: currentOrder?.id,
+        status: currentOrder?.status,
         skippedCount: skippedResetsRef.current,
       });
       return;
@@ -75,11 +86,12 @@ export function AppHealthMonitor() {
     const timeSinceLastReset = Date.now() - lastResetTimeRef.current;
     const uptimeHours = Math.round(uptime / 3600000 * 10) / 10;
     const timeSinceResetHours = Math.round(timeSinceLastReset / 3600000 * 10) / 10;
+    const currentPath = locationPathnameRef.current;
 
     logger.info(`[AppHealth] Performing periodic soft reset`, {
       uptimeHours,
       timeSinceResetHours,
-      currentPath: location.pathname,
+      currentPath,
       skippedResets: skippedResetsRef.current,
     });
 
@@ -90,6 +102,15 @@ export function AppHealthMonitor() {
       logger.info(`[AppHealth] Memory before reset: ${memoryInfo.usedMB}MB (${memoryInfo.usagePercent}%)`);
     }
 
+    const {
+      clearOrder,
+      setSelectedProgram,
+      setBankCheck,
+      setInsertedAmount,
+      setQueuePosition,
+      setQueueNumber,
+    } = store.getState();
+
     clearOrder();
     setSelectedProgram(null);
     setBankCheck("");
@@ -97,9 +118,9 @@ export function AppHealthMonitor() {
     setQueuePosition(null);
     setQueueNumber(null);
 
-    if (location.pathname !== '/') {
+    if (currentPath !== '/') {
       logger.info(`[AppHealth] Navigating to home page for soft reset`);
-      navigateToMain(navigate);
+      navigateToMain(navigateRef.current);
     } else {
       logger.debug(`[AppHealth] Already on home page, skipping navigation`);
     }
@@ -139,21 +160,15 @@ export function AppHealthMonitor() {
 
         // If we've detected freeze multiple times consecutively, refresh the page
         if (frozenDetectionCountRef.current >= frozenDetectionThreshold) {
-          // Check current order state from store (not closure) to ensure we have latest value
           const currentOrder = store.getState().order;
-          const activePaymentStatuses = [
-            EOrderStatus.WAITING_PAYMENT,
-            EOrderStatus.PAYED,
-            EOrderStatus.PROCESSING,
-          ];
-          const isActivePayment = currentOrder !== null && activePaymentStatuses.includes(currentOrder.status);
-          
+          const isActivePayment = currentOrder !== null && ACTIVE_PAYMENT_STATUSES.includes(currentOrder.status);
+
           if (isActivePayment) {
             logger.warn(`[AppHealth] Watchdog: App frozen but skipping refresh - active payment flow`, {
               orderId: currentOrder?.id,
               status: currentOrder?.status,
             });
-            frozenDetectionCountRef.current = 0; // Reset counter, will check again
+            frozenDetectionCountRef.current = 0;
           } else {
             logger.error(`[AppHealth] Watchdog: App appears frozen, refreshing page`, {
               consecutiveDetections: frozenDetectionCountRef.current,
