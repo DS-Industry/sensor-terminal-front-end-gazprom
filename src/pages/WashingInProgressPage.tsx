@@ -6,6 +6,7 @@ import { logger } from "../util/logger";
 import { globalWebSocketManager, type WebSocketMessage } from "../util/websocketManager";
 import { EOrderStatus } from "../components/state/order/orderSlice";
 import { navigateToMain } from "../utils/navigation";
+import { useBlockBrowserBack } from "../hooks/useBlockBrowserBack";
 import gazpromHeader from "../assets/gazprom-step-2-header.webp";
 
 export default function WashingInProgressPage() {
@@ -14,11 +15,20 @@ export default function WashingInProgressPage() {
 
   const { order } = useStore();
 
+  useBlockBrowserBack(order?.status !== EOrderStatus.COMPLETED, 'WashingInProgressPage');
+
+  useEffect(() => {
+    const currentOrder = useStore.getState().order;
+    logger.info('[WashingInProgressPage] Mounted', { orderId: currentOrder?.id, status: currentOrder?.status });
+    return () => {
+      logger.info('[WashingInProgressPage] Unmounted');
+    };
+  }, []);
+
   useEffect(() => {
     const handleStatusUpdate = (data: WebSocketMessage) => {
       if (data.type === 'status_update' && data.status === EOrderStatus.COMPLETED) {
         logger.info('[WashingInProgressPage] Received COMPLETED status update, navigating home', { orderId: data.order_id });
-        console.log("status update: ", data)
         navigateToMain(navigate);
       }
     };
@@ -41,18 +51,18 @@ export default function WashingInProgressPage() {
     setIsLoading(false);
   }, [setIsLoading]);
 
-
   const handlePayInAdvance = () => {
+    logger.info('[WashingInProgressPage] Pay in advance clicked, navigating to main');
     const { clearOrder, setIsLoading, setInsertedAmount, resetPayment, setSelectedProgram, setBankCheck, setQueuePosition, setQueueNumber } = useStore.getState();
     clearOrder();
     setIsLoading(false);
     setInsertedAmount(0);
     resetPayment();
     setSelectedProgram(null);
-    setBankCheck(""); 
-    setQueuePosition(null); 
-    setQueueNumber(null); 
-    navigate("/");
+    setBankCheck("");
+    setQueuePosition(null);
+    setQueueNumber(null);
+    navigateToMain(navigate);
   };
 
   const shouldShowPayInAdvance = true
@@ -83,6 +93,7 @@ export default function WashingInProgressPage() {
               </p>
 
               <button
+                type="button"
                 onClick={handlePayInAdvance}
                 className="px-16 py-4 text-[#0B68E1] bg-white font-semibold text-2xl transition-all duration-300 hover:opacity-90 hover:scale-105 shadow-lg mb-8"
                 style={{borderRadius: "30px"}}

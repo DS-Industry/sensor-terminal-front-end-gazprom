@@ -12,6 +12,7 @@ export default function ProgramCard(program: IProgram) {
     !!program.lty_price &&
     !!program.start_time_lty_price &&
     !!program.end_time_lty_price;
+  const isStandard = program.name.trim().toLowerCase() === "стандарт";
 
   const { setOrderProgramId, setSelectedProgram } = useStore.getState();
 
@@ -105,9 +106,18 @@ export default function ProgramCard(program: IProgram) {
       </div>
 
       <div className="flex-shrink-0 p-4 bg-white">
-        <div className="mb-3 text-center">
-          <span className="text-6xl font-bold text-gray-900 tracking-tight">{Number(program.price)}</span>
-          <span className="text-2xl text-gray-500 ml-1">₽</span>
+        <div className="mb-3 flex h-[3.75rem] items-center justify-center">
+          {isStandard ? (
+            <div className="inline-flex items-baseline justify-center rounded-[20px] bg-[#FF6A00] px-5 py-2">
+              <span className="text-6xl font-bold leading-none text-white tracking-tight">{Number(program.price)}</span>
+              <span className="text-5xl font-bold leading-none text-white ml-2">₽</span>
+            </div>
+          ) : (
+            <div className="inline-flex items-baseline justify-center">
+              <span className="text-6xl font-bold leading-none text-gray-900 tracking-tight">{Number(program.price)}</span>
+              <span className="text-2xl leading-none text-gray-500 ml-1">₽</span>
+            </div>
+          )}
         </div>
 
         {hasHappyHours && (

@@ -7,6 +7,7 @@ import CarImage from "../assets/car.webp";
 import { logger } from "../util/logger";
 import { startRobot } from "../api/services/payment";
 import { navigateToWashing, navigateToMain } from "../utils/navigation";
+import { useBlockBrowserBack } from "../hooks/useBlockBrowserBack";
 import gazpromHeader from "../assets/gazprom-step-2-header.webp";
 
 export default function SuccessPaymentPage() {
@@ -15,6 +16,8 @@ export default function SuccessPaymentPage() {
   
   const [displayText, setDisplayText] = useState("Можете проезжать в бокс!");
   const robotStartedRef = useRef(false);
+
+  useBlockBrowserBack(order?.status !== EOrderStatus.COMPLETED, 'SuccessPaymentPage');
 
   useEffect(() => {
     if (order?.status === EOrderStatus.COMPLETED) {

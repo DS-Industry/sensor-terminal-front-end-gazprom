@@ -2,12 +2,13 @@ import "./../App.css";
 import ProgramCard from "../components/cards/ProgramCard";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
 import { usePrograms } from "../hooks/usePrograms";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import useStore from "../components/state/store";
 import { EOrderStatus } from "../components/state/order/orderSlice";
 import { startRobot } from "../api/services/payment";
 import { useNavigate } from "react-router-dom";
 import { logger } from "../util/logger";
+import { navigateToPaymentSuccess, navigateToWashing, navigateToError } from "../utils/navigation";
 
 import gazpromHeader from "../assets/gazprom-step-2-header.webp"
 
@@ -28,18 +29,31 @@ export default function MainPage() {
     resetPayment,
   } = useStore();
   const navigate = useNavigate();
+  const skipRobotStartRef = useRef(false);
 
   useEffect(() => {
-    // Clean all order-related states when entering main screen
+    const currentOrder = useStore.getState().order;
+
+    if (currentOrder?.status === EOrderStatus.PROCESSING) {
+      skipRobotStartRef.current = true;
+      logger.info('[MainPage] Wash still in progress, redirecting to washing page');
+      navigateToWashing(navigate);
+      return;
+    }
+
+    if (currentOrder?.status === EOrderStatus.PAYED) {
+      skipRobotStartRef.current = true;
+      logger.info('[MainPage] Paid order still active, redirecting to success page');
+      navigateToPaymentSuccess(navigate);
+      return;
+    }
+
     logger.info('[MainPage] Cleaning all order-related states');
     
-    // Clear order
     clearOrder();
     
-    // Reset payment state
     resetPayment();
     
-    // Reset app state related to orders
     setInsertedAmount(0);
     setIsLoading(false);
     setErrorCode(null);
@@ -50,6 +64,7 @@ export default function MainPage() {
     setOptiQrCode("");
     setBackConfirmationCallback(null);
   }, [
+    navigate,
     clearOrder,
     resetPayment,
     setInsertedAmount,
@@ -64,17 +79,21 @@ export default function MainPage() {
   ])
 
   useEffect(() => {
+    if (skipRobotStartRef.current) {
+      return;
+    }
+
     if (order?.status === EOrderStatus.PAYED) {
       if (order.id) {
         startRobot(order.id)
           .then(() => {
             logger.info('Robot started successfully, navigating to success page');
-            navigate('/success');
+            navigateToPaymentSuccess(navigate);
           })
           .catch((error) => {
             logger.error('Error starting robot from MainPage', error);
             setErrorCode(1004);
-            navigate('/error');
+            navigateToError(navigate);
           });
       }
     }
