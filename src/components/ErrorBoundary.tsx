@@ -31,15 +31,6 @@ export class ErrorBoundary extends Component<Props, State> {
     logger.error('ErrorBoundary caught an error', error, {
       componentStack: errorInfo.componentStack,
     });
-
-    if (!import.meta.env.DEV) {
-      import('../util/errorTracking').then(({ errorTracker }) => {
-        errorTracker.captureException(error, {
-          componentStack: errorInfo.componentStack,
-          errorBoundary: true,
-        }).catch(() => {});
-      });
-    }
   }
 
   handleReset = (): void => {

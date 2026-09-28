@@ -1,10 +1,9 @@
 import { PAYS } from "../pays-data";
 import PayCard from "../components/cards/PayCard";
-import { useTranslation } from "react-i18next";
 import { Clock } from "@gravity-ui/icons";
 import { Check } from "lucide-react";
 import HeaderWithLogo from "../components/headerWithLogo/HeaderWithLogo";
-import { Icon, Text, Card } from "@gravity-ui/uikit";
+import { Text, Card } from "@gravity-ui/uikit";
 import useStore from "../components/state/store";
 import { useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +12,6 @@ import gazpromHeader from "../assets/gazprom-step-2-header.webp";
 const IDLE_TIMEOUT = 30000;
 
 export default function SingleProgramPage() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const { selectedProgram } = useStore();
   const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -41,18 +39,19 @@ export default function SingleProgramPage() {
 
 
   return (
-    <div className="flex flex-col h-[1024px] w-[1280px] bg-gray-200 overflow-hidden">
+    <div className="flex flex-col min-h-[1024px] w-[1280px] bg-gray-200 overflow-hidden">
       <div className="w-full flex-shrink-0 h-64">
         <img 
           src={gazpromHeader} 
           alt="Header" 
           className="w-full h-full object-cover"
+          decoding="async"
         />
       </div>
 
-      <div className="flex-1 flex flex-col bg-gray-200 overflow-hidden" style={{ height: 'calc(1024px - 256px)' }}>
+      <div className="flex-1 flex flex-col bg-gray-200 overflow-hidden" style={{ maxHeight: 'calc(1024px - 256px)' }}>
 
-        <HeaderWithLogo title={t("Выберите способ оплаты")} />
+        <HeaderWithLogo title="Выберите способ оплаты" />
 
         <div className="flex-1 px-7 pb-7 overflow-hidden">
           {selectedProgram && (
@@ -60,18 +59,18 @@ export default function SingleProgramPage() {
 
               <div className="flex flex-row gap-6 justify-center items-center">
                 <div className="w-80 flex-shrink-0">
-                  <Card className="bg-white rounded-3xl shadow-xl overflow-hidden border-0 h-full"  style={{
+                  <Card className="bg-white rounded-3xl shadow-xl overflow-hidden border-0 h-full flex flex-col"  style={{
                       borderRadius: "20px",
                       boxShadow: "0 4px 4px 0 rgba(0, 0, 0, 0.25)",
+                      minHeight: "618px"
                     }}
                   >
                     <div 
-                      className="p-6 pb-8 relative min-h-[280px] overflow-hidden"
+                      className="p-4 relative overflow-hidden flex-1 flex flex-col"
                       style={{
-                        background: 'linear-gradient(to right, #0967E1, #D632EC)'
+                        background: 'linear-gradient(to right, #0967E1, #D632EC)',
                       }}
                     >
-                      {/* Animated blurred shapes */}
                       <div 
                         className="absolute rounded-full opacity-70 blur-3xl animated-blob-1"
                         style={{
@@ -97,26 +96,24 @@ export default function SingleProgramPage() {
                         }}
                       />
                       
-                      <div className="relative z-10">
+                      <div className="relative z-10 flex-1 flex flex-col">
                         <div className="flex">
-                        <div className="shadow-[0_4px_4px_0_rgba(0,0,0,0.25)] inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 self-start bg-[#5292FF]">
-                            <Icon data={Clock} size={18} className="text-white" />
-                            <Text className="text-white font-semibold text-sm">
-                              {selectedProgram.duration} {t("мин.")}
-                            </Text>
+                          <div className="shadow-[0_4px_4px_0_rgba(0,0,0,0.25)] inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-3 self-start bg-[#5292FF]">
+                            <Clock className="w-4 h-4 text-white" />
+                            <span className="text-sm font-medium text-white">{selectedProgram?.duration} мин.</span>
                           </div>
                         </div>
 
-                        <h2 className="text-3xl font-bold mb-5 text-white leading-tight text-center">
-                          {t(`${selectedProgram.name}`)}
+                        <h2 className="text-3xl font-bold mb-2 text-white leading-tight text-center">
+                          {selectedProgram.name}
                         </h2>
 
-                        <div className="space-y-2.5 mt-4">
-                          {selectedProgram.functions && selectedProgram.functions.split(", ").map((service, index) => (
-                            <div key={index} className="flex items-center gap-2.5">
+                        <div className="space-y-2 flex-1">
+                        {selectedProgram.functions && selectedProgram.functions.split(", ").map((service, index) => (
+                            <div key={index} className="flex items-center gap-2">
                               <Check size={18} className="text-white flex-shrink-0 stroke-[3]" />
                               <Text className="text-white font-medium text-sm leading-relaxed">
-                                {t(`${service}`)}
+                                {service}
                               </Text>
                             </div>
                           ))}
@@ -124,19 +121,19 @@ export default function SingleProgramPage() {
                       </div>
                     </div>
 
-                    <div className="p-9 bg-white text-center">
-                      <div className="mb-4">
+                    <div className="p-6 bg-white text-center">
+                      <div className="mb-2">
                         <span className="text-6xl font-bold text-gray-900 tracking-tight">
                           {Number(selectedProgram.price)}
                         </span>
                         <span className="text-2xl text-gray-500 ml-1 font-semibold">
-                          {t("р.")}
+                          ₽
                         </span>
                       </div>
                       <div className="flex items-center justify-center gap-2">
                         <Check size={18} className="text-green-500 flex-shrink-0 stroke-[3]" />
                         <Text className="text-[#008618] font-semibold text-sm">
-                          {t("Выбранная программа")}
+                          Выбранная программа
                         </Text>
                       </div>
                     </div>

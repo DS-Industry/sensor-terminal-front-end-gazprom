@@ -9,19 +9,18 @@ export interface AppSlice {
   isLoading: boolean;
   insertedAmount: number;
   bankCheck: string;
-  navigationTarget: string | null;
+  optiQrCode: string; 
   errorCode: number | null;
-  backConfirmationCallback: (() => void) | null;
+  backConfirmationCallback: (() => void | Promise<void>) | null;
   setIsLoyalty: (loyalty: boolean) => void;
   setPrograms: (programs: IProgram[]) => void;
   setSelectedProgram: (program: IProgram | null) => void;
   setIsLoading: (isLoading: boolean) => void;
   setInsertedAmount: (inserted: number) => void;
   setBankCheck: (bankCheck: string) => void;
-  setNavigationTarget: (target: string | null) => void;
-  clearNavigation: () => void;
+  setOptiQrCode: (qrCode: string) => void;
   setErrorCode: (code: number | null) => void;
-  setBackConfirmationCallback: (callback: (() => void) | null) => void;
+  setBackConfirmationCallback: (callback: (() => void | Promise<void>) | null) => void;
   queuePosition: number | null;
   queueNumber: number | null;
   setQueuePosition: (position: number | null) => void;
@@ -36,7 +35,7 @@ export const createAppSlice: StoreSlice<AppSlice> = (set) => ({
   isLoading: false,
   insertedAmount: 0,
   bankCheck: "",
-  navigationTarget: null,
+  optiQrCode: "",
   errorCode: null,
   backConfirmationCallback: null,
   queuePosition: null,
@@ -66,12 +65,8 @@ export const createAppSlice: StoreSlice<AppSlice> = (set) => ({
     set(state => ({...state, bankCheck}));
   },
 
-  setNavigationTarget: (target) => {
-    set(state => ({...state, navigationTarget: target }));
-  },
-
-  clearNavigation: () => {
-    set(state => ({...state, navigationTarget: null }));
+  setOptiQrCode: (qrCode) => {
+    set(state => ({...state, optiQrCode: qrCode}));
   },
 
   setErrorCode: (code) => {
